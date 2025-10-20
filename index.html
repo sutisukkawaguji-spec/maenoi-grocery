@@ -182,78 +182,252 @@
   <div id="fb-customer-chat" class="fb-customerchat"></div>
 
   <script>
-    // ======= CONFIG (ใส่ของจริงของคุณเอง) =======
-    const FB_PAGE_ID = '801626436372815';   // Page ID เพจคุณ
-    const FB_APP_ID  = '1132550158989466';  // App ID ของคุณ
-    const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
+  // ======= CONFIG =======
+  const FB_PAGE_ID = '801626436372815';
+  const FB_APP_ID  = '1132550158989466';
+  const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
 
-    // ======= PRODUCTS (เพิ่ม/แก้ได้ตรงนี้) =======
-<!-- 1) เอา PapaParse มาแปลง CSV (เล็ก+เบา) -->
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  // ======= GOOGLE SHEET =======
+  const SHEET_ID = "1lbhYECYS3CZUkcIPo6mKEiKRJXftwqtRSzBaqd2uHdU";
+  const GID = "0";
 
-<script>
-// ====== ตั้งค่าลิงก์ Google Sheet ======
-const SHEET_ID = "1lbhYECYS3CZUkcIPo6mKEiKRJXftwqtRSzBaqd2uHdU"; // ของพี่
-const GID = "0"; // เลขชีท (แผ่น) — ถ้าแผ่นแรกมักเป็น "0". ถ้าพี่ใช้แผ่นอื่น ดูเลข gid จาก URL
+  // ======= STATE =======
+  let PRODUCTS = [];
+  let state = { q: '', category: '', min: '', max: '' };
+  let cart = JSON.parse(localStorage.getItem('cart') || '{}'); // { [id:string]: qty }
 
-// ====== เก็บสินค้าทั้งหมดแทน PRODUCTS เดิม ======
-let PRODUCTS = [];
+  // ======= HELPERS =======
+  const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
+  const findProduct = id => PRODUCTS.find(p => String(p.id) === String(id));  // เทียบเป็นสตริงให้ชัวร์
+  const cartCount = () => Object.values(cart).reduce((a,b)=>a+b,0);
+  const cartTotal = () => Object.entries(cart).reduce((sum,[id,qty]) => {
+    const p = findProduct(id); return sum + (p ? p.price * qty : 0);
+  }, 0);
+  const uniqueCategories = items => Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort();
 
-// ====== helper: แปลงแถวจากชีทให้เป็น object สินค้า ======
-function rowToItem(r) {
-  // รองรับหัวคอลัมน์ไทย/อังกฤษ: id, name/ชื่อ, price/ราคา, unit/หน่วย, category/หมวด, img/รูป, stock/คงเหลือ
-  const get = (...keys) => {
-    for (const k of keys) {
-      if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") return r[k];
+  function rowToItem(r){
+    const get = (...keys) => { for (const k of keys){ if (r[k] != null && String(r[k]).trim() !== "") return r[k]; } return ""; };
+    const price = Number(get("price","ราคา"));
+    const stock = Number(get("stock","คงเหลือ","สต็อก"));
+    return {
+      id: String(get("id","ID","sku","SKU")).trim(),
+      name: get("name","ชื่อ"),
+      price: isNaN(price) ? 0 : price,
+      unit: get("unit","หน่วย"),
+      category: get("category","หมวด"),
+      img: get("img","image","รูป"),
+      stock: isNaN(stock) ? 0 : stock,
+    };
+  }
+
+  async function loadProductsFromGoogleSheet(){
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&_=${Date.now()}`;
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const csv = await res.text();
+      const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
+      PRODUCTS = parsed.data.map(rowToItem).filter(x => x.name && x.price >= 0);
+      // หลังโหลดเสร็จค่อย render
+      renderCategories();
+      renderGrid(filterItems(PRODUCTS));
+      updateBadge();
+    }catch(err){
+      console.error("โหลดชีทไม่สำเร็จ:", err);
+      alert("โหลดรายการสินค้าไม่สำเร็จ โปรดตรวจสิทธิ์แชร์ชีทเป็น Anyone with the link: Viewer");
     }
-    return "";
-  };
-
-  const price = Number(get("price","ราคา"));
-  const stock = Number(get("stock","คงเหลือ","สต็อก"));
-
-  return {
-    id: get("id","ID","sku","SKU"),
-    name: get("name","ชื่อ"),
-    price: isNaN(price) ? 0 : price,
-    unit: get("unit","หน่วย"),
-    category: get("category","หมวด"),
-    img: get("img","image","รูป"),
-    stock: isNaN(stock) ? 0 : stock,
-  };
-}
-
-// ====== โหลดจาก Google Sheet (CSV export) ======
-async function loadProductsFromGoogleSheet() {
-  // ต้องตั้งแชร์ชีทเป็น Anyone with the link: Viewer
-  // ใช้ CSV export เพื่อหลบ CORS และไม่ต้องใช้ API key
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&_=${Date.now()}`;
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    console.error("โหลดชีทไม่สำเร็จ", res.status, url);
-    alert("โหลดรายการสินค้าไม่สำเร็จ ตรวจลิงก์หรือสิทธิ์การแชร์ของชีทครับ");
-    return;
   }
 
-  const csv = await res.text();
-  const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
-
-  PRODUCTS = parsed.data.map(rowToItem);
-
-  // ถ้ามีฟังก์ชันกรอง/หมวด/แสดงผลอยู่แล้ว ให้เรียกฟังก์ชันเดิมของพี่ เช่น renderGrid()
-  // === ตัวอย่างทั่วไป ===
-  if (typeof renderGrid === "function") {
-    renderGrid();            // วาดกริดสินค้าเดิม
-  } else if (typeof render === "function") {
-    render();                // บางโปรเจกต์ตั้งชื่อว่า render()
-  } else {
-    console.log("PRODUCTS loaded:", PRODUCTS);
+  function filterItems(items){
+    const q = state.q.trim().toLowerCase();
+    const c = state.category;
+    const min = state.min === '' ? -Infinity : Number(state.min);
+    const max = state.max === '' ? Infinity : Number(state.max);
+    return items.filter(it => {
+      const okQ = !q || (it.name||"").toLowerCase().includes(q);
+      const okC = !c || it.category === c;
+      const okP = it.price >= min && it.price <= max;
+      return okQ && okC && okP;
+    });
   }
-}
 
-// เรียกโหลดทันทีที่หน้าเสร็จ
-document.addEventListener("DOMContentLoaded", loadProductsFromGoogleSheet);
+  function renderCategories(){
+    const sel = document.getElementById('categorySelect');
+    sel.innerHTML = '<option value="">ทั้งหมด</option>';
+    uniqueCategories(PRODUCTS).forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat; opt.textContent = cat; sel.appendChild(opt);
+    });
+  }
+
+  function renderGrid(items){
+    const wrap = document.getElementById('productGrid');
+    const countEl = document.getElementById('resultCount');
+    wrap.innerHTML = '';
+    countEl.textContent = items.length;
+    if(items.length === 0){
+      wrap.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า หรือกำลังโหลด...</div>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    items.forEach(it => {
+      const el = document.createElement('article');
+      el.className = 'card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all';
+      el.innerHTML = `
+        <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
+          <img src="${it.img}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" />
+        </div>
+        <div class="p-3">
+          <h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
+          <div class="mt-1 flex items-center justify-between">
+            <span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit||'-'}</span>
+            <span class="text-xs text-gray-500">${it.category||'-'}</span>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
+            <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตสั่งรายการนี้</button>
+          </div>
+        </div>`;
+      frag.appendChild(el);
+    });
+    wrap.appendChild(frag);
+  }
+
+  function renderCart(){
+    const list = document.getElementById('cartList');
+    list.innerHTML = '';
+    const entries = Object.entries(cart);
+    if(entries.length === 0){
+      list.innerHTML = '<div class="p-4 text-center text-gray-500">ตะกร้าว่าง</div>';
+    } else {
+      entries.forEach(([id, qty]) => {
+        const p = findProduct(id);
+        if(!p) return; // กันเคส id หาย
+        const row = document.createElement('div');
+        row.className = 'p-3 flex items-center gap-3';
+        row.innerHTML = `
+          <img src="${p.img}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border">
+          <div class="flex-1">
+            <div class="text-sm font-semibold">${p.name}</div>
+            <div class="text-xs text-gray-500">${fmtBaht(p.price)} / ${p.unit||'-'}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button>
+            <span class="w-8 text-center">${qty}</span>
+            <button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button>
+          </div>
+          <div class="w-20 text-right font-medium">${fmtBaht(p.price * qty)}</div>
+        `;
+        list.appendChild(row);
+      });
+    }
+    document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
+  }
+
+  function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
+  function updateBadge(){ document.getElementById('cartBadge').textContent = cartCount(); }
+
+  function buildOrderText(){
+    const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, ''];
+    Object.entries(cart).forEach(([id, qty]) => {
+      const p = findProduct(id); if(!p) return;
+      lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit||'-'}) = ${fmtBaht(p.price*qty)}`);
+    });
+    lines.push('', 'ยอดรวม: ' + fmtBaht(cartTotal()), 'ขอที่อยู่จัดส่ง/นัดรับด้วยครับ');
+    return lines.join('\n');
+  }
+
+  async function copyOrderToClipboard(){
+    try{
+      await navigator.clipboard.writeText(buildOrderText());
+      alert('คัดลอกออเดอร์แล้ว ไปแปะในแชตได้เลย');
+    }catch(e){
+      const ta = document.createElement('textarea');
+      ta.value = buildOrderText(); document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      alert('คัดลอกออเดอร์แล้ว ไปแปะในแชตได้เลย');
+    }
+  }
+
+  function checkout(){
+    const ref = 'order_' + Date.now();
+    window.open('https://m.me/' + FB_PAGE_ID + '?ref=' + ref, '_blank');
+  }
+  function openCart(){ document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); }
+  function closeCart(){ document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); }
+
+  // ======= INIT =======
+  document.addEventListener('DOMContentLoaded', () => {
+    // Year
+    const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
+
+    // Loading state
+    document.getElementById('productGrid').innerHTML =
+      '<div class="col-span-full text-center text-gray-500 py-10">กำลังโหลดสินค้า...</div>';
+
+    // Filters
+    document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+    document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+    document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+    document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+    document.getElementById('clearFilters').addEventListener('click', () => {
+      state = { q:'', category:'', min:'', max:'' };
+      document.getElementById('searchInput').value = '';
+      document.getElementById('categorySelect').value = '';
+      document.getElementById('minPrice').value = '';
+      document.getElementById('maxPrice').value = '';
+      renderGrid(filterItems(PRODUCTS));
+    });
+
+    // Product buttons
+    document.getElementById('productGrid').addEventListener('click', (e) => {
+      const addBtn = e.target.closest('.btn-add');
+      const chatBtn = e.target.closest('.btn-chat');
+      if (addBtn) {
+        const id = addBtn.getAttribute('data-id');
+        cart[id] = (cart[id] || 0) + 1;
+        persistCart(); updateBadge();
+      }
+      if (chatBtn) {
+        const id = chatBtn.getAttribute('data-id');
+        const ref = 'buy_' + id;
+        window.open('https://m.me/' + FB_PAGE_ID + '?ref=' + ref, '_blank');
+      }
+    });
+
+    // Cart controls
+    document.getElementById('openCart').addEventListener('click', openCart);
+    document.getElementById('closeCart').addEventListener('click', closeCart);
+    document.getElementById('backdrop').addEventListener('click', closeCart);
+    document.getElementById('clearCart').addEventListener('click', () => { cart = {}; persistCart(); renderCart(); updateBadge(); });
+    document.getElementById('copyOrder').addEventListener('click', copyOrderToClipboard);
+    document.getElementById('checkout').addEventListener('click', checkout);
+
+    // Messenger links
+    document.getElementById('messengerLink').href = 'https://m.me/' + FB_PAGE_ID;
+    document.getElementById('fabChat').href = 'https://m.me/' + FB_PAGE_ID;
+
+    // FB Chat Plugin
+    if(FB_PAGE_ID && FB_PAGE_ID !== 'YOUR_PAGE_ID'){
+      const chatbox = document.getElementById('fb-customer-chat');
+      chatbox.setAttribute('page_id', FB_PAGE_ID);
+      chatbox.setAttribute('attribution', 'biz_inbox');
+      window.fbAsyncInit = function() { FB.init({ xfbml: true, version: 'v20.0', appId: FB_APP_ID }); };
+      (function(d, s, id){
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src = 'https://connect.facebook.net/th_TH/sdk/xfbml.customerchat.js';
+        fjs.parentNode.insertBefore(js, fjs);
+      }(document, 'script', 'facebook-jssdk'));
+    }
+
+    // SEO title
+    document.title = STORE_NAME + ' — เว็บแอปสินค้า';
+
+    // สุดท้าย: โหลดสินค้า
+    loadProductsFromGoogleSheet();
+  });
 
     // ======= STATE + STORAGE =======
     let state = { q: '', category: '', min: '', max: '' };
