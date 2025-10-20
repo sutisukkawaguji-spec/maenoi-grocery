@@ -276,41 +276,38 @@ const RAW_TXT_URL =
     let state = { q: '', category: '', min: '', max: '' };
     let cart = JSON.parse(localStorage.getItem('cart') || '{}'); // {productId: qty}
 
-    // ======= HELPERS (แทนที่ของเดิม) =======
-    const toId = v => String(v ?? "").trim();
-    
-    let cart = (() => {
-      const raw = JSON.parse(localStorage.getItem('cart') || '{}');
-      // เก็บ key เป็นสตริงเสมอ และ qty เป็น number
-      return Object.fromEntries(Object.entries(raw).map(([k, v]) => [toId(k), Number(v) || 0]));
-    })();
-    
+    // ======= HELPERS =======
     const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
-    
-    // สำคัญ: เทียบ id เป็น "สตริง" เสมอ
-    const findProduct = id => PRODUCTS.find(p => toId(p.id) === toId(id));
-    
-    const cartCount = () => Object.values(cart).reduce((a,b)=>a + (Number(b)||0), 0);
-    
-    const cartTotal = () => Object.entries(cart).reduce((sum, [id, qty]) => {
-      const p = findProduct(id);
-      return sum + (p ? p.price * (Number(qty)||0) : 0);
-    }, 0);
-    
-    function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
-    function updateBadge(){ document.getElementById('cartBadge').textContent = cartCount(); }
-    
-    // หลังโหลดสินค้าเสร็จ เรียกเพื่อล้าง id ที่ไม่มีใน PRODUCTS
-    function reconcileCart(){
-      let changed = false;
-      for(const id of Object.keys(cart)){
-        if(!findProduct(id)){ delete cart[id]; changed = true; }
-      }
-      if(changed) persistCart();
-      updateBadge();
+    const findProduct = id => PRODUCTS.find(p => p.id === Number(id));
+    const cartCount = () => Object.values(cart).reduce((a,b)=>a+b,0);
+    const cartTotal = () => Object.entries(cart).reduce((sum,[id,qty]) => sum + findProduct(id).price * qty, 0);
+
+    function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category))).sort(); }
+
+    function filterItems(items){
+      const q = state.q.trim().toLowerCase();
+      const c = state.category;
+      const min = state.min === '' ? -Infinity : Number(state.min);
+      const max = state.max === '' ? Infinity : Number(state.max);
+      return items.filter(it => {
+        const okQ = !q || it.name.toLowerCase().includes(q);
+        const okC = !c || it.category === c;
+        const okP = it.price >= min && it.price <= max;
+        return okQ && okC && okP;
+      });
     }
 
+    function renderCategories(){
+      const sel = document.getElementById('categorySelect');
+      sel.innerHTML = '<option value="">ทั้งหมด</option>'; // reset to avoid duplicates
+      uniqueCategories(PRODUCTS).forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat; opt.textContent = cat; sel.appendChild(opt);
+      });
+    }
 
+    function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
+    function updateBadge(){ document.getElementById('cartBadge').textContent = cartCount(); }
     // Render cards (no inline JS to avoid syntax issues)
     function renderGrid(items){
       const wrap = document.getElementById('productGrid');
