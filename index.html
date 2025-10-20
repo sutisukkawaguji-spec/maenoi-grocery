@@ -188,32 +188,72 @@
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
 
     // ======= PRODUCTS (เพิ่ม/แก้ได้ตรงนี้) =======
-    const PRODUCTS = [
-{ id: 1, name: 'มาม่า บะหมี่กึ่งสำเร็จรูป (ต้มยำกุ้ง)', price: 7, unit: 'ซอง',
-  category: 'อาหารแห้ง',
-  img: 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order01.png'
-},
-{ id: 2, name: 'ปลากระป๋อง', price: 25, unit: 'กระป๋อง',
-  category: 'อาหารแห้ง',
-  img: 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order02.png'
-},
-      { id: 2,  name: 'ปลากระป๋อง ตราม้า',                 price: 30,  unit:'กระป๋อง', category:'อาหารแห้ง', img:'https://images.unsplash.com/photo-1615486363871-838320b7be1a?q=80&w=800&auto=format&fit=crop' },
-      { id: 3,  name: 'ข้าวสารหอมมะลิ 5 กก.',               price: 165, unit:'ถุง',  category:'ข้าวสาร',   img:'https://images.unsplash.com/photo-1566837935700-30057527ade0?q=80&w=800&auto=format&fit=crop' },
-      { id: 4,  name: 'นม UHT รสจืด 200ml',                  price: 12,  unit:'กล่อง', category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1580915411954-282cb1b0d780?q=80&w=800&auto=format&fit=crop' },
-      { id: 5,  name: 'โค้ก 1.25 ลิตร',                       price: 28,  unit:'ขวด',  category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1541976076758-347942db1979?q=80&w=800&auto=format&fit=crop' },
-      { id: 6,  name: 'ไข่ไก่ เบอร์ 2 (แผง 30 ฟอง)',         price: 120, unit:'แผง',  category:'ของสด/ของแช่เย็น', img:'https://images.unsplash.com/photo-1517959105821-eaf2591984de?q=80&w=800&auto=format&fit=crop' },
-      { id: 7,  name: 'สบู่ก้อน สูตรอ่อนโยน',                 price: 22,  unit:'ก้อน', category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1523293182086-7651a899d37f?q=80&w=800&auto=format&fit=crop' },
-      { id: 8,  name: 'น้ำปลา 700ml',                         price: 28,  unit:'ขวด',  category:'เครื่องปรุง', img:'https://images.unsplash.com/photo-1586201375761-83865001e31b?q=80&w=800&auto=format&fit=crop' },
-      { id: 9,  name: 'ซีอิ๊วขาว 700ml',                      price: 29,  unit:'ขวด',  category:'เครื่องปรุง', img:'https://images.unsplash.com/photo-1604908552967-78f3dc5f74f3?q=80&w=800&auto=format&fit=crop' },
-      { id: 10, name: 'ปลากรอบซอง',                           price: 15,  unit:'ซอง',  category:'ขนมขบเคี้ยว', img:'https://images.unsplash.com/photo-1580231962143-c2d6492436e4?q=80&w=800&auto=format&fit=crop' },
-      { id: 11, name: 'เลย์ 48 กรัม',                          price: 20,  unit:'ซอง',  category:'ขนมขบเคี้ยว', img:'https://images.unsplash.com/photo-1617217131157-1c162255ea8f?q=80&w=800&auto=format&fit=crop' },
-      { id: 12, name: 'กาแฟกระป๋อง 180ml',                    price: 15,  unit:'กระป๋อง', category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1498804103079-a6351b050096?q=80&w=800&auto=format&fit=crop' },
-      { id: 13, name: 'น้ำดื่ม 600ml',                         price: 7,   unit:'ขวด',  category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?q=80&w=800&auto=format&fit=crop' },
-      { id: 14, name: 'ยาสระผม 450ml',                        price: 89,  unit:'ขวด',  category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1631730484817-816ba0bdab58?q=80&w=800&auto=format&fit=crop' },
-      { id: 15, name: 'ยาสีฟัน 160 กรัม',                     price: 49,  unit:'หลอด', category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1598440947619-2c35fc9a6e2b?q=80&w=800&auto=format&fit=crop' },
-      { id: 16, name: 'ยาสีฟัน 160 กรัม',                     price: 100,  unit:'หลอด', category:'ของใช้ในบ้าน', img:'https://github.com/sutisukkawaguji-spec/maenoi-grocery/blob/main/images/Screenshot%202025-10-20%20162832.png' }
+<!-- 1) เอา PapaParse มาแปลง CSV (เล็ก+เบา) -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-    ];
+<script>
+// ====== ตั้งค่าลิงก์ Google Sheet ======
+const SHEET_ID = "1lbhYECYS3CZUkcIPo6mKEiKRJXftwqtRSzBaqd2uHdU"; // ของพี่
+const GID = "0"; // เลขชีท (แผ่น) — ถ้าแผ่นแรกมักเป็น "0". ถ้าพี่ใช้แผ่นอื่น ดูเลข gid จาก URL
+
+// ====== เก็บสินค้าทั้งหมดแทน PRODUCTS เดิม ======
+let PRODUCTS = [];
+
+// ====== helper: แปลงแถวจากชีทให้เป็น object สินค้า ======
+function rowToItem(r) {
+  // รองรับหัวคอลัมน์ไทย/อังกฤษ: id, name/ชื่อ, price/ราคา, unit/หน่วย, category/หมวด, img/รูป, stock/คงเหลือ
+  const get = (...keys) => {
+    for (const k of keys) {
+      if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") return r[k];
+    }
+    return "";
+  };
+
+  const price = Number(get("price","ราคา"));
+  const stock = Number(get("stock","คงเหลือ","สต็อก"));
+
+  return {
+    id: get("id","ID","sku","SKU"),
+    name: get("name","ชื่อ"),
+    price: isNaN(price) ? 0 : price,
+    unit: get("unit","หน่วย"),
+    category: get("category","หมวด"),
+    img: get("img","image","รูป"),
+    stock: isNaN(stock) ? 0 : stock,
+  };
+}
+
+// ====== โหลดจาก Google Sheet (CSV export) ======
+async function loadProductsFromGoogleSheet() {
+  // ต้องตั้งแชร์ชีทเป็น Anyone with the link: Viewer
+  // ใช้ CSV export เพื่อหลบ CORS และไม่ต้องใช้ API key
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&_=${Date.now()}`;
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.error("โหลดชีทไม่สำเร็จ", res.status, url);
+    alert("โหลดรายการสินค้าไม่สำเร็จ ตรวจลิงก์หรือสิทธิ์การแชร์ของชีทครับ");
+    return;
+  }
+
+  const csv = await res.text();
+  const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
+
+  PRODUCTS = parsed.data.map(rowToItem);
+
+  // ถ้ามีฟังก์ชันกรอง/หมวด/แสดงผลอยู่แล้ว ให้เรียกฟังก์ชันเดิมของพี่ เช่น renderGrid()
+  // === ตัวอย่างทั่วไป ===
+  if (typeof renderGrid === "function") {
+    renderGrid();            // วาดกริดสินค้าเดิม
+  } else if (typeof render === "function") {
+    render();                // บางโปรเจกต์ตั้งชื่อว่า render()
+  } else {
+    console.log("PRODUCTS loaded:", PRODUCTS);
+  }
+}
+
+// เรียกโหลดทันทีที่หน้าเสร็จ
+document.addEventListener("DOMContentLoaded", loadProductsFromGoogleSheet);
 
     // ======= STATE + STORAGE =======
     let state = { q: '', category: '', min: '', max: '' };
