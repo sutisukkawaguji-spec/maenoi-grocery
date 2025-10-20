@@ -212,7 +212,7 @@
     function lineChatUrl(text = '') {
       const id = encodeURIComponent(LINE_ID);            // @ -> %40
       const msg = encodeURIComponent(text || '');
-      return `https://line.me/R/oaMessage/${id}/?text=${msg}`;
+      return `https://line.me/R/oaMessage/${id}/?${msg}`;
     }
 
     // Fallback: ใช้ได้แม้ไม่มีแอป/oaMessage ไม่รองรับ
