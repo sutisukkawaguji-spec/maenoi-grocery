@@ -1,3 +1,4 @@
-1,มาม่า บะหมี่กึ่งสำเร็จรูป (ต้มยำกุ้ง),7,ซอง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order01.png
-2,ปลากระป๋อง,25,กระป๋อง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order02.png
+1,มาม่า หมูสับ บะหมี่กึ่งสำเร็จรูป ,7,ซอง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order01.png
+2,มาม่า OK บะหมี่กึ่งสำเร็จรูป (สูตรฮอตโคเรียน),15,ซอง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order02.png
+
 
