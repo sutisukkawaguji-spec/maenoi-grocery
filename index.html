@@ -182,252 +182,38 @@
   <div id="fb-customer-chat" class="fb-customerchat"></div>
 
   <script>
-  // ======= CONFIG =======
-  const FB_PAGE_ID = '801626436372815';
-  const FB_APP_ID  = '1132550158989466';
-  const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
+    // ======= CONFIG (ใส่ของจริงของคุณเอง) =======
+    const FB_PAGE_ID = '801626436372815';   // Page ID เพจคุณ
+    const FB_APP_ID  = '1132550158989466';  // App ID ของคุณ
+    const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
 
-  // ======= GOOGLE SHEET =======
-  const SHEET_ID = "1lbhYECYS3CZUkcIPo6mKEiKRJXftwqtRSzBaqd2uHdU";
-  const GID = "0";
+    // ======= PRODUCTS (เพิ่ม/แก้ได้ตรงนี้) =======
+    const PRODUCTS = [
+{ id: 1, name: 'มาม่า บะหมี่กึ่งสำเร็จรูป (ต้มยำกุ้ง)', price: 7, unit: 'ซอง',
+  category: 'อาหารแห้ง',
+  img: 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order01.png'
+},
+{ id: 2, name: 'ปลากระป๋อง', price: 25, unit: 'กระป๋อง',
+  category: 'อาหารแห้ง',
+  img: 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order02.png'
+},
+      { id: 2,  name: 'ปลากระป๋อง ตราม้า',                 price: 30,  unit:'กระป๋อง', category:'อาหารแห้ง', img:'https://images.unsplash.com/photo-1615486363871-838320b7be1a?q=80&w=800&auto=format&fit=crop' },
+      { id: 3,  name: 'ข้าวสารหอมมะลิ 5 กก.',               price: 165, unit:'ถุง',  category:'ข้าวสาร',   img:'https://images.unsplash.com/photo-1566837935700-30057527ade0?q=80&w=800&auto=format&fit=crop' },
+      { id: 4,  name: 'นม UHT รสจืด 200ml',                  price: 12,  unit:'กล่อง', category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1580915411954-282cb1b0d780?q=80&w=800&auto=format&fit=crop' },
+      { id: 5,  name: 'โค้ก 1.25 ลิตร',                       price: 28,  unit:'ขวด',  category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1541976076758-347942db1979?q=80&w=800&auto=format&fit=crop' },
+      { id: 6,  name: 'ไข่ไก่ เบอร์ 2 (แผง 30 ฟอง)',         price: 120, unit:'แผง',  category:'ของสด/ของแช่เย็น', img:'https://images.unsplash.com/photo-1517959105821-eaf2591984de?q=80&w=800&auto=format&fit=crop' },
+      { id: 7,  name: 'สบู่ก้อน สูตรอ่อนโยน',                 price: 22,  unit:'ก้อน', category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1523293182086-7651a899d37f?q=80&w=800&auto=format&fit=crop' },
+      { id: 8,  name: 'น้ำปลา 700ml',                         price: 28,  unit:'ขวด',  category:'เครื่องปรุง', img:'https://images.unsplash.com/photo-1586201375761-83865001e31b?q=80&w=800&auto=format&fit=crop' },
+      { id: 9,  name: 'ซีอิ๊วขาว 700ml',                      price: 29,  unit:'ขวด',  category:'เครื่องปรุง', img:'https://images.unsplash.com/photo-1604908552967-78f3dc5f74f3?q=80&w=800&auto=format&fit=crop' },
+      { id: 10, name: 'ปลากรอบซอง',                           price: 15,  unit:'ซอง',  category:'ขนมขบเคี้ยว', img:'https://images.unsplash.com/photo-1580231962143-c2d6492436e4?q=80&w=800&auto=format&fit=crop' },
+      { id: 11, name: 'เลย์ 48 กรัม',                          price: 20,  unit:'ซอง',  category:'ขนมขบเคี้ยว', img:'https://images.unsplash.com/photo-1617217131157-1c162255ea8f?q=80&w=800&auto=format&fit=crop' },
+      { id: 12, name: 'กาแฟกระป๋อง 180ml',                    price: 15,  unit:'กระป๋อง', category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1498804103079-a6351b050096?q=80&w=800&auto=format&fit=crop' },
+      { id: 13, name: 'น้ำดื่ม 600ml',                         price: 7,   unit:'ขวด',  category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?q=80&w=800&auto=format&fit=crop' },
+      { id: 14, name: 'ยาสระผม 450ml',                        price: 89,  unit:'ขวด',  category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1631730484817-816ba0bdab58?q=80&w=800&auto=format&fit=crop' },
+      { id: 15, name: 'ยาสีฟัน 160 กรัม',                     price: 49,  unit:'หลอด', category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1598440947619-2c35fc9a6e2b?q=80&w=800&auto=format&fit=crop' },
+      { id: 16, name: 'ยาสีฟัน 160 กรัม',                     price: 100,  unit:'หลอด', category:'ของใช้ในบ้าน', img:'https://github.com/sutisukkawaguji-spec/maenoi-grocery/blob/main/images/Screenshot%202025-10-20%20162832.png' }
 
-  // ======= STATE =======
-  let PRODUCTS = [];
-  let state = { q: '', category: '', min: '', max: '' };
-  let cart = JSON.parse(localStorage.getItem('cart') || '{}'); // { [id:string]: qty }
-
-  // ======= HELPERS =======
-  const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
-  const findProduct = id => PRODUCTS.find(p => String(p.id) === String(id));  // เทียบเป็นสตริงให้ชัวร์
-  const cartCount = () => Object.values(cart).reduce((a,b)=>a+b,0);
-  const cartTotal = () => Object.entries(cart).reduce((sum,[id,qty]) => {
-    const p = findProduct(id); return sum + (p ? p.price * qty : 0);
-  }, 0);
-  const uniqueCategories = items => Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort();
-
-  function rowToItem(r){
-    const get = (...keys) => { for (const k of keys){ if (r[k] != null && String(r[k]).trim() !== "") return r[k]; } return ""; };
-    const price = Number(get("price","ราคา"));
-    const stock = Number(get("stock","คงเหลือ","สต็อก"));
-    return {
-      id: String(get("id","ID","sku","SKU")).trim(),
-      name: get("name","ชื่อ"),
-      price: isNaN(price) ? 0 : price,
-      unit: get("unit","หน่วย"),
-      category: get("category","หมวด"),
-      img: get("img","image","รูป"),
-      stock: isNaN(stock) ? 0 : stock,
-    };
-  }
-
-  async function loadProductsFromGoogleSheet(){
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&_=${Date.now()}`;
-    try{
-      const res = await fetch(url);
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const csv = await res.text();
-      const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
-      PRODUCTS = parsed.data.map(rowToItem).filter(x => x.name && x.price >= 0);
-      // หลังโหลดเสร็จค่อย render
-      renderCategories();
-      renderGrid(filterItems(PRODUCTS));
-      updateBadge();
-    }catch(err){
-      console.error("โหลดชีทไม่สำเร็จ:", err);
-      alert("โหลดรายการสินค้าไม่สำเร็จ โปรดตรวจสิทธิ์แชร์ชีทเป็น Anyone with the link: Viewer");
-    }
-  }
-
-  function filterItems(items){
-    const q = state.q.trim().toLowerCase();
-    const c = state.category;
-    const min = state.min === '' ? -Infinity : Number(state.min);
-    const max = state.max === '' ? Infinity : Number(state.max);
-    return items.filter(it => {
-      const okQ = !q || (it.name||"").toLowerCase().includes(q);
-      const okC = !c || it.category === c;
-      const okP = it.price >= min && it.price <= max;
-      return okQ && okC && okP;
-    });
-  }
-
-  function renderCategories(){
-    const sel = document.getElementById('categorySelect');
-    sel.innerHTML = '<option value="">ทั้งหมด</option>';
-    uniqueCategories(PRODUCTS).forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat; opt.textContent = cat; sel.appendChild(opt);
-    });
-  }
-
-  function renderGrid(items){
-    const wrap = document.getElementById('productGrid');
-    const countEl = document.getElementById('resultCount');
-    wrap.innerHTML = '';
-    countEl.textContent = items.length;
-    if(items.length === 0){
-      wrap.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า หรือกำลังโหลด...</div>';
-      return;
-    }
-    const frag = document.createDocumentFragment();
-    items.forEach(it => {
-      const el = document.createElement('article');
-      el.className = 'card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all';
-      el.innerHTML = `
-        <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
-          <img src="${it.img}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" />
-        </div>
-        <div class="p-3">
-          <h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
-          <div class="mt-1 flex items-center justify-between">
-            <span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit||'-'}</span>
-            <span class="text-xs text-gray-500">${it.category||'-'}</span>
-          </div>
-          <div class="mt-3 grid grid-cols-2 gap-2">
-            <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
-            <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตสั่งรายการนี้</button>
-          </div>
-        </div>`;
-      frag.appendChild(el);
-    });
-    wrap.appendChild(frag);
-  }
-
-  function renderCart(){
-    const list = document.getElementById('cartList');
-    list.innerHTML = '';
-    const entries = Object.entries(cart);
-    if(entries.length === 0){
-      list.innerHTML = '<div class="p-4 text-center text-gray-500">ตะกร้าว่าง</div>';
-    } else {
-      entries.forEach(([id, qty]) => {
-        const p = findProduct(id);
-        if(!p) return; // กันเคส id หาย
-        const row = document.createElement('div');
-        row.className = 'p-3 flex items-center gap-3';
-        row.innerHTML = `
-          <img src="${p.img}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border">
-          <div class="flex-1">
-            <div class="text-sm font-semibold">${p.name}</div>
-            <div class="text-xs text-gray-500">${fmtBaht(p.price)} / ${p.unit||'-'}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button>
-            <span class="w-8 text-center">${qty}</span>
-            <button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button>
-          </div>
-          <div class="w-20 text-right font-medium">${fmtBaht(p.price * qty)}</div>
-        `;
-        list.appendChild(row);
-      });
-    }
-    document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
-  }
-
-  function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
-  function updateBadge(){ document.getElementById('cartBadge').textContent = cartCount(); }
-
-  function buildOrderText(){
-    const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, ''];
-    Object.entries(cart).forEach(([id, qty]) => {
-      const p = findProduct(id); if(!p) return;
-      lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit||'-'}) = ${fmtBaht(p.price*qty)}`);
-    });
-    lines.push('', 'ยอดรวม: ' + fmtBaht(cartTotal()), 'ขอที่อยู่จัดส่ง/นัดรับด้วยครับ');
-    return lines.join('\n');
-  }
-
-  async function copyOrderToClipboard(){
-    try{
-      await navigator.clipboard.writeText(buildOrderText());
-      alert('คัดลอกออเดอร์แล้ว ไปแปะในแชตได้เลย');
-    }catch(e){
-      const ta = document.createElement('textarea');
-      ta.value = buildOrderText(); document.body.appendChild(ta); ta.select();
-      document.execCommand('copy'); document.body.removeChild(ta);
-      alert('คัดลอกออเดอร์แล้ว ไปแปะในแชตได้เลย');
-    }
-  }
-
-  function checkout(){
-    const ref = 'order_' + Date.now();
-    window.open('https://m.me/' + FB_PAGE_ID + '?ref=' + ref, '_blank');
-  }
-  function openCart(){ document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); }
-  function closeCart(){ document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); }
-
-  // ======= INIT =======
-  document.addEventListener('DOMContentLoaded', () => {
-    // Year
-    const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
-
-    // Loading state
-    document.getElementById('productGrid').innerHTML =
-      '<div class="col-span-full text-center text-gray-500 py-10">กำลังโหลดสินค้า...</div>';
-
-    // Filters
-    document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(PRODUCTS)); });
-    document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(filterItems(PRODUCTS)); });
-    document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(filterItems(PRODUCTS)); });
-    document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(filterItems(PRODUCTS)); });
-    document.getElementById('clearFilters').addEventListener('click', () => {
-      state = { q:'', category:'', min:'', max:'' };
-      document.getElementById('searchInput').value = '';
-      document.getElementById('categorySelect').value = '';
-      document.getElementById('minPrice').value = '';
-      document.getElementById('maxPrice').value = '';
-      renderGrid(filterItems(PRODUCTS));
-    });
-
-    // Product buttons
-    document.getElementById('productGrid').addEventListener('click', (e) => {
-      const addBtn = e.target.closest('.btn-add');
-      const chatBtn = e.target.closest('.btn-chat');
-      if (addBtn) {
-        const id = addBtn.getAttribute('data-id');
-        cart[id] = (cart[id] || 0) + 1;
-        persistCart(); updateBadge();
-      }
-      if (chatBtn) {
-        const id = chatBtn.getAttribute('data-id');
-        const ref = 'buy_' + id;
-        window.open('https://m.me/' + FB_PAGE_ID + '?ref=' + ref, '_blank');
-      }
-    });
-
-    // Cart controls
-    document.getElementById('openCart').addEventListener('click', openCart);
-    document.getElementById('closeCart').addEventListener('click', closeCart);
-    document.getElementById('backdrop').addEventListener('click', closeCart);
-    document.getElementById('clearCart').addEventListener('click', () => { cart = {}; persistCart(); renderCart(); updateBadge(); });
-    document.getElementById('copyOrder').addEventListener('click', copyOrderToClipboard);
-    document.getElementById('checkout').addEventListener('click', checkout);
-
-    // Messenger links
-    document.getElementById('messengerLink').href = 'https://m.me/' + FB_PAGE_ID;
-    document.getElementById('fabChat').href = 'https://m.me/' + FB_PAGE_ID;
-
-    // FB Chat Plugin
-    if(FB_PAGE_ID && FB_PAGE_ID !== 'YOUR_PAGE_ID'){
-      const chatbox = document.getElementById('fb-customer-chat');
-      chatbox.setAttribute('page_id', FB_PAGE_ID);
-      chatbox.setAttribute('attribution', 'biz_inbox');
-      window.fbAsyncInit = function() { FB.init({ xfbml: true, version: 'v20.0', appId: FB_APP_ID }); };
-      (function(d, s, id){
-        var js, fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) return;
-        js = d.createElement(s); js.id = id;
-        js.src = 'https://connect.facebook.net/th_TH/sdk/xfbml.customerchat.js';
-        fjs.parentNode.insertBefore(js, fjs);
-      }(document, 'script', 'facebook-jssdk'));
-    }
-
-    // SEO title
-    document.title = STORE_NAME + ' — เว็บแอปสินค้า';
-
-    // สุดท้าย: โหลดสินค้า
-    loadProductsFromGoogleSheet();
-  });
+    ];
 
     // ======= STATE + STORAGE =======
     let state = { q: '', category: '', min: '', max: '' };
