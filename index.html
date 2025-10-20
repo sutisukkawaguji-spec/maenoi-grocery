@@ -209,12 +209,12 @@
     const LINE_ID = '@906dooke';
 
     // ลิงก์หลัก: พรีฟิลข้อความ
-function lineChatUrl(text = '') {
-  const cleanId = normalizeLineId(LINE_ID);
-  const idEnc   = encodeURIComponent(cleanId);           // @ -> %40
-  const msgEnc  = encodeURIComponent(text || '');
-  return `https://line.me/R/oaMessage/${idEnc}/?text=${msgEnc}`;
-}
+    function lineChatUrl(text = '') {
+      const cleanId = normalizeLineId(LINE_ID);
+      const idEnc   = encodeURIComponent(cleanId);           // @ -> %40
+      const msgEnc  = encodeURIComponent(text || '');
+      return `https://line.me/R/oaMessage/${idEnc}/?text=${msgEnc}`;
+    }
 
     // Fallback: ใช้ได้แม้ไม่มีแอป/oaMessage ไม่รองรับ
     function lineAddFriendUrl() {
