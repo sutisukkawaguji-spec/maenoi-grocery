@@ -1,0 +1,2 @@
+1,มาม่า บะหมี่กึ่งสำเร็จรูป (ต้มยำกุ้ง),7,ซอง,อาหารแห้ง,https://raw.githubusercontent.com/<owner>/<repo>/main/images/order01.png
+2,ปลากระป๋อง,25,กระป๋อง,อาหารแห้ง,https://raw.githubusercontent.com/<owner>/<repo>/main/images/order02.png
