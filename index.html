@@ -234,7 +234,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      const defaultMsg = 'สวัสดีครับ สอบถามสินค้า';
+      const defaultMsg = 'สวัสดีค่ะ สอบถามสินค้า';
       setLineHref(document.getElementById('lineLink'),       defaultMsg); // ปุ่มบนหัวเว็บ (ถ้ามี)
       setLineHref(document.getElementById('fabChat'),        defaultMsg); // ปุ่มลอยมือถือ (ถ้ามี)
       setLineHref(document.getElementById('lineLinkFooter'), defaultMsg); // ปุ่มใน footer
@@ -379,7 +379,7 @@
         const p = findProduct(id); if(!p) return;
         lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*(Number(qty)||0))}`);
       });
-      lines.push('', 'ยอดรวม: ' + fmtBaht(cartTotal()), 'ขอที่อยู่จัดส่ง/นัดรับด้วยครับ');
+      lines.push('', 'ยอดรวม: ' + fmtBaht(cartTotal()), 'ขอที่อยู่จัดส่ง/นัดรับด้วยค่ะ');
       return lines.join('\n');
     }
     async function copyOrderToClipboard(){
@@ -456,9 +456,9 @@
       const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
 
       // LINE links
-      document.getElementById('lineLink').href = lineChatUrl('สวัสดีครับ สนใจสอบถามสินค้า');
-      document.getElementById('lineLinkFooter').href = lineChatUrl('สวัสดีครับ สนใจสอบถามสินค้า');
-      document.getElementById('fabChat').href = lineChatUrl('สวัสดีครับ สนใจสอบถามสินค้า');
+      document.getElementById('lineLink').href = lineChatUrl('สวัสดีค่ะ สนใจสอบถามสินค้า');
+      document.getElementById('lineLinkFooter').href = lineChatUrl('สวัสดีค่ะ สนใจสอบถามสินค้า');
+      document.getElementById('fabChat').href = lineChatUrl('สวัสดีค่ะ สนใจสอบถามสินค้า');
 
       // Loading
       document.getElementById('productGrid').innerHTML =
