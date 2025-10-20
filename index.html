@@ -210,8 +210,8 @@
 
     // ลิงก์หลัก: พรีฟิลข้อความ
     function lineChatUrl(text = '') {
-      const id = encodeURIComponent(LINE_ID);            // @ -> %40
-      const msg = encodeURIComponent(text || '');
+      const id  = encodeURIComponent(LINE_ID);      // @ -> %40
+      const msg = encodeURIComponent(text || '');   // encode เฉพาะค่า
       return `https://line.me/R/oaMessage/${id}/?text=${msg}`;
     }
 
