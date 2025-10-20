@@ -188,32 +188,89 @@
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
 
     // ======= PRODUCTS (เพิ่ม/แก้ได้ตรงนี้) =======
-    const PRODUCTS = [
-{ id: 1, name: 'มาม่า บะหมี่กึ่งสำเร็จรูป (ต้มยำกุ้ง)', price: 7, unit: 'ซอง',
-  category: 'อาหารแห้ง',
-  img: 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order01.png'
-},
-{ id: 2, name: 'ปลากระป๋อง', price: 25, unit: 'กระป๋อง',
-  category: 'อาหารแห้ง',
-  img: 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order02.png'
-},
-      { id: 2,  name: 'ปลากระป๋อง ตราม้า',                 price: 30,  unit:'กระป๋อง', category:'อาหารแห้ง', img:'https://images.unsplash.com/photo-1615486363871-838320b7be1a?q=80&w=800&auto=format&fit=crop' },
-      { id: 3,  name: 'ข้าวสารหอมมะลิ 5 กก.',               price: 165, unit:'ถุง',  category:'ข้าวสาร',   img:'https://images.unsplash.com/photo-1566837935700-30057527ade0?q=80&w=800&auto=format&fit=crop' },
-      { id: 4,  name: 'นม UHT รสจืด 200ml',                  price: 12,  unit:'กล่อง', category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1580915411954-282cb1b0d780?q=80&w=800&auto=format&fit=crop' },
-      { id: 5,  name: 'โค้ก 1.25 ลิตร',                       price: 28,  unit:'ขวด',  category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1541976076758-347942db1979?q=80&w=800&auto=format&fit=crop' },
-      { id: 6,  name: 'ไข่ไก่ เบอร์ 2 (แผง 30 ฟอง)',         price: 120, unit:'แผง',  category:'ของสด/ของแช่เย็น', img:'https://images.unsplash.com/photo-1517959105821-eaf2591984de?q=80&w=800&auto=format&fit=crop' },
-      { id: 7,  name: 'สบู่ก้อน สูตรอ่อนโยน',                 price: 22,  unit:'ก้อน', category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1523293182086-7651a899d37f?q=80&w=800&auto=format&fit=crop' },
-      { id: 8,  name: 'น้ำปลา 700ml',                         price: 28,  unit:'ขวด',  category:'เครื่องปรุง', img:'https://images.unsplash.com/photo-1586201375761-83865001e31b?q=80&w=800&auto=format&fit=crop' },
-      { id: 9,  name: 'ซีอิ๊วขาว 700ml',                      price: 29,  unit:'ขวด',  category:'เครื่องปรุง', img:'https://images.unsplash.com/photo-1604908552967-78f3dc5f74f3?q=80&w=800&auto=format&fit=crop' },
-      { id: 10, name: 'ปลากรอบซอง',                           price: 15,  unit:'ซอง',  category:'ขนมขบเคี้ยว', img:'https://images.unsplash.com/photo-1580231962143-c2d6492436e4?q=80&w=800&auto=format&fit=crop' },
-      { id: 11, name: 'เลย์ 48 กรัม',                          price: 20,  unit:'ซอง',  category:'ขนมขบเคี้ยว', img:'https://images.unsplash.com/photo-1617217131157-1c162255ea8f?q=80&w=800&auto=format&fit=crop' },
-      { id: 12, name: 'กาแฟกระป๋อง 180ml',                    price: 15,  unit:'กระป๋อง', category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1498804103079-a6351b050096?q=80&w=800&auto=format&fit=crop' },
-      { id: 13, name: 'น้ำดื่ม 600ml',                         price: 7,   unit:'ขวด',  category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?q=80&w=800&auto=format&fit=crop' },
-      { id: 14, name: 'ยาสระผม 450ml',                        price: 89,  unit:'ขวด',  category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1631730484817-816ba0bdab58?q=80&w=800&auto=format&fit=crop' },
-      { id: 15, name: 'ยาสีฟัน 160 กรัม',                     price: 49,  unit:'หลอด', category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1598440947619-2c35fc9a6e2b?q=80&w=800&auto=format&fit=crop' },
-      { id: 16, name: 'ยาสีฟัน 160 กรัม',                     price: 100,  unit:'หลอด', category:'ของใช้ในบ้าน', img:'https://github.com/sutisukkawaguji-spec/maenoi-grocery/blob/main/images/Screenshot%202025-10-20%20162832.png' }
 
-    ];
+const RAW_TXT_URL =
+  "https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/data/products.txt";
+
+// ====== PRODUCTS กลายเป็นตัวแปรที่ถูกโหลดทีหลัง ======
+    let PRODUCTS = [];
+    
+    // ----- helper: แปลง 1 แถว -> object สินค้า -----
+    // คอลัมน์: 0=id, 1=name, 2=price, 3=unit, 4=category, 5=img
+    function toItem(cols, idx){
+      const [idRaw, name, priceRaw, unit, category, img] = cols.map(v => (v ?? "").toString().trim());
+      const id = idRaw || String(idx+1);
+      const price = Number((priceRaw || "").replace(/[^\d.]/g, ""));
+      return {
+        id: String(id),
+        name,
+        price: Number.isFinite(price) ? price : 0,
+        unit,
+        category,
+        img: img || "images/placeholder.png",
+        stock: 0
+      };
+    }
+    
+    // ----- auto-detect delimiter (คอมม่า/แท็บ) + ใช้ PapaParse ถ้ามี -----
+    function parseLinesAuto(text){
+      const clean = text.replace(/^\uFEFF/, "");
+      const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const first = lines[0] || "";
+      const commaCnt = (first.match(/,/g) || []).length;
+      const tabCnt   = (first.match(/\t/g) || []).length;
+    
+      if (typeof Papa !== "undefined") {
+        const tryPapa = (delimiter) => {
+          const { data } = Papa.parse(clean, {
+            delimiter, skipEmptyLines: true,
+            transform: v => (v ?? "").toString().trim()
+          });
+          return data.filter(r => Array.isArray(r) && r.length >= 5);
+        };
+        // ลองตัวที่น่าจะใช่ก่อน
+        const primary = (commaCnt >= tabCnt) ? "," : "\t";
+        let rows = tryPapa(primary);
+        if (!rows.length) rows = tryPapa(primary === "," ? "\t" : ",");
+        return rows;
+      }
+    
+      // fallback แบบง่าย (ไม่รองรับคอมม่าภายในชื่อ)
+      const useComma = commaCnt >= tabCnt;
+      return lines.map(line => line.split(useComma ? "," : "\t").map(s => s.trim()));
+    }
+    
+    // ----- โหลดจาก GitHub RAW .txt แล้ว map -> PRODUCTS -----
+    async function loadProductsFromGitHubTxt(url = RAW_TXT_URL){
+      try{
+        const res = await fetch(`${url}?_=${Date.now()}`, { cache: "no-store" });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+    
+        const rows = parseLinesAuto(text);
+        PRODUCTS = rows.map(toItem);
+    
+        // แสดงผลหลังโหลดเสร็จ
+        renderCategories();
+        renderGrid(filterItems(PRODUCTS));
+        updateBadge();
+      }catch(err){
+        console.error("โหลด GitHub .txt ไม่สำเร็จ:", err);
+        alert("โหลดสินค้าจาก GitHub ไม่สำเร็จ: ตรวจว่า repo เป็น public, path/branch ถูกต้อง");
+      }
+    }
+    
+    // ====== เรียกโหลดตอน DOM พร้อม ======
+    document.addEventListener("DOMContentLoaded", () => {
+      // โชว์สถานะกำลังโหลด
+      const grid = document.getElementById('productGrid');
+      if (grid) grid.innerHTML =
+        '<div class="col-span-full text-center text-gray-500 py-10">กำลังโหลดสินค้า...</div>';
+    
+      loadProductsFromGitHubTxt();
+    });
+    
+
 
     // ======= STATE + STORAGE =======
     let state = { q: '', category: '', min: '', max: '' };
