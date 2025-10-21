@@ -162,7 +162,7 @@
     <div class="p-4 bg-white w-[92vw] max-w-md">
       <h3 class="text-lg font-semibold">🔐 เข้าสู่โหมดจัดการ</h3>
       <p class="text-sm text-gray-600 mt-1">กรอกรหัส PIN</p>
-      <input id="adminPinInput" type="password" inputmode="numeric" placeholder="เช่น 2468"
+      <input id="adminPinInput" type="password" inputmode="numeric" placeholder="สำหรับเจ้าหน้าที่จัดการสินค้า"
              class="mt-3 w-full px-3 py-2 rounded-xl border" />
       <div class="mt-4 flex items-center justify-end gap-2">
         <button class="px-3 py-2 rounded-xl border" onclick="document.getElementById('adminAuth').close()">ยกเลิก</button>
@@ -254,7 +254,7 @@
     const lineChatUrl = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?text=${encodeURIComponent(text)}`;
 
     // 🔐 PIN โหมดแอดมิน (แก้ตรงนี้)
-    const ADMIN_PIN = '2468';
+    const ADMIN_PIN = '30015268778';
 
     // อ่านสินค้าจาก GitHub RAW .txt
     const RAW_TXT_URL = 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/data/products.txt';
