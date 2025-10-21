@@ -1,10 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำ</title>
-  <meta name="description" content="เว็บแอปขายของชำ: แสดงสินค้า ค้นหา หมวดหมู่ ตะกร้าสินค้า และแชตสั่งผ่าน LINE" />
+  <meta name="description" content="เว็บแอปขายของชำ: แสดงสินค้า ค้นหา หมวดหมู่ ตะกร้าสินค้า และแชตสั่งผ่าน Facebook Messenger" />
 
   <!-- Fonts + Tailwind -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,26 +13,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- PapaParse (อ่านไฟล์ .txt/.csv) -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
-  <!-- PWA / Icons -->
+  <!-- Icons / PWA -->
   <link rel="icon" href="images/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" href="images/icon-192.png">
   <link rel="apple-touch-icon" href="images/icon-192.png">
   <meta name="theme-color" content="#10b981">
   <link rel="manifest" href="manifest.webmanifest">
 
-  <!-- Social -->
+  <!-- Open Graph / Twitter -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำใกล้บ้าน">
-  <meta property="og:description" content="กดดูรายการสินค้า หยิบใส่ตะกร้า และส่งออเดอร์ทาง LINE ได้ทันที">
+  <meta property="og:description" content="กดดูรายการสินค้า หยิบใส่ตะกร้า และส่งออเดอร์ผ่านแชตได้ทันที">
   <meta property="og:image" content="images/cover.jpg">
   <meta property="og:url" content="">
   <meta property="og:locale" content="th_TH">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="ร้านแม่น้อย บ้านดอนขี">
-  <meta name="twitter:description" content="ตะกร้าสินค้า + แชตสั่งซื้อผ่าน LINE">
+  <meta name="twitter:description" content="ตะกร้าสินค้า + แชตสั่งซื้อผ่าน Messenger">
   <meta name="twitter:image" content="images/cover.jpg">
 
   <style>
@@ -42,12 +40,16 @@
       .card h3 { font-size: 0.95rem; }
       #productGrid { gap: 0.6rem; }
     }
-    .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%;
+    .drawer {
+      position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%;
       background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.1); transition: right .28s ease;
-      z-index: 60; display: flex; flex-direction: column; }
+      z-index: 60; display: flex; flex-direction: column;
+    }
     .drawer.open { right: 0; }
-    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px);
-      z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px);
+      z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease;
+    }
     .backdrop.show { opacity: 1; pointer-events: all; }
   </style>
 </head>
@@ -58,13 +60,15 @@
       <img src="images/logo.png" alt="โลโก้ร้านแม่น้อย บ้านดอนขี" class="w-10 h-10 rounded-xl object-cover">
       <div>
         <h1 class="text-lg font-semibold leading-tight">ร้านขายของชำ</h1>
-        <p class="text-xs text-gray-500">ค้นหา เลือกหมวด ตะกร้า และแชตสั่งซื้อผ่าน LINE</p>
+        <p class="text-xs text-gray-500">ค้นหา เลือกหมวด ตะกร้า และแชตสั่งซื้อ</p>
       </div>
 
       <div class="ms-auto flex items-center gap-2">
-        <a id="lineLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-          <img src="https://cdn-icons-png.flaticon.com/512/2111/2111390.png" class="w-4 h-4" alt=""> แชตผ่าน LINE
+        <a id="messengerLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-4 h-4"><path fill="currentColor" d="M256 32C114.6 32 0 137.9 0 270.4C0 343.7 35.7 408.9 93.8 451.9C98.7 455.6 101.1 461.8 99.4 467.7L84.6 521.1C81.9 531.1 91.9 539.3 101.1 534.6L160.2 504.2C164.7 501.9 170 501.9 174.5 504.2C198.7 516.3 226.5 522.8 256 522.8C397.4 522.8 512 416.9 512 284.4C512 151.9 397.4 32 256 32zM282.4 318.9L231.4 270.4L114.3 348.6L238.4 212.3L289.4 260.8L406.6 182.6L282.4 318.9z"/></svg>
+          แชตกับเรา
         </a>
+        <!-- Cart Button -->
         <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
           🧺 ตะกร้า
           <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
@@ -73,24 +77,11 @@
     </div>
   </header>
 
-  <!-- Top Banner Slider -->
-  <section class="relative bg-white">
-    <div id="slider" class="relative max-w-6xl mx-auto">
-      <div id="slides" class="overflow-hidden rounded-none md:rounded-xl">
-        <div class="flex transition-transform duration-500 ease-out" style="transform: translateX(0%)">
-          <!-- ใส่รูปป้ายที่นี่ (ปรับ/เพิ่มใน BANNERS ด้านล่างได้) -->
-          <img src="images/banner4.jpg" alt="โปรโมชัน 1" class="w-full h-64 md:h-96 object-cover flex-shrink-0" loading="lazy">
-          <img src="images/banner2.jpg" alt="โปรโมชัน 2" class="w-full h-64 md:h-96 object-cover flex-shrink-0" loading="lazy">
-          <img src="images/banner3.jpg" alt="โปรโมชัน 3" class="w-full h-64 md:h-96 object-cover flex-shrink-0" loading="lazy">
-        </div>
-      </div>
-
-      <!-- Arrows -->
-      <button id="prevBtn" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-8 h-8 rounded-full grid place-items-center">‹</button>
-      <button id="nextBtn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-8 h-8 rounded-full grid place-items-center">›</button>
-
-      <!-- Dots -->
-      <div id="dots" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2"></div>
+  <!-- Cover -->
+  <section class="relative">
+    <img src="images/cover.jpg" alt="ภาพหน้าร้านแม่น้อย บ้านดอนขี" class="w-full h-52 md:h-72 object-cover">
+    <div class="absolute inset-0 bg-black/25 flex items-center justify-center">
+      <h2 class="text-white text-2xl md:text-3xl font-bold drop-shadow">ร้านแม่น้อย บ้านดอนขี</h2>
     </div>
   </section>
 
@@ -132,32 +123,21 @@
   <footer class="border-t border-gray-200 py-10 text-center text-sm bg-white">
     <h3 class="text-lg font-semibold mb-2 text-emerald-700">ร้านแม่น้อย บ้านดอนขี</h3>
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
-    <p class="text-gray-600 mt-1">
-      📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a>
-    </p>
-
+    <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
     <div class="flex items-center justify-center gap-3 mt-3">
-      <!-- Facebook (ใช้ page URL ของพี่; ถ้ามี Page ID ใช้ลิงก์ https://facebook.com/801626436372815 แทนได้) -->
-      <a href="https://www.facebook.com/profile.php?id=61582683385650"
-        target="_blank" rel="noopener"
+      <a href="https://facebook.com/ร้านแม่น้อยบ้านดอนขี" target="_blank"
         class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-        <img src="https://cdn-icons-png.flaticon.com/512/124/124010.png" class="w-4 h-4" alt="Facebook"> Facebook
+        <img src="https://cdn-icons-png.flaticon.com/512/124/124010.png" class="w-4 h-4" alt=""> Facebook
       </a>
-
-      <!-- LINE -->
-      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener"
+      <a href="https://line.me/ti/p/~YOUR_LINE_ID" target="_blank"
         class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111390.png" class="w-4 h-4" alt="LINE"> LINE
+        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111390.png" class="w-4 h-4" alt=""> Line
       </a>
-
-      <!-- PromptPay -->
-      <button type="button"
-              onclick="document.getElementById('qrModal').showModal()"
-              class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-        <img src="https://cdn-icons-png.flaticon.com/512/1042/1042339.png" class="w-4 h-4" alt="PromptPay"> PromptPay
+      <button onclick="document.getElementById('qrModal').showModal()"
+        class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+        <img src="https://cdn-icons-png.flaticon.com/512/1042/1042339.png" class="w-4 h-4" alt=""> PromptPay
       </button>
     </div>
-
     <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี — เว็บไซต์ตัวอย่าง</p>
   </footer>
 
@@ -165,20 +145,16 @@
   <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
     <div class="p-4 bg-white rounded-2xl">
       <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
-      <!-- ปรับขนาดภาพให้เป็นอัตราส่วนสี่เหลี่ยมจัตุรัส (Tailwind ไม่มี h-160 ในชุด default) -->
-      <img src="images/promptpay.png" alt="QR PromptPay"
-          class="w-80 h-140 mx-auto border rounded-lg object-contain">
+      <img src="images/promptpay.png" alt="QR PromptPay" class="w-40 h-40 mx-auto border rounded-lg">
       <p class="text-center text-gray-600 mt-2">สแกนเพื่อชำระเงิน</p>
       <div class="text-center mt-3">
-        <button type="button" onclick="document.getElementById('qrModal').close()"
-                class="text-emerald-700 hover:underline text-sm">ปิด</button>
+        <button onclick="document.getElementById('qrModal').close()" class="text-emerald-700 hover:underline text-sm">ปิด</button>
       </div>
     </div>
   </dialog>
 
-
   <!-- Floating Chat Button (mobile) -->
-  <a id="fabChat" class="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-full shadow-lg bg-emerald-600 text-white text-sm md:hidden">แชตผ่าน LINE</a>
+  <a id="fabChat" class="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-full shadow-lg bg-emerald-600 text-white text-sm md:hidden">แชตกับเรา</a>
 
   <!-- Backdrop + Drawer -->
   <div id="backdrop" class="backdrop"></div>
@@ -195,124 +171,94 @@
       </div>
       <div class="flex gap-2">
         <button id="copyOrder" class="flex-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">คัดลอกออเดอร์</button>
-        <button id="checkout" class="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90">LINE สั่งซื้อ</button>
+        <button id="checkout" class="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90">แชตสั่งซื้อ</button>
       </div>
       <button id="clearCart" class="w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">ล้างตะกร้า</button>
     </div>
   </aside>
 
+  <!-- Facebook SDK & Chat Plugin -->
+  <div id="fb-root"></div>
+  <div id="fb-customer-chat" class="fb-customerchat"></div>
+
   <script>
-    // ======= CONFIG =======
+    // ======= CONFIG (ใส่ของจริงของคุณเอง) =======
+    const FB_PAGE_ID = '801626436372815';   // Page ID เพจคุณ
+    const FB_APP_ID  = '1132550158989466';  // App ID ของคุณ
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
 
-    // LINE OA (มี @ นำหน้า)
-    const LINE_ID = '@906dooke';
+    // ======= PRODUCTS (เพิ่ม/แก้ได้ตรงนี้) =======
+    const PRODUCTS = [
+{ id: 1, name: 'มาม่า บะหมี่กึ่งสำเร็จรูป (ต้มยำกุ้ง)', price: 7, unit: 'ซอง',
+  category: 'อาหารแห้ง',
+  img: 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order01.png'
+},
+{ id: 2, name: 'ปลากระป๋อง', price: 25, unit: 'กระป๋อง',
+  category: 'อาหารแห้ง',
+  img: 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order02.png'
+},
+      { id: 2,  name: 'ปลากระป๋อง ตราม้า',                 price: 30,  unit:'กระป๋อง', category:'อาหารแห้ง', img:'https://images.unsplash.com/photo-1615486363871-838320b7be1a?q=80&w=800&auto=format&fit=crop' },
+      { id: 3,  name: 'ข้าวสารหอมมะลิ 5 กก.',               price: 165, unit:'ถุง',  category:'ข้าวสาร',   img:'https://images.unsplash.com/photo-1566837935700-30057527ade0?q=80&w=800&auto=format&fit=crop' },
+      { id: 4,  name: 'นม UHT รสจืด 200ml',                  price: 12,  unit:'กล่อง', category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1580915411954-282cb1b0d780?q=80&w=800&auto=format&fit=crop' },
+      { id: 5,  name: 'โค้ก 1.25 ลิตร',                       price: 28,  unit:'ขวด',  category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1541976076758-347942db1979?q=80&w=800&auto=format&fit=crop' },
+      { id: 6,  name: 'ไข่ไก่ เบอร์ 2 (แผง 30 ฟอง)',         price: 120, unit:'แผง',  category:'ของสด/ของแช่เย็น', img:'https://images.unsplash.com/photo-1517959105821-eaf2591984de?q=80&w=800&auto=format&fit=crop' },
+      { id: 7,  name: 'สบู่ก้อน สูตรอ่อนโยน',                 price: 22,  unit:'ก้อน', category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1523293182086-7651a899d37f?q=80&w=800&auto=format&fit=crop' },
+      { id: 8,  name: 'น้ำปลา 700ml',                         price: 28,  unit:'ขวด',  category:'เครื่องปรุง', img:'https://images.unsplash.com/photo-1586201375761-83865001e31b?q=80&w=800&auto=format&fit=crop' },
+      { id: 9,  name: 'ซีอิ๊วขาว 700ml',                      price: 29,  unit:'ขวด',  category:'เครื่องปรุง', img:'https://images.unsplash.com/photo-1604908552967-78f3dc5f74f3?q=80&w=800&auto=format&fit=crop' },
+      { id: 10, name: 'ปลากรอบซอง',                           price: 15,  unit:'ซอง',  category:'ขนมขบเคี้ยว', img:'https://images.unsplash.com/photo-1580231962143-c2d6492436e4?q=80&w=800&auto=format&fit=crop' },
+      { id: 11, name: 'เลย์ 48 กรัม',                          price: 20,  unit:'ซอง',  category:'ขนมขบเคี้ยว', img:'https://images.unsplash.com/photo-1617217131157-1c162255ea8f?q=80&w=800&auto=format&fit=crop' },
+      { id: 12, name: 'กาแฟกระป๋อง 180ml',                    price: 15,  unit:'กระป๋อง', category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1498804103079-a6351b050096?q=80&w=800&auto=format&fit=crop' },
+      { id: 13, name: 'น้ำดื่ม 600ml',                         price: 7,   unit:'ขวด',  category:'นมและเครื่องดื่ม', img:'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?q=80&w=800&auto=format&fit=crop' },
+      { id: 14, name: 'ยาสระผม 450ml',                        price: 89,  unit:'ขวด',  category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1631730484817-816ba0bdab58?q=80&w=800&auto=format&fit=crop' },
+      { id: 15, name: 'ยาสีฟัน 160 กรัม',                     price: 49,  unit:'หลอด', category:'ของใช้ในบ้าน', img:'https://images.unsplash.com/photo-1598440947619-2c35fc9a6e2b?q=80&w=800&auto=format&fit=crop' },
+      { id: 16, name: 'ยาสีฟัน 160 กรัม',                     price: 100,  unit:'หลอด', category:'ของใช้ในบ้าน', img:'https://github.com/sutisukkawaguji-spec/maenoi-grocery/blob/main/images/Screenshot%202025-10-20%20162832.png' }
 
-    // ลิงก์หลัก: พรีฟิลข้อความ
-    function lineChatUrl(text = '') {
-      const id  = encodeURIComponent(LINE_ID);      // @ -> %40
-      const msg = encodeURIComponent(text || '');   // encode เฉพาะค่า
-      return `https://line.me/R/oaMessage/${id}/?text=${msg}`;
-    }
+    ];
 
-    // Fallback: ใช้ได้แม้ไม่มีแอป/oaMessage ไม่รองรับ
-    function lineAddFriendUrl() {
-      const clean = LINE_ID.startsWith('@') ? LINE_ID : '@' + LINE_ID;
-      return `https://line.me/R/ti/p/${clean}`;
-    }
-
-    // ตั้ง href พร้อม fallback อัตโนมัติ
-    function setLineHref(el, text) {
-      if (!el) return;
-      // ใช้ oaMessage ก่อน
-      el.href = lineChatUrl(text);
-      el.target = '_blank';
-      el.rel = 'noopener';
-
-      // กันเคสบางเครื่องไม่มีแอป LINE → ให้คลิกขวาไม่ไปไหน ก็ยังมีปุ่มสำรอง
-      el.addEventListener('error', () => { el.href = lineAddFriendUrl(); });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const defaultMsg = 'สวัสดีค่ะ สอบถามสินค้า';
-      setLineHref(document.getElementById('lineLink'),       defaultMsg); // ปุ่มบนหัวเว็บ (ถ้ามี)
-      setLineHref(document.getElementById('fabChat'),        defaultMsg); // ปุ่มลอยมือถือ (ถ้ามี)
-      setLineHref(document.getElementById('lineLinkFooter'), defaultMsg); // ปุ่มใน footer
-    });
-
-    // ไฟล์สินค้า .txt (ไม่มีเฮดเดอร์): id,name,price,unit,category,img
-    const RAW_TXT_URL = 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/data/products.txt';
-
-    // Top banners (ใช้ไฟล์ในโฟลเดอร์ images/)
-    const BANNERS = ['images/banner4.jpg','images/banner2.jpg','images/banner3.jpg'];
-
-    // ======= STATE =======
-    let PRODUCTS = [];
-    let state = { q:'', category:'', min:'', max:'' };
-
-    // ======= CART (เก็บ id เป็นสตริงเสมอ) =======
-    const toId = v => String(v ?? '').trim();
-    let cart = (() => {
-      const raw = JSON.parse(localStorage.getItem('cart') || '{}');
-      return Object.fromEntries(Object.entries(raw).map(([k,v]) => [toId(k), Number(v)||0]));
-    })();
+    // ======= STATE + STORAGE =======
+    let state = { q: '', category: '', min: '', max: '' };
+    let cart = JSON.parse(localStorage.getItem('cart') || '{}'); // {productId: qty}
 
     // ======= HELPERS =======
-    const fmtBaht = n => new Intl.NumberFormat('th-TH', { style:'currency', currency:'THB', maximumFractionDigits:0 }).format(n);
-    const findProduct = id => PRODUCTS.find(p => toId(p.id) === toId(id));
-    const cartCount = () => Object.values(cart).reduce((a,b)=>a+(Number(b)||0),0);
-    const cartTotal = () => Object.entries(cart).reduce((sum,[id,qty]) => {
-      const p = findProduct(id); return sum + (p ? p.price*(Number(qty)||0) : 0);
-    }, 0);
-    function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
-    function updateBadge(){ document.getElementById('cartBadge').textContent = cartCount(); }
-    function reconcileCart(){ let changed=false; for(const id of Object.keys(cart)){ if(!findProduct(id)){ delete cart[id]; changed=true; } } if(changed) persistCart(); updateBadge(); }
+    const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
+    const findProduct = id => PRODUCTS.find(p => p.id === Number(id));
+    const cartCount = () => Object.values(cart).reduce((a,b)=>a+b,0);
+    const cartTotal = () => Object.entries(cart).reduce((sum,[id,qty]) => sum + findProduct(id).price * qty, 0);
 
-    // ======= PARSER: .txt → items =======
-    function toItem(cols, idx){
-      const [idRaw,name,priceRaw,unit,category,img] = cols.map(v => (v ?? '').toString().trim());
-      const id = idRaw || String(idx+1);
-      const price = Number((priceRaw || '').replace(/[^\d.]/g,''));
-      return { id: toId(id), name, price: Number.isFinite(price)?price:0, unit, category, img: img || 'images/cover.jpg', stock: 0 };
-    }
-    function parseLinesAuto(text){
-      const clean = text.replace(/^\uFEFF/,'');
-      const first = (clean.split(/\r?\n/).find(l => l.trim()) || '');
-      const comma = (first.match(/,/g)||[]).length, tab = (first.match(/\t/g)||[]).length;
-      const tryPapa = d => Papa.parse(clean,{ delimiter:d, skipEmptyLines:true, transform:v => (v??'').toString().trim() }).data
-                       .filter(r => Array.isArray(r) && r.length >= 5);
-      let rows = tryPapa(comma >= tab ? ',' : '\t');
-      if(!rows.length) rows = tryPapa(comma >= tab ? '\t' : ',');
-      return rows;
-    }
+    function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category))).sort(); }
 
-    // ======= FILTER + RENDER =======
-    function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort(); }
     function filterItems(items){
       const q = state.q.trim().toLowerCase();
       const c = state.category;
       const min = state.min === '' ? -Infinity : Number(state.min);
       const max = state.max === '' ? Infinity : Number(state.max);
       return items.filter(it => {
-        const okQ = !q || (it.name||'').toLowerCase().includes(q);
+        const okQ = !q || it.name.toLowerCase().includes(q);
         const okC = !c || it.category === c;
         const okP = it.price >= min && it.price <= max;
         return okQ && okC && okP;
       });
     }
+
     function renderCategories(){
       const sel = document.getElementById('categorySelect');
-      sel.innerHTML = '<option value="">ทั้งหมด</option>';
+      sel.innerHTML = '<option value="">ทั้งหมด</option>'; // reset to avoid duplicates
       uniqueCategories(PRODUCTS).forEach(cat => {
-        const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt);
+        const opt = document.createElement('option');
+        opt.value = cat; opt.textContent = cat; sel.appendChild(opt);
       });
     }
+
+    function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
+    function updateBadge(){ document.getElementById('cartBadge').textContent = cartCount(); }
+
+    // Render cards (no inline JS to avoid syntax issues)
     function renderGrid(items){
       const wrap = document.getElementById('productGrid');
       wrap.innerHTML = '';
       document.getElementById('resultCount').textContent = items.length;
       if(items.length === 0){
-        wrap.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า หรือกำลังโหลด...</div>';
+        wrap.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า ลองเปลี่ยนคำค้นหาหรือช่วงราคา</div>';
         return;
       }
       const frag = document.createDocumentFragment();
@@ -326,20 +272,19 @@
           <div class="p-3">
             <h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
             <div class="mt-1 flex items-center justify-between">
-              <span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">
-                ${fmtBaht(it.price)} / ${it.unit || '-'}
-              </span>
-              <span class="text-xs text-gray-500">${it.category || '-'}</span>
+              <span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit}</span>
+              <span class="text-xs text-gray-500">${it.category}</span>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2">
               <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
-              <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">LINE สั่งรายการนี้</button>
+              <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตสั่งรายการนี้</button>
             </div>
           </div>`;
         frag.appendChild(el);
       });
       wrap.appendChild(frag);
     }
+
     function renderCart(){
       const list = document.getElementById('cartList');
       list.innerHTML = '';
@@ -349,122 +294,71 @@
       } else {
         entries.forEach(([id, qty]) => {
           const p = findProduct(id);
-          if(!p){ delete cart[id]; return; }
           const row = document.createElement('div');
           row.className = 'p-3 flex items-center gap-3';
           row.innerHTML = `
             <img src="${p.img}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border">
             <div class="flex-1">
               <div class="text-sm font-semibold">${p.name}</div>
-              <div class="text-xs text-gray-500">${fmtBaht(p.price)} / ${p.unit || '-'}</div>
+              <div class="text-xs text-gray-500">${fmtBaht(p.price)} / ${p.unit}</div>
             </div>
             <div class="flex items-center gap-2">
               <button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button>
               <span class="w-8 text-center">${qty}</span>
               <button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button>
             </div>
-            <div class="w-20 text-right font-medium">${fmtBaht(p.price * (Number(qty)||0))}</div>
+            <div class="w-20 text-right font-medium">${fmtBaht(p.price * qty)}</div>
           `;
           list.appendChild(row);
         });
       }
       document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
-      persistCart();
     }
 
-    // ======= ORDER TEXT & LINE =======
     function buildOrderText(){
       const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, ''];
       Object.entries(cart).forEach(([id, qty]) => {
-        const p = findProduct(id); if(!p) return;
-        lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*(Number(qty)||0))}`);
+        const p = findProduct(id);
+        lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit}) = ${fmtBaht(p.price*qty)}`);
       });
-      lines.push('', 'ยอดรวม: ' + fmtBaht(cartTotal()), 'ขอที่อยู่จัดส่ง/นัดรับด้วยค่ะ');
+      lines.push('');
+      lines.push('ยอดรวม: ' + fmtBaht(cartTotal()));
+      lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ');
       return lines.join('\n');
     }
+
     async function copyOrderToClipboard(){
-      try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว ไปแปะในแชตได้เลย'); }
-      catch(e){
-        const ta=document.createElement('textarea'); ta.value=buildOrderText(); document.body.appendChild(ta);
-        ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      try{
+        await navigator.clipboard.writeText(buildOrderText());
+        alert('คัดลอกออเดอร์แล้ว ไปแปะในแชตได้เลย');
+      }catch(e){
+        const textarea = document.createElement('textarea');
+        textarea.value = buildOrderText();
+        document.body.appendChild(textarea);
+        textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
         alert('คัดลอกออเดอร์แล้ว ไปแปะในแชตได้เลย');
       }
     }
-    function checkout(){ window.open(lineChatUrl(buildOrderText()), '_blank'); }
 
-    // ======= SLIDER (auto-play + arrows + dots) =======
-    function initSlider(){
-      const container = document.querySelector('#slides > .flex');
-      const prevBtn = document.getElementById('prevBtn');
-      const nextBtn = document.getElementById('nextBtn');
-      const dotsWrap = document.getElementById('dots');
-      const total = container.children.length;
-      let idx = 0, timer = null, hover = false;
-
-      // set widths (each img = 100%)
-      Array.from(container.children).forEach(el => el.style.width = '100%');
-
-      function go(n){
-        idx = (n + total) % total;
-        container.style.transform = `translateX(-${idx*100}%)`;
-        renderDots();
-      }
-      function renderDots(){
-        dotsWrap.innerHTML = '';
-        for(let i=0;i<total;i++){
-          const b = document.createElement('button');
-          b.className = 'w-2.5 h-2.5 rounded-full ' + (i===idx?'bg-white':'bg-white/60 hover:bg-white');
-          b.addEventListener('click', () => go(i));
-          dotsWrap.appendChild(b);
-        }
-      }
-      function play(){
-        clearInterval(timer);
-        timer = setInterval(()=>{ if(!hover) go(idx+1); }, 4000);
-      }
-
-      prevBtn.addEventListener('click', ()=>{ go(idx-1); play(); });
-      nextBtn.addEventListener('click', ()=>{ go(idx+1); play(); });
-
-      const sliderEl = document.getElementById('slider');
-      sliderEl.addEventListener('mouseenter', ()=>{ hover = true; });
-      sliderEl.addEventListener('mouseleave', ()=>{ hover = false; });
-
-      renderDots(); play();
+    function checkout(){
+      const ref = 'order_' + Date.now();
+      window.open('https://m.me/' + FB_PAGE_ID + '?ref=' + ref, '_blank');
     }
 
-    // ======= LOAD PRODUCTS =======
-    async function loadProductsFromGitHubTxt(url = RAW_TXT_URL){
-      try{
-        const res = await fetch(url + '?_=' + Date.now(), { cache: 'no-store' });
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const text = await res.text();
-        const rows = parseLinesAuto(text);
-        PRODUCTS = rows.map(toItem);
-        renderCategories();
-        renderGrid(filterItems(PRODUCTS));
-        reconcileCart();
-      }catch(err){
-        console.error('โหลด GitHub .txt ไม่สำเร็จ:', err);
-        alert('โหลดสินค้าจาก GitHub ไม่สำเร็จ: ตรวจให้ repo เป็น public และ path/branch ถูกต้อง');
-      }
-    }
+    function openCart(){ document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); }
+    function closeCart(){ document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); }
+
+    function syncUI(){ renderCategories(); renderGrid(filterItems(PRODUCTS)); }
 
     // ======= INIT =======
     document.addEventListener('DOMContentLoaded', () => {
-      // ปีในฟุตเตอร์
+      // Year
       const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
 
-      // LINE links
-      document.getElementById('lineLink').href = lineChatUrl('สวัสดีค่ะ สนใจสอบถามสินค้า');
-      document.getElementById('lineLinkFooter').href = lineChatUrl('สวัสดีค่ะ สนใจสอบถามสินค้า');
-      document.getElementById('fabChat').href = lineChatUrl('สวัสดีค่ะ สนใจสอบถามสินค้า');
+      syncUI();
+      updateBadge();
 
-      // Loading
-      document.getElementById('productGrid').innerHTML =
-        '<div class="col-span-full text-center text-gray-500 py-10">กำลังโหลดสินค้า...</div>';
-
-      // Filters
+      // Filter events
       document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(filterItems(PRODUCTS)); });
@@ -478,51 +372,50 @@
         renderGrid(filterItems(PRODUCTS));
       });
 
-      // Product grid clicks
+      // Buttons (delegation)
       document.getElementById('productGrid').addEventListener('click', (e) => {
         const addBtn = e.target.closest('.btn-add');
         const chatBtn = e.target.closest('.btn-chat');
         if (addBtn) {
-          const id = toId(addBtn.dataset.id);
-          const p  = findProduct(id); if(!p) return;
+          const id = addBtn.getAttribute('data-id');
           cart[id] = (cart[id] || 0) + 1;
           persistCart(); updateBadge();
         }
         if (chatBtn) {
-          const id = toId(chatBtn.dataset.id);
-          const p  = findProduct(id); if(!p) return;
-          const text = `สั่งซื้อ: ${p.name} 1 ${p.unit || ''} ราคา ${fmtBaht(p.price)}`;
-          window.open(lineChatUrl(text), '_blank');
+          const id = chatBtn.getAttribute('data-id');
+          const ref = 'buy_' + id;
+          window.open('https://m.me/' + FB_PAGE_ID + '?ref=' + ref, '_blank');
         }
       });
 
-      // Cart controls
-      document.getElementById('openCart').addEventListener('click', () => { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); });
-      document.getElementById('closeCart').addEventListener('click', () => { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); });
-      document.getElementById('backdrop').addEventListener('click', () => { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); });
+      document.getElementById('openCart').addEventListener('click', openCart);
+      document.getElementById('closeCart').addEventListener('click', closeCart);
+      document.getElementById('backdrop').addEventListener('click', closeCart);
       document.getElementById('clearCart').addEventListener('click', () => { cart = {}; persistCart(); renderCart(); updateBadge(); });
       document.getElementById('copyOrder').addEventListener('click', copyOrderToClipboard);
       document.getElementById('checkout').addEventListener('click', checkout);
-      document.getElementById('cartList').addEventListener('click', (e) => {
-        const inc = e.target.closest('.btn-inc'); const dec = e.target.closest('.btn-dec');
-        if(inc || dec){
-          const id = toId((inc||dec).dataset.id);
-          if(!(id in cart)) cart[id] = 0;
-          cart[id] = Math.max(0, (cart[id]||0) + (inc ? 1 : -1));
-          if(cart[id] === 0) delete cart[id];
-          renderCart(); updateBadge();
-        }
-      });
 
-      // Slider
-      initSlider();
+      // Messenger links
+      document.getElementById('messengerLink').href = 'https://m.me/' + FB_PAGE_ID;
+      document.getElementById('fabChat').href = 'https://m.me/' + FB_PAGE_ID;
+
+      // Facebook Chat Plugin (ignore on file://; works on domain)
+      if(FB_PAGE_ID && FB_PAGE_ID !== 'YOUR_PAGE_ID'){
+        const chatbox = document.getElementById('fb-customer-chat');
+        chatbox.setAttribute('page_id', FB_PAGE_ID);
+        chatbox.setAttribute('attribution', 'biz_inbox');
+        window.fbAsyncInit = function() { FB.init({ xfbml: true, version: 'v20.0', appId: FB_APP_ID }); };
+        (function(d, s, id){
+          var js, fjs = d.getElementsByTagName(s)[0];
+          if (d.getElementById(id)) return;
+          js = d.createElement(s); js.id = id;
+          js.src = 'https://connect.facebook.net/th_TH/sdk/xfbml.customerchat.js';
+          fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+      }
 
       // SEO title
       document.title = STORE_NAME + ' — เว็บแอปสินค้า';
-
-      // Load products
-      loadProductsFromGitHubTxt();
-      updateBadge();
     });
   </script>
 </body>
