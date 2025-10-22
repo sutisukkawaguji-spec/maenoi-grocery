@@ -454,66 +454,96 @@ function toCdn(u){
   }catch{ return u; }
 }
 
-  /* ================== วางบล็อกใหม่นี้ "ต่อจาก toCdn()" ================== */
-  
-  // ตั้งหมายเลข PromptPay (GLOBAL) — อยู่นอก DOMContentLoaded
-  const PROMPTPAY_ID = "0880699227"; // <-- เปลี่ยนเป็นเลขพร้อมเพย์ของคุณ
-  
-  // ฟังก์ชันเปิด Dynamic QR — อยู่นอก DOMContentLoaded
-  function openDynamicQR() {
-    const total = cartTotal(); // ฟังก์ชันของคุณมีอยู่แล้ว
-    const url = `https://promptpay.io/${PROMPTPAY_ID}/${total}`;
-    const img = document.getElementById('qrDynamic');
-    const sum = document.getElementById('sumTHB');
-    if (img) img.src = url;
-    if (sum) sum.textContent = fmtBaht(total);
-    document.getElementById('qrPay')?.showModal();
-  }
+/* ================== วางบล็อกใหม่นี้ "ต่อจาก toCdn()" ================== */
+
+// ตั้งหมายเลข PromptPay (GLOBAL) — อยู่นอก DOMContentLoaded
+const PROMPTPAY_ID = "0880699227"; // <-- เปลี่ยนเป็นเลขพร้อมเพย์ของคุณ
+
+// ฟังก์ชันเปิด Dynamic QR — อยู่นอก DOMContentLoaded
+function openDynamicQR() {
+  const total = cartTotal(); // ฟังก์ชันของคุณมีอยู่แล้ว
+  const url = `https://promptpay.io/${PROMPTPAY_ID}/${total}`;
+  const img = document.getElementById('qrDynamic');
+  const sum = document.getElementById('sumTHB');
+
+  if (img) img.src = url;
+  if (sum) sum.textContent = fmtBaht(total);
+
+  document.getElementById('qrPay')?.showModal();
+}
 /* ===================================================================== */
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    // ❌ ลบบรรทัดนี้ออก (ห้ามประกาศ PROMPTPAY_ID ซ้ำในนี้)
-    // const PROMPTPAY_ID = "0880699227";
-  
-    const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
-    const msg = 'สวัสดีครับ สอบถามสินค้า'; const lineURL = lineChatUrl(msg);
-    const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
-    setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
-  
-    if(location.protocol === 'file:'){
-      const warn = document.createElement('div');
-      warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
-      warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้';
-      document.body.prepend(warn);
-      showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
-    }
-  
-    try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
-  
-    // reconcile cart
-    for (const id of Object.keys(cart)) { if (!findProduct(id)) { delete cart[id]; } }
-    localStorage.setItem('cart', JSON.stringify(cart));
-  
-    refreshUI();
-  
-    document.getElementById('searchInput').addEventListener('input', e => {
-      state.q = e.target.value.trim().toLowerCase();
-      const base = PRODUCTS.filter(p => !state.category || p.category===state.category);
-      const filtered = base.filter(p => !state.q || String(p.name).toLowerCase().includes(state.q));
-      document.getElementById('resultCount').textContent = filtered.length;
-      document.getElementById('productGrid').innerHTML = filtered.map(productCard).join('');
-    });
-  
-    // ... โค้ดผูก event อื่น ๆ ของคุณ ...
-  
-    /* ====== วาง 3 บรรทัดนี้ "ด้านล่าง ๆ" ใน DOMContentLoaded เพื่อผูกปุ่ม ====== */
-    document.getElementById('payNow')?.addEventListener('click', openDynamicQR);
-    document.getElementById('closeQr')?.addEventListener('click', ()=> document.getElementById('qrPay').close());
-    document.getElementById('copyAmount')?.addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(String(cartTotal())); alert('คัดลอกยอดแล้ว'); }catch{}
-    });
 
-
+	document.addEventListener('DOMContentLoaded', async () => {
+	  // ❌ ห้ามประกาศ PROMPTPAY_ID ซ้ำในนี้
+	  // const PROMPTPAY_ID = "0880699227";
+	
+	  const y = document.getElementById('y');
+	  if (y) y.textContent = new Date().getFullYear();
+	
+	  const msg = 'สวัสดีครับ สอบถามสินค้า';
+	  const lineURL = lineChatUrl(msg);
+	  const setHref = (id, u) => {
+	    const el = document.getElementById(id);
+	    if (el) el.href = u;
+	  };
+	  setHref('lineLink', lineURL);
+	  setHref('lineLinkFooter', lineURL);
+	
+	  if (location.protocol === 'file:') {
+	    const warn = document.createElement('div');
+	    warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
+	    warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้';
+	    document.body.prepend(warn);
+	    showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
+	  }
+	
+	  try {
+	    await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]);
+	  } catch (e) {
+	    console.error(e);
+	    showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
+	  }
+	
+	  // reconcile cart
+	  for (const id of Object.keys(cart)) {
+	    if (!findProduct(id)) { delete cart[id]; }
+	  }
+	  localStorage.setItem('cart', JSON.stringify(cart));
+	
+	  refreshUI();
+	
+	  // ค้นหา
+	  document.getElementById('searchInput').addEventListener('input', e => {
+	    state.q = e.target.value.trim().toLowerCase();
+	    const base = PRODUCTS.filter(p => !state.category || p.category === state.category);
+	    const filtered = base.filter(p => !state.q || String(p.name).toLowerCase().includes(state.q));
+	    document.getElementById('resultCount').textContent = filtered.length;
+	    document.getElementById('productGrid').innerHTML = filtered.map(productCard).join('');
+	  });
+	
+	  // หมวดหมู่
+	  document.getElementById('categorySelect').addEventListener('change', e => {
+	    state.category = e.target.value || '';
+	    const base = PRODUCTS.filter(p => !state.category || p.category === state.category);
+	    const filtered = base.filter(p => !state.q || String(p.name).toLowerCase().includes(state.q));
+	    document.getElementById('resultCount').textContent = filtered.length;
+	    document.getElementById('productGrid').innerHTML = filtered.map(productCard).join('');
+	  });
+	
+	  // ... โค้ดผูก event อื่น ๆ ของคุณ ...
+	
+	  /* ====== ผูกปุ่ม PromptPay (วางท้าย ๆ ใน DOMContentLoaded) ====== */
+	  document.getElementById('payNow')?.addEventListener('click', openDynamicQR);
+	  document.getElementById('closeQr')?.addEventListener('click', () => document.getElementById('qrPay').close());
+	  document.getElementById('copyAmount')?.addEventListener('click', async () => {
+	    try {
+	      await navigator.clipboard.writeText(String(cartTotal()));
+	      alert('คัดลอกยอดแล้ว');
+	    } catch {}
+	  });
+	  /* =============================================================== */
+	});
       document.getElementById('categorySelect').addEventListener('change', e => {
         state.category = e.target.value;
         const base = PRODUCTS.filter(p => !state.category || p.category===state.category);
