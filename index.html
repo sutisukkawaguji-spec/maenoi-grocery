@@ -47,6 +47,7 @@
 
     <div class="bg-white">
       <div class="max-w-6xl mx-auto px-0 md:px-4 py-2">
+        <h3 class="font-semibold mb-2 px-4 md:px-0">🍽️ เมนูวันนี้</h3>
         <div class="marquee-viewport rounded-xl border overflow-hidden">
           <div id="bannerTrack" class="marquee-track"></div>
         </div>
@@ -61,21 +62,23 @@
     </div>
   </div>
 
-  <section id="announce" class="bg-white border-y border-gray-200">
-    <div class="max-w-6xl mx-auto px-4 py-3">
-      <div class="marquee-viewport rounded-xl">
-        <div id="announceTrack" class="marquee-track text-sm md:text-base"></div>
-      </div>
-    </div>
-  </section>
+  
 
   <section id="banner-manual" class="relative bg-white">
     <div class="max-w-6xl mx-auto px-4 py-4">
-      <h3 class="font-semibold mb-2">🎏 แบนเนอร์</h3>
+      <h3 class="font-semibold mb-2">🎁 โปรโมชัน</h3>
       <div class="overflow-hidden rounded-xl border relative">
         <div id="manualBanner" class="w-full h-56 md:h-72 flex items-center justify-center bg-gray-100"></div>
         <button id="bannerPrev" class="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">‹</button>
         <button id="bannerNext" class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">›</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="announce" class="bg-white border-y border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 py-3">
+      <div class="marquee-viewport rounded-xl">
+        <div id="announceTrack" class="marquee-track text-sm md:text-base"></div>
       </div>
     </div>
   </section>
@@ -314,6 +317,23 @@
     }
     const BANNERS = ['images/banner1.jpg','images/banner2.jpg','images/banner3.jpg'];
     let bannerIdx = 0;
+    const AUTO_SLIDE_MS = 4000; // ปรับความเร็วได้ (มิลลิวินาที)
+    let bannerTimer = null;
+    function startBannerAuto(){
+      stopBannerAuto();
+      if(BANNERS.length <= 1) return;
+      bannerTimer = setInterval(()=>{
+        bannerIdx = (bannerIdx + 1) % BANNERS.length;
+        renderManualBanner();
+      startBannerAuto();
+      const bannerWrap = document.getElementById('manualBanner');
+      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
+      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
+
+      }, AUTO_SLIDE_MS);
+    }
+    function stopBannerAuto(){ if(bannerTimer){ clearInterval(bannerTimer); bannerTimer = null; } }
+
     function renderManualBanner(){
       const wrap = document.getElementById('manualBanner'); if(!wrap) return;
       if(!BANNERS.length){ wrap.innerHTML = '<div class="text-gray-500">ยังไม่มีแบนเนอร์</div>'; return; }
@@ -359,6 +379,11 @@
       renderHeaderMenuBanner();
       renderAnnounce();
       renderManualBanner();
+      startBannerAuto();
+      const bannerWrap = document.getElementById('manualBanner');
+      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
+      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
+
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -407,9 +432,24 @@
       document.getElementById('copyOrder')?.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว'); } catch{ alert('คัดลอกไม่สำเร็จ'); } });
       document.getElementById('checkout')?.addEventListener('click', ()=> window.open(lineChatUrl(buildOrderText()), '_blank'));
 
-      document.getElementById('bannerPrev')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx - 1 + BANNERS.length) % BANNERS.length; renderManualBanner(); });
-      document.getElementById('bannerNext')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner(); });
+      document.getElementById('bannerPrev')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx - 1 + BANNERS.length) % BANNERS.length; renderManualBanner();
+      startBannerAuto();
+      const bannerWrap = document.getElementById('manualBanner');
+      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
+      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
+ });
+      document.getElementById('bannerNext')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner();
+      startBannerAuto();
+      const bannerWrap = document.getElementById('manualBanner');
+      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
+      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
+ });
       renderManualBanner();
+      startBannerAuto();
+      const bannerWrap = document.getElementById('manualBanner');
+      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
+      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
+
 
       const qr = document.getElementById('qrModal'); const btnPH = document.getElementById('openPromptPayHeader'); const btnPF = document.getElementById('openPromptPayFooter'); const btnClosePP = document.getElementById('closePromptPay');
       btnPH && btnPH.addEventListener('click', ()=> qr?.showModal()); btnPF && btnPF.addEventListener('click', ()=> qr?.showModal()); btnClosePP && btnClosePP.addEventListener('click', ()=> qr?.close()); qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
