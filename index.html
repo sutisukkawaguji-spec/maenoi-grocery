@@ -392,12 +392,23 @@
       }); }
       document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
     }
-    function buildOrderText(){
-      const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, ''];
-      Object.entries(cart).forEach(([id, qty]) => { const p = findProduct(id); if(!p) return; lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*qty)}`); });
-      lines.push(''); lines.push('ยอดรวม: ' + fmtBaht(cartTotal())); lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ'); return lines.join('\\n');
+    function buildOrderText() {
+      const lines = [];
+      lines.push('🛒 ออเดอร์จากหน้าเว็บ: ' + STORE_NAME);
+      lines.push('');
+      lines.push('📦 รายการสินค้า');
+    
+      Object.entries(cart).forEach(([id, qty]) => {
+        const p = findProduct(id);
+        if (!p) return;
+        lines.push(`• ${p.name} × ${qty}  —  ${fmtBaht(p.price)} / ${p.unit || '-'}`);
+      });
+    
+      lines.push('');
+      lines.push(`💰 ยอดรวมทั้งหมด: ${fmtBaht(cartTotal())}`);
+      lines.push('🏠 โปรดระบุที่อยู่จัดส่งหรือนัดรับสินค้าได้เลยครับ 🙏');
+      return lines.join('\n');
     }
-
     function refreshUI(){
       // categories + products
       const sel = document.getElementById('categorySelect');
