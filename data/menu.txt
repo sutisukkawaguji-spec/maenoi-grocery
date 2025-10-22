@@ -1,2 +1,2 @@
-ข้าวกะเพราไก่,https://github.com/sutisukkawaguji-spec/maenoi-grocery/blob/main/images/banner2.jpg
-ผัดไทยกุ้งสด,https://picsum.photos/seed/padthai/1200/600
+พะโล้ (หมดแล้วค่ะ),https://github.com/sutisukkawaguji-spec/maenoi-grocery/blob/main/images/menu1.jpg
+ยำเล็บมือนาง (หมดแล้วค่ะX,https://github.com/sutisukkawaguji-spec/maenoi-grocery/blob/main/images/menu2.jpg
