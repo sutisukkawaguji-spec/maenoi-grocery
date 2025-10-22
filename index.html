@@ -365,7 +365,7 @@
     function renderAnnounce(){
       const track = document.getElementById('announceTrack'); if(!track) return;
       const arr = window.ANNOUNCES || [];
-      if(!arr.length){ track.innerHTML = '<span class="px-3 py-2 text-gray-500">ยังไม่มีประกาศ — เพิ่มใน data/announce.txt</span>'; return; }
+      if(!arr.length){ track.innerHTML = '<span class="px-3 py-2 text-gray-500">ยังไม่มีประกาศ — จะแจ้งให้ทราบในโอกาสถัดไปค่ะ</span>'; return; }
       const html = arr.map(a => {
         const href = a.href ? a.href : '#';
         const safeText = a.text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
