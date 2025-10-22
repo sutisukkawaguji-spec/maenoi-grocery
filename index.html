@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำ</title>
-  <meta name="description" content="สินค้า สินค้าแนะนำ เมนูวันนี้ (หัวเว็บ), แบนเนอร์สับภาพเอง, ข้อความประกาศวิ่ง, ตะกร้า, พร้อมเพย์">
+  <meta name="description" content="สินค้า สินค้าแนะนำ เมนูวันนี้ (หัวเว็บ), แบนเนอร์สับภาพเอง, ข้อความประกาศวิ่ง, ตะกร้า, พร้อมเพย์ (QR ปกติ)">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,6 +29,7 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
+  <!-- Header -->
   <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
       <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://picsum.photos/seed/logo/96/96'">
@@ -55,6 +56,7 @@
     </div>
   </header>
 
+  <!-- Diag -->
   <div id="diag" class="max-w-6xl mx-auto px-4 mt-3 hidden">
     <div class="rounded-xl border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">
       <strong class="block mb-1">แจ้งเตือน/คำแนะนำ:</strong>
@@ -62,6 +64,7 @@
     </div>
   </div>
 
+  <!-- Banners -->
   <section id="banner-manual" class="relative bg-white">
     <div class="max-w-6xl mx-auto px-4 py-4">
       <h3 class="font-semibold mb-2">🎁 โปรโมชัน</h3>
@@ -73,6 +76,7 @@
     </div>
   </section>
 
+  <!-- Announces -->
   <section id="announce" class="bg-white border-y border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-3">
       <div class="marquee-viewport rounded-xl">
@@ -81,6 +85,7 @@
     </div>
   </section>
 
+  <!-- Featured -->
   <section id="featured" class="bg-white border-y border-gray-200 hidden">
     <div class="max-w-6xl mx-auto px-4 py-4">
       <div class="flex items-center gap-2 mb-2"><span class="text-lg">⭐</span><h3 class="font-semibold">สินค้าแนะนำ</h3></div>
@@ -88,6 +93,7 @@
     </div>
   </section>
 
+  <!-- Main -->
   <main class="max-w-6xl mx-auto px-4 py-6">
     <section class="mb-5 grid grid-cols-1 md:grid-cols-12 gap-3">
       <div class="md:col-span-5">
@@ -119,6 +125,7 @@
     <section id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></section>
   </main>
 
+  <!-- Footer -->
   <footer class="border-t border-gray-200 py-10 text-center text-sm bg-white">
     <h3 class="text-lg font-semibold mb-2 text-emerald-700">ร้านแม่น้อย บ้านดอนขี</h3>
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
@@ -131,7 +138,7 @@
     <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี </p>
   </footer>
 
-  <!-- ตะกร้า -->
+  <!-- Cart Drawer -->
   <aside id="cartDrawer" class="drawer" aria-hidden="true">
     <div class="px-4 py-3 border-b flex items-center justify-between">
       <h3 class="font-semibold">ตะกร้าสินค้า</h3>
@@ -156,37 +163,38 @@
     </div>
   </aside>
 
-  <!-- Modal PromptPay (QR ปกติเท่านั้น) -->
+  <!-- PromptPay Modal (QR ปกติเท่านั้น) -->
   <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
     <div class="p-4 bg-white rounded-2xl w-[92vw] max-w-sm">
       <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
 
       <div id="qrWrap" class="mb-2">
-        <!-- เปลี่ยนไฟล์ภาพตามต้องการที่ data-src -->
-        <img id="qrImg" data-src="./images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto border rounded-lg object-contain" width="192" height="192">
+        <!-- ใส่รูป QR ปกติของร้าน (ภาพนิ่ง) -->
+        <img id="qrImg" data-src="./images/promptpay.png" alt="QR PromptPay"
+             class="w-48 h-48 mx-auto border rounded-lg object-contain" width="192" height="192">
       </div>
 
-      <!-- โชว์ข้อมูล (คงเดิม) -->
+      <!-- ข้อมูลแสดง (คงเดิม) -->
       <div id="infoArea" class="space-y-1 text-center text-sm text-gray-600">
         <div>ชื่อบัญชี: <span id="ppName">ร้านแม่น้อย บ้านดอนขี</span></div>
         <div>เลขพร้อมเพย์: <span id="ppId">0880699227</span></div>
         <div>จำนวนเงิน: <span id="ppAmt">-</span></div>
       </div>
 
-      <div class="text-center mt-3"><button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button></div>
+      <div class="text-center mt-3">
+        <button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button>
+      </div>
     </div>
   </dialog>
 
   <script>
-    // ====== ตั้งค่าเบื้องต้น ======
+    // ===== ค่าคงที่ร้าน =====
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
     const LINE_ID = '@906dooke'; // LINE OA
     const PROMPTPAY_ID = '0880699227'; // ใช้สำหรับแสดงผล (QR เป็นไฟล์นิ่ง)
     const PROMPTPAY_NAME = 'ร้านแม่น้อย บ้านดอนขี';
 
-    // (สำคัญ) ลิงก์แชต LINE แบบไม่ให้ "text=" ไปโผล่ในข้อความ
-    // รูปแบบหลัก: oaMessage/<OA_ID>/?<message>   (ไม่มีคีย์ text=)
-    // ถ้าเครื่องบางรุ่นไม่รองรับ จะ fallback ไปแบบ ?text= ให้อัตโนมัติ
+    // ===== LINE URL (ไม่ให้ข้อความขึ้นคำว่า text=) + fallback =====
     const OA_ID_ENC = encodeURIComponent(LINE_ID);
     const lineUrlNoKey = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?${encodeURIComponent(text)}`;
     const lineUrlWithKey = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?text=${encodeURIComponent(text)}`;
@@ -196,7 +204,7 @@
       setTimeout(()=>{ if(!win || win.closed) window.open(lineUrlWithKey(text), '_blank'); }, 400);
     };
 
-    // ไฟล์ข้อมูล
+    // ===== ไฟล์ข้อมูล =====
     const FILE_PRODUCTS = './data/products.txt';
     const FILE_MENU     = './data/menu.txt';
     const FILE_ANN      = './data/announce.txt';
@@ -205,6 +213,7 @@
     let state = { q:'', category:'', min:'', max:'' };
     let cart = JSON.parse(localStorage.getItem('cart') || '{}');
 
+    // ===== Utils =====
     const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
     function normalizeId(x){ return String(x ?? '').trim(); }
     function showError(msg){
@@ -212,14 +221,11 @@
       if(box && ul){ box.classList.remove('hidden'); const li = document.createElement('li'); li.textContent = msg; ul.appendChild(li); }
       console.warn('[DIAG]', msg);
     }
-
-    // ====== Utils ======
     function toCdnGit(input) {
       if (!input) return '';
       const u = String(input).trim();
       let urlObj;
-      try { urlObj = new URL(u); }
-      catch { return u; }
+      try { urlObj = new URL(u); } catch { return u; }
       if (urlObj.hostname === 'github.com') {
         const parts = urlObj.pathname.split('/').filter(Boolean);
         if (parts.length >= 4 && parts[2] === 'blob') {
@@ -376,7 +382,7 @@
       track.innerHTML = items + items;
     }
 
-    // Manual banner
+    // ===== Manual banner =====
     const BANNERS = ['images/banner1.jpg','images/banner2.jpg','images/banner3.jpg'];
     let bannerIdx = 0;
     const AUTO_SLIDE_MS = 4000;
@@ -387,13 +393,8 @@
       const src = BANNERS[bannerIdx % BANNERS.length];
       wrap.innerHTML = `<img src="${src}" class="w-full h-full object-cover" alt="banner" onerror="this.src='https://picsum.photos/seed/banner/1200/400'">`;
     }
-    function startBannerAuto(){
-      stopBannerAuto();
-      if(BANNERS.length <= 1) return;
-      bannerTimer = setInterval(()=>{
-        bannerIdx = (bannerIdx + 1) % BANNERS.length;
-        renderManualBanner();
-      }, AUTO_SLIDE_MS);
+    function startBannerAuto(){ stopBannerAuto(); if(BANNERS.length <= 1) return;
+      bannerTimer = setInterval(()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner(); }, AUTO_SLIDE_MS);
     }
     function stopBannerAuto(){ if(bannerTimer){ clearInterval(bannerTimer); bannerTimer = null; } }
 
@@ -409,11 +410,13 @@
       track.innerHTML = html + '<span class="opacity-50">•</span>' + html;
     }
 
-    // ====== CART ======
+    // ===== CART =====
     function cartCount(){ return Object.values(cart).reduce((a,b)=>a+(Number(b)||0),0); }
     function updateBadge(){ const el = document.getElementById('cartBadge'); if(el) el.textContent = cartCount(); }
     function findProduct(id){ return PRODUCTS.find(p => normalizeId(p.id) === normalizeId(id)); }
-    function cartTotal(){ return Object.entries(cart).reduce((sum,[id,qty]) => { const p = findProduct(id); if(!p) return sum; const price = Number(p.price)||0; const q = Number(qty)||0; return sum + (price * q); }, 0); }
+    function cartTotal(){ return Object.entries(cart).reduce((sum,[id,qty]) => {
+      const p = findProduct(id); if(!p) return sum; const price = Number(p.price)||0; const q = Number(qty)||0; return sum + (price * q);
+    }, 0); }
     function renderCart(){
       const list = document.getElementById('cartList'); if(!list) return; list.innerHTML = '';
       const entries = Object.entries(cart);
@@ -424,7 +427,8 @@
         row.innerHTML = `<img src="${p.img}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/placeholder/160/120'">
           <div class="flex-1"><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">${(p.price||0).toLocaleString('th-TH')} / ${p.unit || '-'}</div></div>
           <div class="flex items-center gap-2"><button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button><span class="w-8 text-center">${qty}</span><button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button></div>
-          <div class="w-20 text-right font-medium">${(p.price*qty||0).toLocaleString('th-TH')}</div>`; list.appendChild(row);
+          <div class="w-20 text-right font-medium">${(p.price*qty||0).toLocaleString('th-TH')}</div>`;
+        list.appendChild(row);
       }); }
       document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
     }
@@ -444,17 +448,7 @@
       return lines.join('\n');
     }
 
-    // ====== Init ======
-    function refreshUI(){
-      renderCategories();
-      renderFeatured();
-      renderGrid(PRODUCTS);
-      updateBadge();
-      renderHeaderMenuBanner();
-      renderAnnounce();
-      renderManualBanner();
-      startBannerAuto();
-    }
+    // ===== Helpers (ภาพ/แหล่งไฟล์) =====
     function tryLoadImage(el, sources, idx=0){
       if(!el || idx >= sources.length) return;
       const src = sources[idx];
@@ -482,6 +476,7 @@
       }catch{ return u; }
     }
 
+    // ===== Boot =====
     document.addEventListener('DOMContentLoaded', async () => {
       const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
 
@@ -491,6 +486,7 @@
       setHref('lineLink', lineUrlNoKey(defaultMsg));
       setHref('lineLinkFooter', lineUrlNoKey(defaultMsg));
 
+      // เตือนถ้าเปิดแบบ file://
       if(location.protocol === 'file:'){
         const warn = document.createElement('div');
         warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
@@ -499,20 +495,25 @@
         showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
       }
 
+      // โหลดข้อมูลหลัก
       try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 
-      // reconcile cart
+      // reconcile cart เผื่อมีสินค้าโดนลบ
       for (const id of Object.keys(cart)) { if (!findProduct(id)) { delete cart[id]; } }
       localStorage.setItem('cart', JSON.stringify(cart));
 
-      refreshUI();
+      // วาด UI
+      renderCategories(); renderFeatured(); renderGrid(PRODUCTS);
+      updateBadge(); renderHeaderMenuBanner(); renderAnnounce();
+      renderManualBanner(); startBannerAuto();
 
-      // Filters
+      // ค้นหา/กรอง
       document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(PRODUCTS); });
       document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(PRODUCTS); });
       document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(PRODUCTS); });
       document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(PRODUCTS); });
-      document.getElementById('clearFilters').addEventListener('click', () => { state = { q:'', category:'', min:'', max:'' };
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        state = { q:'', category:'', min:'', max:'' };
         document.getElementById('searchInput').value='';
         document.getElementById('categorySelect').value='';
         document.getElementById('minPrice').value='';
@@ -520,14 +521,14 @@
         renderGrid(PRODUCTS);
       });
 
-      // Drawer
+      // ตะกร้าเปิด/ปิด
       const openCart = () => { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); };
       const closeCart = () => { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); };
       document.getElementById('openCart')?.addEventListener('click', openCart);
       document.getElementById('closeCart')?.addEventListener('click', closeCart);
       document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
-      // Click add/chat
+      // ปุ่มหยิบ/แชตสินค้าเดี่ยว
       document.addEventListener('click', (e) => {
         const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
         if (addBtn) {
@@ -546,19 +547,19 @@
         }
       });
 
-      // Cart +/- buttons
+      // ปรับจำนวนในตะกร้า
       document.getElementById('cartList').addEventListener('click', (e) => {
         const dec = e.target.closest('.btn-dec'); const inc = e.target.closest('.btn-inc');
         if (dec) { const id = normalizeId(dec.getAttribute('data-id')); cart[id] = Math.max(0, (cart[id]||0) - 1); if(cart[id] === 0) delete cart[id]; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
         if (inc) { const id = normalizeId(inc.getAttribute('data-id')); cart[id] = (cart[id]||0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
       });
 
-      // Cart actions
+      // Action ปุ่มในตะกร้า
       document.getElementById('clearCart')?.addEventListener('click', () => { cart = {}; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); });
       document.getElementById('copyOrder')?.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว'); } catch{ alert('คัดลอกไม่สำเร็จ'); } });
       document.getElementById('checkout')?.addEventListener('click', ()=> openLine(buildOrderText()));
 
-      // Banner controls
+      // แบนเนอร์ manual
       document.getElementById('bannerPrev')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx - 1 + BANNERS.length) % BANNERS.length; renderManualBanner(); });
       document.getElementById('bannerNext')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner(); });
       const bannerWrap = document.getElementById('manualBanner');
@@ -566,7 +567,7 @@
       bannerWrap?.addEventListener('mouseleave', () => startBannerAuto());
       startBannerAuto();
 
-      // Load static PromptPay image (QR ปกติ)
+      // โหลดรูป QR ปกติครั้งแรก (เผื่อแคช)
       const qrImg = document.getElementById('qrImg');
       if (qrImg) {
         const primary = qrImg.getAttribute('data-src') || './images/promptpay.png';
@@ -574,22 +575,18 @@
         tryLoadImage(qrImg, candidates);
       }
 
-      // PromptPay dialog controls (QR ปกติ)
+      // PromptPay modal (QR ปกติ)
       const qr = document.getElementById('qrModal');
       const ppNameEl = document.getElementById('ppName');
       const ppIdEl = document.getElementById('ppId');
       const ppAmtEl = document.getElementById('ppAmt');
 
       function openPromptPayWithAmount(amount){
-        // อัปเดตข้อมูลแสดงผล (ชื่อ/เลข/ยอด)
         ppNameEl.textContent = PROMPTPAY_NAME;
         ppIdEl.textContent = PROMPTPAY_ID;
         ppAmtEl.textContent = amount > 0 ? fmtBaht(amount) : '-';
-
-        // รีโหลดภาพ QR ปกติ (ไฟล์นิ่ง)
-        const primary = qrImg.getAttribute('data-src') || './images/promptpay.png';
-        tryLoadImage(qrImg, [ primary, toCdn(primary), 'https://picsum.photos/seed/promptpay/256/256' ]);
-
+        const primary = document.getElementById('qrImg').getAttribute('data-src') || './images/promptpay.png';
+        tryLoadImage(document.getElementById('qrImg'), [ primary, toCdn(primary), 'https://picsum.photos/seed/promptpay/256/256' ]);
         qr?.showModal();
       }
 
@@ -598,13 +595,14 @@
       document.getElementById('closePromptPay')?.addEventListener('click', ()=> qr?.close());
       qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
 
-      // Pay Now -> เปิด Modal ด้วย QR ปกติ + แสดงยอดจากตะกร้า
+      // Pay Now -> เปิดโมดัล QR ปกติ + แสดงยอดจากตะกร้า
       document.getElementById('btnPayNow')?.addEventListener('click', ()=> {
         const amount = cartTotal();
         if (amount <= 0) { alert('ยังไม่มีสินค้าในตะกร้า'); return; }
         openPromptPayWithAmount(amount);
       });
     });
+
   </script>
   <div id="backdrop" class="backdrop"></div>
 </body>
