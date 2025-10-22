@@ -1,8 +1,8 @@
-1,มาม่า หมูสับ บะหมี่กึ่งสำเร็จรูป ,7,ซอง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order01.png
-2,มาม่า OK บะหมี่กึ่งสำเร็จรูป (สูตรฮอตโคเรียน),15,ซอง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order02.png
-3,เต่าถ่าน,80,ลูก,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order03.png
-4,น้ำยาล้างจาน,10,ซอง,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order04.png
-5,ปลากระป๋อง (ตราสามแม่ครัว),25,กระป๋อง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order05.png
+1,มาม่า หมูสับ บะหมี่กึ่งสำเร็จรูป ,7,ซอง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order01.png,A
+2,มาม่า OK บะหมี่กึ่งสำเร็จรูป (สูตรฮอตโคเรียน),15,ซอง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order02.png,A
+3,เต่าถ่าน,80,ลูก,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order03.png,A
+4,น้ำยาล้างจาน,10,ซอง,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order04.png,A
+5,ปลากระป๋อง (ตราสามแม่ครัว),25,กระป๋อง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order05.png,A
 6,Lays  (ขนาด 13 กรัม),5,ซอง,ขนม,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order06.png
 7,Lays (ขนาด 46 กรัม),20,ซอง,ขนม,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order07.png
 8,น้ำตาลทรายแดง (1 กก.),18,ถุง,อาหารแห้ง,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order08.png
@@ -30,5 +30,6 @@
 30,กรรไกร เอนกประสงค์,20,ชิ้น,อื่น ๆ,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order30.png
 31,ทำความสะอาดห้องน้ำ DUCK PRO,25,ขวด,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order31.png
 32,ถ่านหุงต้ม (กระสอบเล็ก),50,กระสอบ,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order32.png
+
 
 
