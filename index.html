@@ -48,7 +48,7 @@
     .cart-open #fabCart { display: none; } /* ซ่อน FAB ตอนลิ้นชักเปิด */
 
     /* Safe area bottom (iPhone) */
-    .drawer .border-t { padding-bottom: calc(12rem + env(safe-area-inset-bottom, 0px)); }
+    .drawer .border-t { padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); }
 
     #diag.hidden{ display:none; }
   </style>
@@ -157,7 +157,8 @@
     <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
     <div class="flex items-center justify-center gap-3 mt-3">
       <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
-      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">LINE</a>
+      <a id="facebookLink" href="https://facebook.com/801626436372815" target="_blank" rel="noopener"
+   class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
       <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
     </div>
     <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี </p>
@@ -619,13 +620,50 @@
     // ===== Boot =====
     document.addEventListener('DOMContentLoaded', async () => {
       const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
-
       // เซ็ตลิงก์ LINE
       const defaultMsg = 'สวัสดีครับ สนใจสอบถามสินค้า';
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
       setHref('lineLink', lineUrlNoKey(defaultMsg));
       setHref('lineLinkFooter', lineUrlNoKey(defaultMsg));
+      document.getElementById('facebookLink')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openFacebook();
+      });
 
+ // ===== Facebook deep link (เปิดแอปก่อน ค่อยไปเว็บ) =====
+    const FB_PAGE_ID = '801626436372815';           // <- เปลี่ยนเป็นเพจคุณ ถ้าจริงใช้ตัวนี้ได้เลย
+    const FB_WEB_URL = `https://www.facebook.com/${FB_PAGE_ID}`;
+
+    function isIOS() {
+      const ua = navigator.userAgent || '';
+      const iPadDesktop = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+      return /iPhone|iPad|iPod/.test(ua) || iPadDesktop;
+    }
+    function isAndroid(){ return /Android/i.test(navigator.userAgent || ''); }
+
+    function openFacebook() {
+      // ตัวเลือกสคีมา (เรียงลำดับลอง)
+      const appCandidates = [
+        `fb://page/${FB_PAGE_ID}`,
+        `fb://profile/${FB_PAGE_ID}`,
+        `fb://facewebmodal/f?href=${encodeURIComponent(FB_WEB_URL)}`
+      ];
+
+      // iOS/Android: ลองเปิดแอปก่อน
+      if (isIOS() || isAndroid()) {
+        // ยิงตัวแรกก่อน
+        window.location.href = appCandidates[0];
+        // ถ้าไม่ได้ (ไม่มีแอป/บล็อค) → ลองตัว fallback ในแอปอีกหนึ่งตัว → สุดท้ายเป็นเว็บ
+        setTimeout(() => {
+          window.location.href = appCandidates[2];          // facewebmodal (บางเครื่องจะโดน FB app รับ)
+          setTimeout(() => { window.location.href = FB_WEB_URL; }, 700);
+        }, 700);
+      } else {
+        // เดสก์ท็อปไปเว็บตรง
+        window.location.href = FB_WEB_URL;
+      }
+    }
+        
       // file:// warning
       if(location.protocol === 'file:'){
         const warn = document.createElement('div');
