@@ -698,6 +698,24 @@
       preview.decBtn.addEventListener('mousedown', (e)=> e.preventDefault());
       preview.incBtn.addEventListener('mousedown', (e)=> e.preventDefault());
 
+      // === Make +/- work in preview (CLICK handlers) ===
+      function currentQty() {
+        const n = Number(preview.input.value || 0);
+        return Number.isFinite(n) && n > 0 ? n : 1; // ว่าง/0 => เริ่มที่ 1
+      }
+
+      preview.decBtn.addEventListener('click', () => {
+        const v = currentQty();
+        const next = Math.max(1, v - 1);
+        preview.input.value = String(next);
+      });
+
+      preview.incBtn.addEventListener('click', () => {
+        const v = Number(preview.input.value || 0); // ว่าง => 0
+        const next = (v > 0 ? v : 0) + 1;           // ว่างแล้วกด + => 1
+        preview.input.value = String(next);
+      });
+
       // ===== PATCH: qty input allow empty while typing =====
       document.getElementById('qtyInput').addEventListener('wheel', e => e.preventDefault(), { passive:false });
       function clampQtyOnUse() {
