@@ -357,12 +357,13 @@
       const list = document.getElementById('cartList'); if(!list) return; list.innerHTML = '';
       const entries = Object.entries(cart);
       if(entries.length === 0){ list.innerHTML = '<div class="p-4 text-center text-gray-500">ตะกร้าว่าง</div>'; }
-      else { entries.forEach(([id, qty]) => { const p = findProduct(id); if(!p) return; const imgSrc = p.img || 'images/placeholder.png';
+      else { entries.forEach(([id, qty]) => { let p = findProduct(id); if(!p) { p = { name:`สินค้า ID ${id}`, price:0, unit:'', img:'images/placeholder.png' }; }
+        const imgSrc = p.img || 'images/placeholder.png';
         const row = document.createElement('div'); row.className = 'p-3 flex items-center gap-3';
         row.innerHTML = `<img src="${imgSrc}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border">
-          <div class="flex-1"><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">${fmtBaht(p.price)} / ${p.unit || '-'}</div></div>
+          <div class="flex-1"><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">${fmtBaht(p.price||0)} / ${p.unit || '-'}</div></div>
           <div class="flex items-center gap-2"><button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button><span class="w-8 text-center">${qty}</span><button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button></div>
-          <div class="w-20 text-right font-medium">${fmtBaht(p.price * qty)}</div>`; list.appendChild(row); }); }
+          <div class="w-20 text-right font-medium">${fmtBaht((p.price||0) * qty)}</div>`; list.appendChild(row); }); }
       document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
     }
     function buildOrderText(){
@@ -402,6 +403,9 @@
 
       try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 
+      // Reconcile cart with loaded products
+      for (const id of Object.keys(cart)) { if (!findProduct(id)) { delete cart[id]; } }
+      localStorage.setItem('cart', JSON.stringify(cart));
       refreshUI();
 
       document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(PRODUCTS)); });
@@ -416,7 +420,7 @@
       document.getElementById('closeCart')?.addEventListener('click', closeCart);
       document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
-      document.getElementById('productGrid').addEventListener('click', (e) => {
+      document.addEventListener('click', (e) => {
         const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
         if (addBtn) { const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (Number(cart[id]) || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); if(isCartOpen()) { renderCart(); } }
         if (chatBtn) { const id = normalizeId(chatBtn.getAttribute('data-id')); const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return; const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`; window.open(lineChatUrl(text), '_blank'); }
@@ -455,5 +459,6 @@
       btnPH && btnPH.addEventListener('click', ()=> qr?.showModal()); btnPF && btnPF.addEventListener('click', ()=> qr?.showModal()); btnClosePP && btnClosePP.addEventListener('click', ()=> qr?.close()); qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
     });
   </script>
+  <div id="backdrop" class="backdrop"></div>
 </body>
 </html>
