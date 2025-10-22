@@ -156,7 +156,8 @@
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
     <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
     <div class="flex items-center justify-center gap-3 mt-3">
-      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
+      <a id="facebookLink" href="https://facebook.com/801626436372815" target="_blank" rel="noopener"
+   class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
       <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">LINE</a>
       <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
     </div>
@@ -625,7 +626,10 @@
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
       setHref('lineLink', lineUrlNoKey(defaultMsg));
       setHref('lineLinkFooter', lineUrlNoKey(defaultMsg));
-
+      document.getElementById('facebookLink')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openFacebook();
+      });
       // ===== Facebook deep link (เปิดแอปก่อน ค่อยไปเว็บ) =====
         const FB_PAGE_ID = '801626436372815';           // <- เปลี่ยนเป็นเพจคุณ ถ้าจริงใช้ตัวนี้ได้เลย
         const FB_WEB_URL = `https://www.facebook.com/${FB_PAGE_ID}`;
