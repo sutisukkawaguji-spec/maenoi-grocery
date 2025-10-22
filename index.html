@@ -156,29 +156,21 @@
     </div>
   </aside>
 
-  <!-- Modal PromptPay (Static + Dynamic) -->
+  <!-- Modal PromptPay (QR ปกติเท่านั้น) -->
   <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
     <div class="p-4 bg-white rounded-2xl w-[92vw] max-w-sm">
       <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
 
-      <div id="qrTabs" class="flex items-center justify-center gap-2 mb-3">
-        <button id="tabStatic" class="px-3 py-1.5 rounded-lg border text-xs">QR ปกติ</button>
-        <button id="tabDynamic" class="px-3 py-1.5 rounded-lg border text-xs">QR ตามยอด</button>
-      </div>
-
       <div id="qrWrap" class="mb-2">
+        <!-- เปลี่ยนไฟล์ภาพตามต้องการที่ data-src -->
         <img id="qrImg" data-src="./images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto border rounded-lg object-contain" width="192" height="192">
       </div>
 
-      <div id="dynArea" class="space-y-2 hidden">
-        <div class="text-center text-sm text-gray-600">
-          <div>ชื่อบัญชี: <span id="ppName">ร้านแม่น้อย บ้านดอนขี</span></div>
-          <div>เลขพร้อมเพย์: <span id="ppId">0880699227</span></div>
-          <div>จำนวนเงิน: <span id="ppAmt">-</span></div>
-        </div>
-        <div class="text-center">
-          <button id="btnCopyEmv" class="mt-2 text-xs underline text-emerald-700">คัดลอกสตริง EMV</button>
-        </div>
+      <!-- โชว์ข้อมูล (คงเดิม) -->
+      <div id="infoArea" class="space-y-1 text-center text-sm text-gray-600">
+        <div>ชื่อบัญชี: <span id="ppName">ร้านแม่น้อย บ้านดอนขี</span></div>
+        <div>เลขพร้อมเพย์: <span id="ppId">0880699227</span></div>
+        <div>จำนวนเงิน: <span id="ppAmt">-</span></div>
       </div>
 
       <div class="text-center mt-3"><button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button></div>
@@ -189,7 +181,7 @@
     // ====== ตั้งค่าเบื้องต้น ======
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
     const LINE_ID = '@906dooke'; // LINE OA
-    const PROMPTPAY_ID = '0880699227'; // ใส่เบอร์/TaxID สำหรับ PromptPay Dynamic
+    const PROMPTPAY_ID = '0880699227'; // ใช้สำหรับแสดงผล (QR เป็นไฟล์นิ่ง)
     const PROMPTPAY_NAME = 'ร้านแม่น้อย บ้านดอนขี';
 
     // (สำคัญ) ลิงก์แชต LINE แบบไม่ให้ "text=" ไปโผล่ในข้อความ
@@ -201,7 +193,6 @@
     const openLine = (text='') => {
       const u1 = lineUrlNoKey(text);
       const win = window.open(u1, '_blank');
-      // ถ้า popup ถูกบล็อก/ล้มเหลว ค่อยลองแบบมี key
       setTimeout(()=>{ if(!win || win.closed) window.open(lineUrlWithKey(text), '_blank'); }, 400);
     };
 
@@ -453,69 +444,6 @@
       return lines.join('\n');
     }
 
-    // ====== PromptPay EMV (Dynamic QR) ======
-    // อ้างอิงมาตรฐาน EMVCo & ThaiPromptPay
-    function tlv(id, value) {
-      const len = String(value.length).padStart(2, '0');
-      return id + len + value;
-    }
-    function crc16ccitt(hexStr) {
-      // hexStr = string (ASCII) -> compute CRC over bytes
-      let crc = 0xFFFF;
-      for (let i = 0; i < hexStr.length; i++) {
-        crc ^= hexStr.charCodeAt(i) << 8;
-        for (let j = 0; j < 8; j++) {
-          if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
-          else crc <<= 1;
-          crc &= 0xFFFF;
-        }
-      }
-      return crc.toString(16).toUpperCase().padStart(4, '0');
-    }
-    function sanitizePpid(id) {
-      let s = String(id).replace(/[^0-9]/g, '');
-      // ถ้าเป็นเบอร์มือถือไทย: ต้องแปลงเป็นรูปแบบ 0066 + no leading 0
-      if (s.length === 10 && s.startsWith('0')) {
-        s = '66' + s.slice(1);
-      }
-      return s;
-    }
-    function buildPromptPayEMV({ ppid, amount = 0 }) {
-      // Payload Format Indicator
-      const ID_PAYLOAD = tlv('00', '01');
-      // Point of Initiation Method (12 = dynamic, 11 = static)
-      const ID_POI = tlv('01', amount > 0 ? '12' : '11');
-
-      // Merchant Account Information (AID = A000000677010111)
-      const aid = tlv('00', 'A000000677010111');
-      const acc = tlv('01', sanitizePpid(ppid));
-      const mai = tlv('29', aid + acc);
-
-      // Country / Currency (THB = 764)
-      const country = tlv('58', 'TH');
-      const currency = tlv('53', '764');
-
-      // Amount (optional for dynamic)
-      const amt = amount > 0 ? tlv('54', Number(amount).toFixed(2)) : '';
-
-      // Merchant Name / City (optional non-critical, but nice to have)
-      const mname = tlv('59', (PROMPTPAY_NAME || 'STORE').slice(0, 25));
-      const mcity = tlv('60', 'TH');
-
-      // Additional Data Field (optional) – ข้ามเพื่อความสั้น
-
-      // CRC placeholder
-      const crcPlaceholder = '6304';
-      const raw = ID_PAYLOAD + ID_POI + mai + currency + country + amt + mname + mcity + crcPlaceholder;
-      const crc = crc16ccitt(raw);
-      return raw + crc;
-    }
-    function qrUrlFromEmv(emv) {
-      // ใช้ Google Chart API เป็นภาพ QR (ไม่ต้องลงไลบรารี)
-      const payload = encodeURIComponent(emv);
-      return `https://chart.googleapis.com/chart?cht=qr&chs=256x256&chl=${payload}`;
-    }
-
     // ====== Init ======
     function refreshUI(){
       renderCategories();
@@ -638,7 +566,7 @@
       bannerWrap?.addEventListener('mouseleave', () => startBannerAuto());
       startBannerAuto();
 
-      // Load static PromptPay image (fallback)
+      // Load static PromptPay image (QR ปกติ)
       const qrImg = document.getElementById('qrImg');
       if (qrImg) {
         const primary = qrImg.getAttribute('data-src') || './images/promptpay.png';
@@ -646,58 +574,35 @@
         tryLoadImage(qrImg, candidates);
       }
 
-      // PromptPay dialog controls
+      // PromptPay dialog controls (QR ปกติ)
       const qr = document.getElementById('qrModal');
       const ppNameEl = document.getElementById('ppName');
       const ppIdEl = document.getElementById('ppId');
       const ppAmtEl = document.getElementById('ppAmt');
-      const dynArea = document.getElementById('dynArea');
-      const tabStatic = document.getElementById('tabStatic');
-      const tabDynamic = document.getElementById('tabDynamic');
-      function showStatic() { dynArea.classList.add('hidden'); }
-      function showDynamic() { dynArea.classList.remove('hidden'); }
 
-      document.getElementById('openPromptPayHeader')?.addEventListener('click', ()=>{ showStatic(); qr?.showModal(); });
-      document.getElementById('openPromptPayFooter')?.addEventListener('click', ()=>{ showStatic(); qr?.showModal(); });
+      function openPromptPayWithAmount(amount){
+        // อัปเดตข้อมูลแสดงผล (ชื่อ/เลข/ยอด)
+        ppNameEl.textContent = PROMPTPAY_NAME;
+        ppIdEl.textContent = PROMPTPAY_ID;
+        ppAmtEl.textContent = amount > 0 ? fmtBaht(amount) : '-';
+
+        // รีโหลดภาพ QR ปกติ (ไฟล์นิ่ง)
+        const primary = qrImg.getAttribute('data-src') || './images/promptpay.png';
+        tryLoadImage(qrImg, [ primary, toCdn(primary), 'https://picsum.photos/seed/promptpay/256/256' ]);
+
+        qr?.showModal();
+      }
+
+      document.getElementById('openPromptPayHeader')?.addEventListener('click', ()=> openPromptPayWithAmount(cartTotal()));
+      document.getElementById('openPromptPayFooter')?.addEventListener('click', ()=> openPromptPayWithAmount(cartTotal()));
       document.getElementById('closePromptPay')?.addEventListener('click', ()=> qr?.close());
       qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
 
-      tabStatic?.addEventListener('click', ()=> {
-        showStatic();
-        const primary = qrImg.getAttribute('data-src') || './images/promptpay.png';
-        tryLoadImage(qrImg, [ primary, toCdn(primary), 'https://picsum.photos/seed/promptpay/256/256' ]);
-      });
-
-      tabDynamic?.addEventListener('click', ()=> {
-        const amount = cartTotal();
-        if (amount <= 0) { alert('ยังไม่มีสินค้าในตะกร้าหรือยอดรวมเป็น 0'); return; }
-        const emv = buildPromptPayEMV({ ppid: PROMPTPAY_ID, amount });
-        const url = qrUrlFromEmv(emv);
-        ppNameEl.textContent = PROMPTPAY_NAME;
-        ppIdEl.textContent = PROMPTPAY_ID;
-        ppAmtEl.textContent = fmtBaht(amount);
-        showDynamic();
-        tryLoadImage(qrImg, [ url ]);
-        document.getElementById('btnCopyEmv')?.addEventListener('click', async ()=> {
-          try { await navigator.clipboard.writeText(emv); alert('คัดลอก EMV แล้ว'); } catch { alert('คัดลอกไม่สำเร็จ'); }
-        }, { once:true });
-      });
-
-      // Pay Now -> เปิด Modal แบบ Dynamic ทันที
+      // Pay Now -> เปิด Modal ด้วย QR ปกติ + แสดงยอดจากตะกร้า
       document.getElementById('btnPayNow')?.addEventListener('click', ()=> {
         const amount = cartTotal();
         if (amount <= 0) { alert('ยังไม่มีสินค้าในตะกร้า'); return; }
-        const emv = buildPromptPayEMV({ ppid: PROMPTPAY_ID, amount });
-        const url = qrUrlFromEmv(emv);
-        ppNameEl.textContent = PROMPTPAY_NAME;
-        ppIdEl.textContent = PROMPTPAY_ID;
-        ppAmtEl.textContent = fmtBaht(amount);
-        showDynamic();
-        tryLoadImage(qrImg, [ url ]);
-        qr?.showModal();
-        // ปุ่มคัดลอก EMV (bind ใหม่ทุกครั้ง)
-        const btn = document.getElementById('btnCopyEmv');
-        btn.onclick = async ()=> { try { await navigator.clipboard.writeText(emv); alert('คัดลอก EMV แล้ว'); } catch { alert('คัดลอกไม่สำเร็จ'); } };
+        openPromptPayWithAmount(amount);
       });
     });
   </script>
