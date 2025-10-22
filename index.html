@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ร้านแม่น้อย บ้านดอนขี — ร้านแม่น้อย ดอนขี</title>
-  <meta name="description" content="สินค้า สินค้าแนะนำ เมนูวันนี้ (หัวเว็บ), แบนเนอร์สับภาพเอง, ข้อความประกาศวิ่ง, ตะกร้า, พร้อมเพย์ (QR ปกติ)">
+  <title>ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำ</title>
+  <meta name="description" content="สินค้า เมนูวันนี้ ประกาศวิ่ง แบนเนอร์ ตะกร้า พร้อมเพย์ (QR ปกติ) + พรีวิวรูปสินค้าแบบขยาย">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,6 +26,7 @@
     @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     #diag.hidden{ display:none; }
     dialog { border: 0; }
+    .img-clickable { cursor: zoom-in; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -35,7 +36,7 @@
       <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://picsum.photos/seed/logo/96/96'">
       <div>
         <h1 class="text-lg font-semibold leading-tight">ร้านขายของชำ</h1>
-        <p class="text-xs text-gray-500">เมนูวันนี้ • ประกาศวิ่ง • แบนเนอร์สับเอง • สินค้า • ตะกร้า • LINE</p>
+        <p class="text-xs text-gray-500">เมนูวันนี้ • ประกาศวิ่ง • แบนเนอร์ • สินค้า • ตะกร้า • LINE</p>
       </div>
       <div class="ms-auto flex items-center gap-2">
         <a id="lineLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💬 แชต LINE</a>
@@ -169,21 +170,40 @@
       <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
 
       <div id="qrWrap" class="mb-2">
-        <!-- ใส่รูป QR ปกติของร้าน (ภาพนิ่ง) -->
         <img id="qrImg" data-src="./images/promptpay.png" alt="QR PromptPay"
              class="w-48 h-48 mx-auto border rounded-lg object-contain" width="192" height="192">
       </div>
 
-      <!-- ข้อมูลแสดง (คงเดิม) -->
       <div id="infoArea" class="space-y-1 text-center text-sm text-gray-600">
-        <div>ชื่อบัญชี: <span id="ppName">นางสาวสุพัตรา บัญหล้า</span></div>
-        <div>เลขพร้อมเพย์: <span id="ppId">0883270162</span></div>
-        <div>เลขบัญชีธนาคารกรุงไทย: <span id="ppId">401-3-37368-8</span></div>
+        <div>ชื่อบัญชี: <span id="ppName">ร้านแม่น้อย บ้านดอนขี</span></div>
+        <div>เลขพร้อมเพย์: <span id="ppId">0880699227</span></div>
         <div>จำนวนเงิน: <span id="ppAmt">-</span></div>
       </div>
 
       <div class="text-center mt-3">
         <button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Image Preview Modal -->
+  <dialog id="previewModal" class="p-0 rounded-2xl shadow-2xl">
+    <div class="bg-white rounded-2xl w-[94vw] max-w-2xl overflow-hidden">
+      <div class="p-4 pb-0 flex items-start gap-3">
+        <div class="flex-1">
+          <h3 id="pvTitle" class="text-lg font-semibold leading-tight">ชื่อสินค้า</h3>
+          <p id="pvMeta" class="text-sm text-gray-500 mt-1">ราคา / หน่วย • หมวดหมู่</p>
+        </div>
+        <button id="pvCloseTop" class="text-gray-500 hover:text-gray-800">✕</button>
+      </div>
+      <div class="p-4">
+        <div class="aspect-[4/3] bg-gray-50 border rounded-xl overflow-hidden">
+          <img id="pvImg" alt="ภาพสินค้า" class="w-full h-full object-contain">
+        </div>
+      </div>
+      <div class="px-4 pb-4 flex items-center gap-2">
+        <button id="pvAdd" class="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90">หยิบลงตะกร้า</button>
+        <button id="pvClose" class="px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">ปิด</button>
       </div>
     </div>
   </dialog>
@@ -345,7 +365,7 @@
       const addBtnClass = 'w-full px-3 py-2 rounded-xl text-sm ' + (isOos ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-emerald-600 text-white hover:opacity-90');
       return `<article class="card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all">
         <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden">
-          <img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" onerror="this.src='https://picsum.photos/seed/placeholder/800/600'" />
+          <img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover img-clickable btn-preview" data-id="${it.id}" loading="lazy" width="800" height="600" onerror="this.src='https://picsum.photos/seed/placeholder/800/600'" />
           ${overlay}
         </div>
         <div class="p-3">
@@ -425,7 +445,7 @@
       else { entries.forEach(([id, qty]) => {
         let p = findProduct(id); if(!p) { p = { name:`สินค้า ID ${id}`, price:0, unit:'', img:'https://picsum.photos/seed/placeholder/160/120' }; }
         const row = document.createElement('div'); row.className = 'p-3 flex items-center gap-3';
-        row.innerHTML = `<img src="${p.img}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/placeholder/160/120'">
+        row.innerHTML = `<img src="${p.img}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border btn-preview" data-id="${id}" onerror="this.src='https://picsum.photos/seed/placeholder/160/120'">
           <div class="flex-1"><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">${(p.price||0).toLocaleString('th-TH')} / ${p.unit || '-'}</div></div>
           <div class="flex items-center gap-2"><button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button><span class="w-8 text-center">${qty}</span><button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button></div>
           <div class="w-20 text-right font-medium">${(p.price*qty||0).toLocaleString('th-TH')}</div>`;
@@ -476,6 +496,32 @@
         return u;
       }catch{ return u; }
     }
+
+    // ===== Image Preview Logic =====
+    const preview = {
+      modal: null, img: null, title: null, meta: null, addBtn: null,
+      openById(id){
+        const p = findProduct(id);
+        if(!p) return;
+        this.title.textContent = p.name;
+        this.meta.textContent = `${fmtBaht(p.price)} / ${p.unit || '-'} • ${p.category || '-'}`;
+        this.img.src = p.img || 'https://picsum.photos/seed/placeholder/800/600';
+        this.addBtn.dataset.id = p.id;
+        if (p.oos) {
+          this.addBtn.disabled = true;
+          this.addBtn.classList.add('bg-gray-300','text-gray-500','cursor-not-allowed');
+          this.addBtn.classList.remove('bg-emerald-600','text-white');
+          this.addBtn.textContent = 'สินค้าหมด';
+        } else {
+          this.addBtn.disabled = false;
+          this.addBtn.classList.remove('bg-gray-300','text-gray-500','cursor-not-allowed');
+          this.addBtn.classList.add('bg-emerald-600','text-white');
+          this.addBtn.textContent = 'หยิบลงตะกร้า';
+        }
+        this.modal.showModal();
+      },
+      close(){ this.modal.close(); }
+    };
 
     // ===== Boot =====
     document.addEventListener('DOMContentLoaded', async () => {
@@ -529,23 +575,61 @@
       document.getElementById('closeCart')?.addEventListener('click', closeCart);
       document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
-      // ปุ่มหยิบ/แชตสินค้าเดี่ยว
+      // พรีวิว Modal refs
+      preview.modal = document.getElementById('previewModal');
+      preview.img   = document.getElementById('pvImg');
+      preview.title = document.getElementById('pvTitle');
+      preview.meta  = document.getElementById('pvMeta');
+      preview.addBtn= document.getElementById('pvAdd');
+
+      // ปุ่มใน Preview
+      document.getElementById('pvClose')?.addEventListener('click', ()=> preview.close());
+      document.getElementById('pvCloseTop')?.addEventListener('click', ()=> preview.close());
+      preview.modal?.addEventListener('click', (e)=>{ if(e.target === preview.modal) preview.close(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && preview.modal?.open) preview.close(); });
+
+      // Click ภาพเพื่อพรีวิว + ปุ่มหยิบ/แชตสินค้าเดี่ยว
       document.addEventListener('click', (e) => {
-        const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
+        const previewBtn = e.target.closest('.btn-preview');
+        const addBtn = e.target.closest('.btn-add');
+        const chatBtn = e.target.closest('.btn-chat');
+
+        if (previewBtn) {
+          const id = normalizeId(previewBtn.getAttribute('data-id'));
+          preview.openById(id);
+          return;
+        }
+
         if (addBtn) {
           if (addBtn.hasAttribute('disabled')) return;
           const id = normalizeId(addBtn.getAttribute('data-id'));
           cart[id] = (Number(cart[id]) || 0) + 1;
           localStorage.setItem('cart', JSON.stringify(cart)); updateBadge();
           if (document.getElementById('cartDrawer').classList.contains('open')) renderCart();
+          return;
         }
+
         if (chatBtn) {
           if (chatBtn.hasAttribute('disabled')) return;
           const id = normalizeId(chatBtn.getAttribute('data-id'));
           const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return;
           const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`;
           openLine(text);
+          return;
         }
+      });
+
+      // หยิบจากปุ่มใน Preview
+      preview.addBtn?.addEventListener('click', (e)=>{
+        const id = normalizeId(e.currentTarget.dataset.id);
+        if(!id) return;
+        const p = findProduct(id);
+        if (p?.oos) return;
+        cart[id] = (Number(cart[id]) || 0) + 1;
+        localStorage.setItem('cart', JSON.stringify(cart)); updateBadge();
+        preview.close();
+        // ถ้าลิ้นชักตะกร้าเปิดอยู่ ก็อัปเดตรายการ
+        if (document.getElementById('cartDrawer').classList.contains('open')) renderCart();
       });
 
       // ปรับจำนวนในตะกร้า
