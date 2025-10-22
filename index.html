@@ -24,10 +24,11 @@
     .marquee-track { display: inline-flex; align-items: center; gap: 16px; width: max-content; animation: marquee-linear 20s linear infinite; will-change: transform; }
     .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
     @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    #diag.hidden{ display:none; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
-  <!-- Header -->
   <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
       <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover">
@@ -44,7 +45,6 @@
       </div>
     </div>
 
-    <!-- หัวเว็บ = เมนูวันนี้ (รูปวิ่ง + ชื่อใต้ภาพ) -->
     <div class="bg-white">
       <div class="max-w-6xl mx-auto px-0 md:px-4 py-2">
         <div class="marquee-viewport rounded-xl border overflow-hidden">
@@ -54,7 +54,6 @@
     </div>
   </header>
 
-  <!-- Diagnostics (แสดงข้อผิดพลาด/คำแนะนำ) -->
   <div id="diag" class="max-w-6xl mx-auto px-4 mt-3 hidden">
     <div class="rounded-xl border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">
       <strong class="block mb-1">แจ้งเตือน/คำแนะนำ:</strong>
@@ -62,8 +61,6 @@
     </div>
   </div>
 
-
-  <!-- 📢 ประกาศวิ่ง (ล็อกไว้ใต้เมนู) -->
   <section id="announce" class="bg-white border-y border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-3">
       <div class="marquee-viewport rounded-xl">
@@ -72,7 +69,6 @@
     </div>
   </section>
 
-  <!-- 🎏 แบนเนอร์ (ผู้ใช้กดสับภาพเอง) -->
   <section id="banner-manual" class="relative bg-white">
     <div class="max-w-6xl mx-auto px-4 py-4">
       <h3 class="font-semibold mb-2">🎏 แบนเนอร์</h3>
@@ -84,7 +80,6 @@
     </div>
   </section>
 
-  <!-- ⭐ สินค้าแนะนำ -->
   <section id="featured" class="bg-white border-y border-gray-200 hidden">
     <div class="max-w-6xl mx-auto px-4 py-4">
       <div class="flex items-center gap-2 mb-2"><span class="text-lg">⭐</span><h3 class="font-semibold">สินค้าแนะนำ</h3></div>
@@ -93,7 +88,6 @@
   </section>
 
   <main class="max-w-6xl mx-auto px-4 py-6">
-    <!-- Filters -->
     <section class="mb-5 grid grid-cols-1 md:grid-cols-12 gap-3">
       <div class="md:col-span-5">
         <label class="text-sm text-gray-600">ค้นหาสินค้า</label>
@@ -124,7 +118,6 @@
     <section id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></section>
   </main>
 
-  <!-- Footer -->
   <footer class="border-t border-gray-200 py-10 text-center text-sm bg-white">
     <h3 class="text-lg font-semibold mb-2 text-emerald-700">ร้านแม่น้อย บ้านดอนขี</h3>
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
@@ -137,7 +130,6 @@
     <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี — เว็บไซต์ตัวอย่าง</p>
   </footer>
 
-  <!-- Drawer ตะกร้า -->
   <aside id="cartDrawer" class="drawer" aria-hidden="true">
     <div class="px-4 py-3 border-b flex items-center justify-between">
       <h3 class="font-semibold">ตะกร้าสินค้า</h3>
@@ -157,7 +149,6 @@
     </div>
   </aside>
 
-  <!-- PromptPay Modal -->
   <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
     <div class="p-4 bg-white rounded-2xl">
       <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
@@ -168,87 +159,117 @@
   </dialog>
 
   <script>
-    // ======= CONFIG =======
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
     const LINE_ID = '@906dooke';
     const OA_ID_ENC = encodeURIComponent(LINE_ID);
     const lineChatUrl = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?text=${encodeURIComponent(text)}`;
 
-    // ======= DATA FILES =======
-    const FILE_PRODUCTS = './data/products.txt';   // id,name,price,unit,category,img[,flag]  (flag='A' => แนะนำ)
-    const FILE_MENU     = './data/menu.txt';       // title,img
-    const FILE_ANN      = './data/announce.txt';   // text,href
+    const FILE_PRODUCTS = './data/products.txt';
+    const FILE_MENU     = './data/menu.txt';
+    const FILE_ANN      = './data/announce.txt';
 
-    // ======= GLOBAL =======
     let PRODUCTS = [];
     let state = { q:'', category:'', min:'', max:'' };
     let cart = JSON.parse(localStorage.getItem('cart') || '{}');
     let __menuTimer = null;
 
-    // ======= HELPERS =======
-    function showError(msg){
-      const box = document.getElementById('diag');
-      const ul = document.getElementById('diagList');
-      if(box && ul){ box.classList.remove('hidden'); const li = document.createElement('li'); li.textContent = msg; ul.appendChild(li); }
-      console.warn('[DIAG]', msg);
-    }
-
     const $ = sel => document.querySelector(sel);
     const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
     function normalizeId(x){ return String(x ?? '').trim(); }
-    function toCdnGit(url){
-      if(!url) return '';
-      let u = String(url).trim();
-      let m = u.match(/^https?:\\/\\/github\\.com\\/([^\\/]+)\\/([^\\/]+)\\/blob\\/([^?#]+)(?:\\?[^#]*)?/i);
-      if(m){ const bp=m[3]; return `https://cdn.jsdelivr.net/gh/${m[1]}/${m[2]}@${bp}?_=${Date.now()}`; }
-      m = u.match(/^https?:\\/\\/raw\\.githubusercontent\\.com\\/([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/i);
-      if(m){ return `https://cdn.jsdelivr.net/gh/${m[1]}/${m[2]}@${m[3]}/${m[4]}?_=${Date.now()}`; }
-      const sep = u.includes('?') ? '&' : '?'; return `${u}${sep}_=${Date.now()}`;
+    function showError(msg){ const box = document.getElementById('diag'); const ul = document.getElementById('diagList'); if(box && ul){ box.classList.remove('hidden'); const li = document.createElement('li'); li.textContent = msg; ul.appendChild(li); } console.warn('[DIAG]', msg); }
+
+    function toCdnGit(input) {
+      if (!input) return '';
+      const u = String(input).trim();
+      let urlObj;
+      try { urlObj = new URL(u); }
+      catch { const sep = u.includes('?') ? '&' : '?'; return `${u}${sep}_=${Date.now()}`; }
+      if (urlObj.hostname === 'github.com') {
+        const parts = urlObj.pathname.split('/').filter(Boolean);
+        if (parts.length >= 4 && parts[2] === 'blob') {
+          const [owner, repo, , branch, ...rest] = parts;
+          return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}?_=${Date.now()}`;
+        }
+      }
+      if (urlObj.hostname === 'raw.githubusercontent.com') {
+        const parts = urlObj.pathname.split('/').filter(Boolean);
+        if (parts.length >= 4) {
+          const [owner, repo, branch, ...rest] = parts;
+          return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}?_=${Date.now()}`;
+        }
+      }
+      const sep = u.includes('?') ? '&' : '?';
+      return `${u}${sep}_=${Date.now()}`;
     }
+    function stripBom(t){ if(!t) return ''; return (t.charCodeAt(0) === 0xFEFF) ? t.slice(1) : t; }
     function parseTable(text){
-      const clean = text.replace(/^\\uFEFF/, '');
+      const clean = stripBom(text);
       if (typeof Papa !== 'undefined'){
-        const first = (clean.split('\\n')[0]||'');
-        const primary = (first.includes(',')) ? ',' : '\\t';
+        const first = (clean.split('\n')[0]||'');
+        const primary = (first.includes(',')) ? ',' : '\t';
         const { data } = Papa.parse(clean, { delimiter: primary, skipEmptyLines: true, transform: v => (v ?? '').toString().trim() });
         return data;
       }
-      return clean.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean).map(l => l.split(l.includes(',')?',':'\\t').map(s=>s.trim()));
+      return clean.split('\n').map(l => l.trim()).filter(Boolean).map(l => (l.includes(',') ? l.split(',') : l.split('\t')).map(s => s.trim()));
     }
 
-    // ======= LOADERS =======
-    async function fetchText(url){ try{ const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' }); if(!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`); return await res.text(); } catch(e){ throw new Error(`อ่านไฟล์ไม่ได้: ${url} :: ${e.message}`); } }
+    async function fetchText(url){
+      try{
+        const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' });
+        if(!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`);
+        return await res.text();
+      }catch(e){ throw new Error(`อ่านไฟล์ไม่ได้: ${url} :: ${e.message}`); }
+    }
+
     async function loadProducts(){
-      const text = await fetchText(FILE_PRODUCTS);
-      const rows = parseTable(text);
-      PRODUCTS = rows.map((r,i)=>{
-        const [idRaw, name, priceRaw, unit, category, img, flag] = r;
-        const id = idRaw || String(i+1);
-        const price = Number((String(priceRaw||'').replace(/[^\\d.]/g,''))) || 0;
-        const featured = String(flag||'').trim().toUpperCase() === 'A';
-        return { id:String(id), name, price, unit, category, img: toCdnGit(img||'images/placeholder.png'), featured, active:true };
-      });
+      try{
+        const text = await fetchText(FILE_PRODUCTS);
+        const rows = parseTable(text);
+        PRODUCTS = rows.map((r,i)=>{
+          const [idRaw, name, priceRaw, unit, category, img, flag] = r;
+          const id = idRaw || String(i+1);
+          const price = Number((String(priceRaw||'').replace(/[^\d.]/g,''))) || 0;
+          const featured = String(flag||'').trim().toUpperCase() === 'A';
+          return { id:String(id), name, price, unit, category, img: toCdnGit(img||'images/placeholder.png'), featured, active:true };
+        });
+        if(!PRODUCTS.length){
+          showError('ไม่พบสินค้าใน data/products.txt — เติมข้อมูลตัวอย่างให้ก่อน');
+          PRODUCTS = [
+            {id:'101', name:'โค้กกระป๋อง', price:15, unit:'กระป๋อง', category:'เครื่องดื่ม', img:'https://picsum.photos/seed/coke/800/600', featured:true, active:true},
+            {id:'102', name:'มาม่าหมูสับ', price:7, unit:'ซอง', category:'อาหารแห้ง', img:'https://picsum.photos/seed/mama/800/600', featured:false, active:true}
+          ];
+        }
+      }catch(e){ showError(e.message); PRODUCTS = [{id:'101', name:'โค้กกระป๋อง', price:15, unit:'กระป๋อง', category:'เครื่องดื่ม', img:'https://picsum.photos/seed/coke/800/600', featured:true, active:true}]; }
     }
     async function loadDailyMenu(){
-      try{ const text = await fetchText(FILE_MENU); const rows = parseTable(text);
+      try{
+        const text = await fetchText(FILE_MENU);
+        const rows = parseTable(text);
         window.DAILY_MENU = rows.map(r=>({ title:r[0]||'', img: toCdnGit(r[1]||'') })).filter(m=>m.title && m.img);
-        if(!window.DAILY_MENU.length){ showError('เมนูวันนี้ว่าง/อ่านไม่ได้จาก data/menu.txt — ใช้ข้อมูลตัวอย่างชั่วคราว'); window.DAILY_MENU = [
-          { title:'ข้าวกะเพราไก่', img:'https://picsum.photos/seed/gaprao/1200/600' },
-          { title:'ผัดไทยกุ้งสด', img:'https://picsum.photos/seed/padthai/1200/600' }
-        ]; }
+        if(!window.DAILY_MENU.length){
+          showError('เมนูวันนี้ว่าง/อ่านไม่ได้จาก data/menu.txt — ใช้ข้อมูลตัวอย่างชั่วคราว');
+          window.DAILY_MENU = [
+            { title:'ข้าวกะเพราไก่', img:'https://picsum.photos/seed/gaprao/1200/600' },
+            { title:'ผัดไทยกุ้งสด', img:'https://picsum.photos/seed/padthai/1200/600' }
+          ];
+        }
       }catch(e){ showError(e.message); window.DAILY_MENU = [ { title:'ข้าวกะเพราไก่', img:'https://picsum.photos/seed/gaprao/1200/600' } ]; }
     }
     async function loadAnnounces(){
-      try{ const text = await fetchText(FILE_ANN); const rows = parseTable(text);
+      try{
+        const text = await fetchText(FILE_ANN);
+        const rows = parseTable(text);
         window.ANNOUNCES = rows.map(r=>({ text:r[0]||'', href:r[1]||'' })).filter(a=>a.text);
-        if(!window.ANNOUNCES.length){ showError('ประกาศว่าง/อ่านไม่ได้จาก data/announce.txt — ใช้ข้อความตัวอย่างชั่วคราว'); window.ANNOUNCES = [
-          { text:'โปรเปิดร้าน ลดทั้งร้าน 10%', href:'https://line.me/ti/p/%40906dooke' },
-          { text:'ประกาศวันหยุด 31 ธ.ค. - 1 ม.ค.', href:'' }
-        ]; }
+        if(!window.ANNOUNCES.length){
+          showError('ประกาศว่าง/อ่านไม่ได้จาก data/announce.txt — ใช้ข้อความตัวอย่างชั่วคราว');
+          window.ANNOUNCES = [
+            { text:'โปรเปิดร้าน ลดทั้งร้าน 10%', href:'https://line.me/ti/p/%40906dooke' },
+            { text:'ประกาศวันหยุด 31 ธ.ค. - 1 ม.ค.', href:'' }
+          ];
+        }
       }catch(e){ showError(e.message); window.ANNOUNCES = [ { text:'โปรฯ สัปดาห์นี้ ลดสูงสุด 30%', href:'' } ]; }
     }
 
-    // ======= RENDER =======
     function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
     function filterItems(items){
       const q = state.q.trim().toLowerCase();
@@ -284,7 +305,6 @@
       if(list.length === 0){ sec.classList.add('hidden'); grid.innerHTML=''; return; }
       sec.classList.remove('hidden'); grid.innerHTML = list.map(productCard).join('');
     }
-    // Header menu-as-banner (figure + caption under)
     function renderHeaderMenuBanner(){
       const track = document.getElementById('bannerTrack'); if(!track) return;
       const data = (window.DAILY_MENU || []);
@@ -292,7 +312,6 @@
       const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-40 md:h-56 object-cover rounded-md border"><figcaption class="text-center text-xs md:text-sm mt-1">${m.title}</figcaption></figure>`).join('');
       track.innerHTML = items + items;
     }
-    // Manual banner with Prev/Next
     const BANNERS = ['images/banner1.jpg','images/banner2.jpg','images/banner3.jpg'];
     let bannerIdx = 0;
     function renderManualBanner(){
@@ -309,7 +328,6 @@
       track.innerHTML = html + '<span class="opacity-50">•</span>' + html;
     }
 
-    // ======= CART =======
     function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
     function cartCount(){ return Object.values(cart).reduce((a,b)=>a+(Number(b)||0),0); }
     function updateBadge(){ const el = document.getElementById('cartBadge'); if(el) el.textContent = cartCount(); }
@@ -330,10 +348,9 @@
     function buildOrderText(){
       const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, '']; Object.entries(cart).forEach(([id, qty]) => { const p = findProduct(id); if(!p) return;
         lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*qty)}`); });
-      lines.push(''); lines.push('ยอดรวม: ' + fmtBaht(cartTotal())); lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ'); return lines.join('\\n');
+      lines.push(''); lines.push('ยอดรวม: ' + fmtBaht(cartTotal())); lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ'); return lines.join('\n');
     }
 
-    // ======= UI BOOT =======
     function refreshUI(){
       renderCategories();
       renderFeatured();
@@ -351,36 +368,35 @@
       setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
 
       if(location.protocol === 'file:'){
-  const warn = document.createElement('div'); warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center'; warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้'; document.body.prepend(warn);
-  showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
-}
+        const warn = document.createElement('div');
+        warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
+        warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้';
+        document.body.prepend(warn);
+        showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
+      }
 
-      try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); alert('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
+      try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 
       refreshUI();
 
-      // Filters
       document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('clearFilters').addEventListener('click', () => { state = { q:'', category:'', min:'', max:'' }; document.getElementById('searchInput').value=''; document.getElementById('categorySelect').value=''; document.getElementById('minPrice').value=''; document.getElementById('maxPrice').value=''; renderGrid(filterItems(PRODUCTS)); });
 
-      // Drawer/Cart
       const openCart = () => { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); };
       const closeCart = () => { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); };
       document.getElementById('openCart')?.addEventListener('click', openCart);
       document.getElementById('closeCart')?.addEventListener('click', closeCart);
       document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
-      // Product grid buttons
       document.getElementById('productGrid').addEventListener('click', (e) => {
         const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
         if (addBtn) { const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (cart[id] || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); }
         if (chatBtn) { const id = normalizeId(chatBtn.getAttribute('data-id')); const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return; const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`; window.open(lineChatUrl(text), '_blank'); }
       });
 
-      // Cart qty controls
       document.getElementById('cartList').addEventListener('click', (e) => {
         const dec = e.target.closest('.btn-dec'); const inc = e.target.closest('.btn-inc');
         if (dec) { const id = normalizeId(dec.getAttribute('data-id')); cart[id] = Math.max(0, (cart[id]||0) - 1); if(cart[id] === 0) delete cart[id]; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
@@ -391,12 +407,10 @@
       document.getElementById('copyOrder')?.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว'); } catch{ alert('คัดลอกไม่สำเร็จ'); } });
       document.getElementById('checkout')?.addEventListener('click', ()=> window.open(lineChatUrl(buildOrderText()), '_blank'));
 
-      // Manual banner controls
       document.getElementById('bannerPrev')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx - 1 + BANNERS.length) % BANNERS.length; renderManualBanner(); });
       document.getElementById('bannerNext')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner(); });
       renderManualBanner();
 
-      // PromptPay modal handlers
       const qr = document.getElementById('qrModal'); const btnPH = document.getElementById('openPromptPayHeader'); const btnPF = document.getElementById('openPromptPayFooter'); const btnClosePP = document.getElementById('closePromptPay');
       btnPH && btnPH.addEventListener('click', ()=> qr?.showModal()); btnPF && btnPF.addEventListener('click', ()=> qr?.showModal()); btnClosePP && btnClosePP.addEventListener('click', ()=> qr?.close()); qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
     });
