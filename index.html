@@ -258,19 +258,33 @@
         }
       }catch(e){ showError(e.message); window.DAILY_MENU = [ { title:'ข้าวกะเพราไก่', img:'https://picsum.photos/seed/gaprao/1200/600' } ]; }
     }
-    async function loadAnnounces(){
+    async function loadDailyMenu(){
       try{
-        const text = await fetchText(FILE_ANN);
-        const rows = parseTable(text);
-        window.ANNOUNCES = rows.map(r=>({ text:r[0]||'', href:r[1]||'' })).filter(a=>a.text);
-        if(!window.ANNOUNCES.length){
-          showError('ประกาศว่าง/อ่านไม่ได้จาก data/announce.txt — ใช้ข้อความตัวอย่างชั่วคราว');
-          window.ANNOUNCES = [
-            { text:'โปรเปิดร้าน ลดทั้งร้าน 10%', href:'https://line.me/ti/p/%40906dooke' },
-            { text:'ประกาศวันหยุด 31 ธ.ค. - 1 ม.ค.', href:'' }
-          ];
+        const text = await fetchText(FILE_MENU);
+        // ตัดบรรทัดคอมเมนต์ (#) ออกก่อน parse
+        const cleaned = text
+          .split('\n')
+          .filter(line => !line.trim().startsWith('#'))
+          .join('\n');
+    
+        const rows = parseTable(cleaned);
+        // ฟอร์แมต: title,img[,status]
+        window.DAILY_MENU = rows.map(r=>{
+          const title = r[0]||'';
+          const img   = toCdnGit(r[1]||'');
+          const status = String(r[2]||'ON').trim().toUpperCase();
+          return { title, img, status };
+        })
+        // กรองเมนูที่ถูก "พักการแสดง"
+        .filter(m => m.title && m.img && m.status !== 'OFF' && m.status !== '0');
+    
+        if(!window.DAILY_MENU.length){
+          showError('เมนูวันนี้ว่าง/ถูกพักทั้งหมด — เติมใน data/menu.txt');
         }
-      }catch(e){ showError(e.message); window.ANNOUNCES = [ { text:'โปรฯ สัปดาห์นี้ ลดสูงสุด 30%', href:'' } ]; }
+      }catch(e){
+        showError(e.message);
+        window.DAILY_MENU = [];
+      }
     }
 
     function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
