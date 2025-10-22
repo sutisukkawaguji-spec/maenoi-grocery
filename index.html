@@ -145,7 +145,6 @@
         <button id="copyOrder" class="flex-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">คัดลอกออเดอร์</button>
         <button id="checkout" class="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90">ส่งทาง LINE</button>
       </div>
-	<button id="payNow" class="w-full px-3 py-2 rounded-xl bg-blue-600 text-white text-sm hover:opacity-90">💳 จ่ายตอนนี้</button>
       <button id="clearCart" class="w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">ล้างตะกร้า</button>
     </div>
   </aside>
@@ -157,18 +156,7 @@
       <p class="text-center text-gray-600 mt-2">สแกนเพื่อชำระเงิน</p>
       <div class="text-center mt-3"><button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button></div>
     </div>
-    <dialog id="qrPay" class="p-0 rounded-2xl">
-      <div class="p-4 bg-white rounded-2xl text-center">
-        <h3 class="text-lg font-semibold">ชำระเงินด้วย PromptPay</h3>
-        <img id="qrDynamic" class="w-56 h-56 mx-auto my-3 object-contain border rounded-lg" alt="QR PromptPay">
-        <p class="text-sm text-gray-600">ยอดรวม: <span id="sumTHB">฿0</span></p>
-        <div class="flex gap-2 justify-center mt-3">
-          <button id="copyAmount" class="px-3 py-2 rounded-xl border text-sm">คัดลอกยอด</button>
-          <button id="closeQr" class="px-3 py-2 rounded-xl border text-sm">ปิด</button>
-        </div>
-      </div>
-</dialog>
-
+  </dialog>
 
   <script>
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
@@ -404,12 +392,23 @@
       }); }
       document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
     }
-    function buildOrderText(){
-      const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, ''];
-      Object.entries(cart).forEach(([id, qty]) => { const p = findProduct(id); if(!p) return; lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*qty)}`); });
-      lines.push(''); lines.push('ยอดรวม: ' + fmtBaht(cartTotal())); lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ'); return lines.join('\\n');
+    function buildOrderText() {
+      const lines = [];
+      lines.push('🛒 ออเดอร์จากหน้าเว็บ: ' + STORE_NAME);
+      lines.push('');
+      lines.push('📦 รายการสินค้า');
+    
+      Object.entries(cart).forEach(([id, qty]) => {
+        const p = findProduct(id);
+        if (!p) return;
+        lines.push(`• ${p.name} × ${qty}  —  ${fmtBaht(p.price)} / ${p.unit || '-'}`);
+      });
+    
+      lines.push('');
+      lines.push(`💰 ยอดรวมทั้งหมด: ${fmtBaht(cartTotal())}`);
+      lines.push('🏠 โปรดระบุที่อยู่จัดส่งหรือนัดรับสินค้าได้เลยครับ 🙏');
+      return lines.join('\n');
     }
-
     function refreshUI(){
       // categories + products
       const sel = document.getElementById('categorySelect');
@@ -432,118 +431,56 @@
       el.onerror = () => tryLoadImage(el, sources, idx+1);
       el.src = src;
     }
-
-function toCdn(u){
-  try{
-    const url = new URL(u);
-    if (url.hostname === 'github.com') {
-      const p = url.pathname.split('/').filter(Boolean);
-      if (p.length >= 4 && p[2] === 'blob') {
-        const [owner, repo, , branch, ...rest] = p;
-        return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}`;
-      }
+    function toCdn(u){
+      try{
+        const url = new URL(u);
+        if (url.hostname === 'github.com') {
+          const p = url.pathname.split('/').filter(Boolean);
+          if (p.length >= 4 && p[2] === 'blob') {
+            const [owner, repo, , branch, ...rest] = p;
+            return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}`;
+          }
+        }
+        if (url.hostname === 'raw.githubusercontent.com') {
+          const p = url.pathname.split('/').filter(Boolean);
+          if (p.length >= 4) {
+            const [owner, repo, branch, ...rest] = p;
+            return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}`;
+          }
+        }
+        return u;
+      }catch{ return u; }
     }
-    if (url.hostname === 'raw.githubusercontent.com') {
-      const p = url.pathname.split('/').filter(Boolean);
-      if (p.length >= 4) {
-        const [owner, repo, branch, ...rest] = p;
-        return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}`;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
+      const msg = 'สวัสดีครับ สอบถามสินค้า'; const lineURL = lineChatUrl(msg);
+      const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
+      setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
+
+      if(location.protocol === 'file:'){
+        const warn = document.createElement('div');
+        warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
+        warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้';
+        document.body.prepend(warn);
+        showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
       }
-    }
-    return u;
-  }catch{ return u; }
-}
 
-/* ================== วางบล็อกใหม่นี้ "ต่อจาก toCdn()" ================== */
+      try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 
-// ตั้งหมายเลข PromptPay (GLOBAL) — อยู่นอก DOMContentLoaded
-const PROMPTPAY_ID = "0880699227"; // <-- เปลี่ยนเป็นเลขพร้อมเพย์ของคุณ
+      // reconcile cart
+      for (const id of Object.keys(cart)) { if (!findProduct(id)) { delete cart[id]; } }
+      localStorage.setItem('cart', JSON.stringify(cart));
 
-// ฟังก์ชันเปิด Dynamic QR — อยู่นอก DOMContentLoaded
-function openDynamicQR() {
-  const total = cartTotal(); // ฟังก์ชันของคุณมีอยู่แล้ว
-  const url = `https://promptpay.io/${PROMPTPAY_ID}/${total}`;
-  const img = document.getElementById('qrDynamic');
-  const sum = document.getElementById('sumTHB');
+      refreshUI();
 
-  if (img) img.src = url;
-  if (sum) sum.textContent = fmtBaht(total);
-
-  document.getElementById('qrPay')?.showModal();
-}
-/* ===================================================================== */
-
-
-	document.addEventListener('DOMContentLoaded', async () => {
-	  // ❌ ห้ามประกาศ PROMPTPAY_ID ซ้ำในนี้
-	  // const PROMPTPAY_ID = "0880699227";
-	
-	  const y = document.getElementById('y');
-	  if (y) y.textContent = new Date().getFullYear();
-	
-	  const msg = 'สวัสดีครับ สอบถามสินค้า';
-	  const lineURL = lineChatUrl(msg);
-	  const setHref = (id, u) => {
-	    const el = document.getElementById(id);
-	    if (el) el.href = u;
-	  };
-	  setHref('lineLink', lineURL);
-	  setHref('lineLinkFooter', lineURL);
-	
-	  if (location.protocol === 'file:') {
-	    const warn = document.createElement('div');
-	    warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
-	    warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้';
-	    document.body.prepend(warn);
-	    showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
-	  }
-	
-	  try {
-	    await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]);
-	  } catch (e) {
-	    console.error(e);
-	    showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
-	  }
-	
-	  // reconcile cart
-	  for (const id of Object.keys(cart)) {
-	    if (!findProduct(id)) { delete cart[id]; }
-	  }
-	  localStorage.setItem('cart', JSON.stringify(cart));
-	
-	  refreshUI();
-	
-	  // ค้นหา
-	  document.getElementById('searchInput').addEventListener('input', e => {
-	    state.q = e.target.value.trim().toLowerCase();
-	    const base = PRODUCTS.filter(p => !state.category || p.category === state.category);
-	    const filtered = base.filter(p => !state.q || String(p.name).toLowerCase().includes(state.q));
-	    document.getElementById('resultCount').textContent = filtered.length;
-	    document.getElementById('productGrid').innerHTML = filtered.map(productCard).join('');
-	  });
-	
-	  // หมวดหมู่
-	  document.getElementById('categorySelect').addEventListener('change', e => {
-	    state.category = e.target.value || '';
-	    const base = PRODUCTS.filter(p => !state.category || p.category === state.category);
-	    const filtered = base.filter(p => !state.q || String(p.name).toLowerCase().includes(state.q));
-	    document.getElementById('resultCount').textContent = filtered.length;
-	    document.getElementById('productGrid').innerHTML = filtered.map(productCard).join('');
-	  });
-	
-	  // ... โค้ดผูก event อื่น ๆ ของคุณ ...
-	
-	  /* ====== ผูกปุ่ม PromptPay (วางท้าย ๆ ใน DOMContentLoaded) ====== */
-	  document.getElementById('payNow')?.addEventListener('click', openDynamicQR);
-	  document.getElementById('closeQr')?.addEventListener('click', () => document.getElementById('qrPay').close());
-	  document.getElementById('copyAmount')?.addEventListener('click', async () => {
-	    try {
-	      await navigator.clipboard.writeText(String(cartTotal()));
-	      alert('คัดลอกยอดแล้ว');
-	    } catch {}
-	  });
-	  /* =============================================================== */
-	});
+      document.getElementById('searchInput').addEventListener('input', e => {
+        state.q = e.target.value.trim().toLowerCase();
+        const base = PRODUCTS.filter(p => !state.category || p.category===state.category);
+        const filtered = base.filter(p => !state.q || String(p.name).toLowerCase().includes(state.q));
+        document.getElementById('resultCount').textContent = filtered.length;
+        document.getElementById('productGrid').innerHTML = filtered.map(productCard).join('');
+      });
       document.getElementById('categorySelect').addEventListener('change', e => {
         state.category = e.target.value;
         const base = PRODUCTS.filter(p => !state.category || p.category===state.category);
