@@ -156,7 +156,11 @@
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
     <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
     <div class="flex items-center justify-center gap-3 mt-3">
-      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
+      <a id="facebookLink"
+   href="https://www.facebook.com/801626436372815"
+   rel="noopener"
+   class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
+
       <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">LINE</a>
       <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
     </div>
@@ -625,7 +629,59 @@
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
       setHref('lineLink', lineUrlNoKey(defaultMsg));
       setHref('lineLinkFooter', lineUrlNoKey(defaultMsg));
+      document.getElementById('facebookLink')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openFacebook();
+      });
+    // ===== Facebook deep link (สะอาด ไม่เด้งซ้ำ) =====
+    const FB_PAGE_ID   = '801626436372815';
+    const FB_WEB_URL   = `https://www.facebook.com/profile.php?id=${FB_PAGE_ID}`; // universal link
+    const FB_MWEB_URL  = `https://m.facebook.com/profile.php?id=${FB_PAGE_ID}`;   // เผื่อเก่าๆ
 
+    function isIOS() {
+      const ua = navigator.userAgent || '';
+      const iPadAsMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+      return /iPhone|iPad|iPod/.test(ua) || iPadAsMac;
+    }
+    function isAndroid(){ return /Android/i.test(navigator.userAgent || ''); }
+
+    // ตรวจ in-app browser (เปิดแอปภายนอกไม่ได้)
+    function isInAppBrowser(){
+      const ua = (navigator.userAgent || '').toLowerCase();
+      return ua.includes('fbav') || ua.includes('fbios') || ua.includes('fban')   // Facebook
+          || ua.includes('instagram') || ua.includes('line') || ua.includes('tiktok')
+          || ua.includes('twitter'); // เพิ่มได้ตามต้องการ
+    }
+
+    function openFacebook(){
+      // 1) ถ้าอยู่ใน in-app browser บังคับเปิดเว็บ แล้วบอกวิธีเปิดด้วย Safari/Chrome
+      if (isInAppBrowser()) {
+        // ถ้าอยากโชว์แบนเนอร์แทน alert ก็ทำได้ แต่เอาง่ายสุดก่อน
+        alert('เบราว์เซอร์นี้ไม่อนุญาตเปิดแอปโดยตรง • แตะเมนู ⋯ แล้วเลือก “Open in Safari/Chrome” เพื่อเปิดในแอป Facebook');
+        window.location.href = FB_MWEB_URL;
+        return;
+      }
+
+      // 2) iOS/iPadOS — ใช้ Universal Link ครั้งเดียวพอ (ถ้ามีแอปและอนุญาตไว้ ระบบจะเด้งเข้าแอป)
+      if (isIOS()) {
+        window.location.href = FB_WEB_URL;
+        return;
+      }
+
+      // 3) Android — ใช้ intent:// (มี fallback ภายใน ไม่ต้องตั้ง setTimeout เอง)
+      if (isAndroid()) {
+        const intent = `intent://profile/${FB_PAGE_ID}`
+                    + `#Intent;scheme=fb;package=com.facebook.katana;`
+                    + `S.browser_fallback_url=${encodeURIComponent(FB_WEB_URL)};end`;
+        window.location.href = intent;
+        return;
+      }
+
+      // 4) Desktop — เปิดเว็บพอ
+      window.location.href = FB_WEB_URL;
+    }
+
+       
       // file:// warning
       if(location.protocol === 'file:'){
         const warn = document.createElement('div');
