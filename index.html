@@ -229,20 +229,22 @@
         const text = await fetchText(FILE_PRODUCTS);
         const rows = parseTable(text);
         PRODUCTS = rows.map((r,i)=>{
-          const [idRaw, name, priceRaw, unit, category, img, flag] = r;
+          const [idRaw, name, priceRaw, unit, category, img, flagRaw] = r;
           const id = idRaw || String(i+1);
           const price = Number((String(priceRaw||'').replace(/[^\d.]/g,''))) || 0;
-          const featured = String(flag||'').trim().toUpperCase() === 'A';
-          return { id:String(id), name, price, unit, category, img: toCdnGit(img||'images/placeholder.png'), featured, active:true };
+    
+          const flags = String(flagRaw||'').toUpperCase();
+          const featured = flags.includes('A');
+          const oos = flags.includes('OOS') || flags.includes('OUT');
+    
+          return {
+            id:String(id), name, price, unit, category,
+            img: toCdnGit(img||'images/placeholder.png'),
+            featured, oos, active:true
+          };
         });
-        if(!PRODUCTS.length){
-          showError('ไม่พบสินค้าใน data/products.txt — เติมข้อมูลตัวอย่างให้ก่อน');
-          PRODUCTS = [
-            {id:'101', name:'โค้กกระป๋อง', price:15, unit:'กระป๋อง', category:'เครื่องดื่ม', img:'https://picsum.photos/seed/coke/800/600', featured:true, active:true},
-            {id:'102', name:'มาม่าหมูสับ', price:7, unit:'ซอง', category:'อาหารแห้ง', img:'https://picsum.photos/seed/mama/800/600', featured:false, active:true}
-          ];
-        }
-      }catch(e){ showError(e.message); PRODUCTS = [{id:'101', name:'โค้กกระป๋อง', price:15, unit:'กระป๋อง', category:'เครื่องดื่ม', img:'https://picsum.photos/seed/coke/800/600', featured:true, active:true}]; }
+        if(!PRODUCTS.length){ showError('ไม่พบสินค้าใน data/products.txt'); }
+      }catch(e){ showError(e.message); PRODUCTS = []; }
     }
     async function loadDailyMenu(){
       try{
@@ -286,7 +288,44 @@
         window.DAILY_MENU = [];
       }
     }
-
+    async function loadAnnounces(){
+      try{
+        const text = await fetchText(FILE_ANN);
+    
+        // ตัดคอมเมนต์ (#...) ออกก่อน parse
+        const cleaned = text
+          .split('\n')
+          .filter(line => !line.trim().startsWith('#'))
+          .join('\n');
+    
+        // ฟอร์แมต: text,href,status,start,end
+        const rows = parseTable(cleaned);
+    
+        const today = new Date(); today.setHours(0,0,0,0);
+        const toDate = (s)=>{
+          if(!s) return null;
+          const [y,m,d] = String(s).trim().split('-').map(Number);
+          if(!y||!m||!d) return null;
+          const dt = new Date(y, m-1, d); dt.setHours(0,0,0,0);
+          return dt;
+        };
+    
+        window.ANNOUNCES = rows.map(r=>{
+          const text  = r[0]||'';
+          const href  = r[1]||'';
+          const status= String(r[2]||'ON').trim().toUpperCase();
+          const start = toDate(r[3]||'');
+          let end     = toDate(r[4]||'');
+          // end ว่าง = วันนี้ (แปลว่าโชว์ตั้งแต่วันเริ่ม “จนถึงวันนี้”)
+          if(!end) end = new Date(today.getTime());
+          return { text, href, status, start, end };
+        }).filter(a=>{
+          if(!a.text) return false;
+          if(a.status === 'OFF' || a.status === '0') return false;
+          if(a.start && today < a.start) return false;
+          if(a.end && today > a.end) return false;
+          return true;
+        });
     function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
     function filterItems(items){
       const q = state.q.trim().toLowerCase();
@@ -301,15 +340,41 @@
     }
     function productCard(it){
       const imgSrc = it.img || 'images/placeholder.png';
+      const isOos = !!it.oos;
+    
+      // ป้าย + โอเวอร์เลย์
+      const overlay = isOos
+        ? `<div class="absolute inset-0 bg-white/70 flex items-center justify-center">
+             <span class="px-3 py-1 rounded-full border text-xs text-gray-700">สินค้าหมด</span>
+           </div>`
+        : '';
+    
+      // ปุ่ม (ถ้าหมด -> disabled)
+      const addBtnAttrs = isOos ? 'disabled aria-disabled="true"'
+                                : `data-id="${it.id}"`;
+      const addBtnClass = 'w-full px-3 py-2 rounded-xl text-sm ' + (isOos
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-emerald-600 text-white hover:opacity-90');
+    
       return `<article class="card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all">
-        <div class="aspect-[4/3] bg-gray-100 overflow-hidden"><img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" /></div>
-        <div class="p-3"><h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
-          <div class="mt-1 flex items-center justify-between"><span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit || '-'}</span>
-            <span class="text-xs text-gray-500">${it.category || '-'}</span></div>
+        <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+          <img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" />
+          ${overlay}
+        </div>
+        <div class="p-3">
+          <h3 class="text-sm font-semibold leading-tight ${isOos?'text-gray-400 line-through':''}">${it.name}</h3>
+          <div class="mt-1 flex items-center justify-between">
+            <span class="inline-flex items-center px-2 py-1 rounded-lg ${isOos?'bg-gray-100 text-gray-400':'bg-emerald-50 text-emerald-700'} text-xs font-medium">
+              ${fmtBaht(it.price)} / ${it.unit || '-'}
+            </span>
+            <span class="text-xs ${isOos?'text-gray-300':'text-gray-500'}">${it.category || '-'}</span>
+          </div>
           <div class="mt-3 grid grid-cols-2 gap-2">
-            <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
-            <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตรายการนี้</button>
-          </div></div></article>`;
+            <button class="btn-add ${isOos?'pointer-events-none':''} ${addBtnClass}" ${addBtnAttrs}>${isOos?'หมด':'หยิบลงตะกร้า'}</button>
+            <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}" ${isOos?'disabled aria-disabled="true"':''}>แชตรายการนี้</button>
+          </div>
+        </div>
+      </article>`;
     }
     function renderGrid(items){
       const wrap = document.getElementById('productGrid'); if(!wrap) return;
@@ -434,11 +499,29 @@
       document.getElementById('closeCart')?.addEventListener('click', closeCart);
       document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
-      document.addEventListener('click', (e) => {
-        const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
-        if (addBtn) { const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (Number(cart[id]) || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); if(isCartOpen()) { renderCart(); } }
-        if (chatBtn) { const id = normalizeId(chatBtn.getAttribute('data-id')); const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return; const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`; window.open(lineChatUrl(text), '_blank'); }
-      });
+    // กดปุ่มหยิบ/แชท (ครอบทั้งหน้า เผื่อ “สินค้าแนะนำ” ด้วย)
+    document.addEventListener('click', (e) => {
+      const addBtn = e.target.closest('.btn-add');
+      const chatBtn = e.target.closest('.btn-chat');
+    
+      if (addBtn) {
+        if (addBtn.hasAttribute('disabled')) return; // ถ้าหมด ไม่ทำงาน
+        const id = normalizeId(addBtn.getAttribute('data-id'));
+        cart[id] = (Number(cart[id]) || 0) + 1;
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateBadge();
+        if (document.getElementById('cartDrawer').classList.contains('open')) { renderCart(); }
+      }
+    
+      if (chatBtn) {
+        if (chatBtn.hasAttribute('disabled')) return; // ไม่แชทกรณีหมด
+        const id = normalizeId(chatBtn.getAttribute('data-id'));
+        const p = PRODUCTS.find(x => normalizeId(x.id) === id);
+        if(!p) return;
+        const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`;
+        window.open(lineChatUrl(text), '_blank');
+      }
+    });
 
       document.getElementById('cartList').addEventListener('click', (e) => {
         const dec = e.target.closest('.btn-dec'); const inc = e.target.closest('.btn-inc');
