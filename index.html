@@ -156,8 +156,7 @@
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
     <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
     <div class="flex items-center justify-center gap-3 mt-3">
-      <a id="facebookLink" href="https://facebook.com/801626436372815" target="_blank" rel="noopener"
-   class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
+      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
       <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">LINE</a>
       <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
     </div>
@@ -626,64 +625,7 @@
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
       setHref('lineLink', lineUrlNoKey(defaultMsg));
       setHref('lineLinkFooter', lineUrlNoKey(defaultMsg));
-      document.getElementById('facebookLink')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        openFacebook();
-      });
-    // ===== Facebook deep link (เวอร์ชันเสถียร) =====
-    const FB_PAGE_ID = '801626436372815';
-    const FB_WEB_URL = `https://www.facebook.com/profile.php?id=${FB_PAGE_ID}`; // ใช้ profile.php เสถียรกว่า handle
-    const FB_MWEB_URL = `https://m.facebook.com/profile.php?id=${FB_PAGE_ID}`;
 
-    function isIOS() {
-      const ua = navigator.userAgent || '';
-      const iPadDesktop = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
-      return /iPhone|iPad|iPod/.test(ua) || iPadDesktop;
-    }
-    function isAndroid(){ return /Android/i.test(navigator.userAgent || ''); }
-
-    function openFacebook() {
-      // 1) พยายามเปิดในแอปด้วย facewebmodal (พาเข้าเพจแน่)
-      // 2) ลองสคีมา page/profile (บางเครื่องยังใช้ได้)
-      // 3) Android ใช้ intent:// เรียกแอปตรง
-      // 4) สุดท้ายค่อยไปเว็บ (m.facebook → www.facebook)
-      const iosTry = [
-        `fb://facewebmodal/f?href=${encodeURIComponent(FB_WEB_URL)}`,
-        `fb://page/?id=${FB_PAGE_ID}`,
-        `fb://profile/${FB_PAGE_ID}`
-      ];
-      const androidIntent = `intent://facewebmodal/f?href=${encodeURIComponent(FB_WEB_URL)}#Intent;scheme=fb;package=com.facebook.katana;end`;
-
-      if (isIOS()) {
-        // ต้องเป็น navigation ภายในแท็บเดียว (ไม่ใช้ window.open)
-        window.location.href = iosTry[0];
-        setTimeout(() => {
-          window.location.href = iosTry[1];
-          setTimeout(() => {
-            window.location.href = iosTry[2];
-            setTimeout(() => {
-              window.location.href = FB_MWEB_URL; // m.facebook ก่อน
-              setTimeout(() => { window.location.href = FB_WEB_URL; }, 700);
-            }, 700);
-          }, 700);
-        }, 400);
-        return;
-      }
-
-      if (isAndroid()) {
-        // เรียกแอปผ่าน intent:// ก่อน → ถ้าไม่มีแอปค่อยตกไปเว็บ
-        window.location.href = androidIntent;
-        setTimeout(() => {
-          window.location.href = FB_MWEB_URL;
-          setTimeout(() => { window.location.href = FB_WEB_URL; }, 700);
-        }, 600);
-        return;
-      }
-
-      // เดสก์ท็อป ไปเว็บตรง
-      window.location.href = FB_WEB_URL;
-    }
-       
       // file:// warning
       if(location.protocol === 'file:'){
         const warn = document.createElement('div');
