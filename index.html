@@ -54,6 +54,15 @@
     </div>
   </header>
 
+  <!-- Diagnostics (แสดงข้อผิดพลาด/คำแนะนำ) -->
+  <div id="diag" class="max-w-6xl mx-auto px-4 mt-3 hidden">
+    <div class="rounded-xl border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">
+      <strong class="block mb-1">แจ้งเตือน/คำแนะนำ:</strong>
+      <ul id="diagList" class="list-disc ps-5 space-y-1"></ul>
+    </div>
+  </div>
+
+
   <!-- 📢 ประกาศวิ่ง (ล็อกไว้ใต้เมนู) -->
   <section id="announce" class="bg-white border-y border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-3">
@@ -177,6 +186,13 @@
     let __menuTimer = null;
 
     // ======= HELPERS =======
+    function showError(msg){
+      const box = document.getElementById('diag');
+      const ul = document.getElementById('diagList');
+      if(box && ul){ box.classList.remove('hidden'); const li = document.createElement('li'); li.textContent = msg; ul.appendChild(li); }
+      console.warn('[DIAG]', msg);
+    }
+
     const $ = sel => document.querySelector(sel);
     const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
     function normalizeId(x){ return String(x ?? '').trim(); }
@@ -201,7 +217,7 @@
     }
 
     // ======= LOADERS =======
-    async function fetchText(url){ const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' }); if(!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`); return await res.text(); }
+    async function fetchText(url){ try{ const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' }); if(!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`); return await res.text(); } catch(e){ throw new Error(`อ่านไฟล์ไม่ได้: ${url} :: ${e.message}`); } }
     async function loadProducts(){
       const text = await fetchText(FILE_PRODUCTS);
       const rows = parseTable(text);
@@ -216,12 +232,20 @@
     async function loadDailyMenu(){
       try{ const text = await fetchText(FILE_MENU); const rows = parseTable(text);
         window.DAILY_MENU = rows.map(r=>({ title:r[0]||'', img: toCdnGit(r[1]||'') })).filter(m=>m.title && m.img);
-      }catch{ window.DAILY_MENU = []; }
+        if(!window.DAILY_MENU.length){ showError('เมนูวันนี้ว่าง/อ่านไม่ได้จาก data/menu.txt — ใช้ข้อมูลตัวอย่างชั่วคราว'); window.DAILY_MENU = [
+          { title:'ข้าวกะเพราไก่', img:'https://picsum.photos/seed/gaprao/1200/600' },
+          { title:'ผัดไทยกุ้งสด', img:'https://picsum.photos/seed/padthai/1200/600' }
+        ]; }
+      }catch(e){ showError(e.message); window.DAILY_MENU = [ { title:'ข้าวกะเพราไก่', img:'https://picsum.photos/seed/gaprao/1200/600' } ]; }
     }
     async function loadAnnounces(){
       try{ const text = await fetchText(FILE_ANN); const rows = parseTable(text);
         window.ANNOUNCES = rows.map(r=>({ text:r[0]||'', href:r[1]||'' })).filter(a=>a.text);
-      }catch{ window.ANNOUNCES = []; }
+        if(!window.ANNOUNCES.length){ showError('ประกาศว่าง/อ่านไม่ได้จาก data/announce.txt — ใช้ข้อความตัวอย่างชั่วคราว'); window.ANNOUNCES = [
+          { text:'โปรเปิดร้าน ลดทั้งร้าน 10%', href:'https://line.me/ti/p/%40906dooke' },
+          { text:'ประกาศวันหยุด 31 ธ.ค. - 1 ม.ค.', href:'' }
+        ]; }
+      }catch(e){ showError(e.message); window.ANNOUNCES = [ { text:'โปรฯ สัปดาห์นี้ ลดสูงสุด 30%', href:'' } ]; }
     }
 
     // ======= RENDER =======
@@ -326,7 +350,10 @@
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
       setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
 
-      if(location.protocol === 'file:'){ const warn = document.createElement('div'); warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center'; warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้'; document.body.prepend(warn); }
+      if(location.protocol === 'file:'){
+  const warn = document.createElement('div'); warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center'; warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้'; document.body.prepend(warn);
+  showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
+}
 
       try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); alert('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 
