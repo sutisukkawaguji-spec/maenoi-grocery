@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำ</title>
-  <meta name="description" content="สินค้า เมนูวันนี้ ประกาศวิ่ง แบนเนอร์ ตะกร้า พร้อมเพย์ (QR ปกติ) + แกลเลอรีรูปสินค้า + ตัวเลือกจำนวนก่อนใส่ตะกร้า + ตะกร้าลอย">
+  <meta name="description" content="สินค้า เมนูวันนี้ ประกาศวิ่ง แบนเนอร์ ตะกร้า พร้อมเพย์ (QR ปกติ) + แกลเลอรีรูปสินค้า + ตัวเลือกจำนวน + ตะกร้าลอย">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,17 +16,20 @@
     body { font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; }
     .card:hover { transform: translateY(-2px); }
     button, a { touch-action: manipulation; }
+    dialog { border: 0; }
+    .img-clickable { cursor: zoom-in; }
+
+    /* Drawer + Backdrop */
     .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%; background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.1); transition: right .28s ease; z-index: 60; display: flex; flex-direction: column; }
     .drawer.open { right: 0; }
-    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px); z-index: 58; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
     .backdrop.show { opacity: 1; pointer-events: all; }
+
+    /* Marquee */
     .marquee-viewport { overflow: hidden; }
     .marquee-track { display: inline-flex; align-items: center; gap: 16px; width: max-content; animation: marquee-linear 20s linear infinite; will-change: transform; }
     .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
     @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    #diag.hidden{ display:none; }
-    dialog { border: 0; }
-    .img-clickable { cursor: zoom-in; }
 
     /* Preview gallery */
     .pv-arrow { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.85); border:1px solid #e5e7eb; border-radius:9999px; padding:.5rem .65rem; }
@@ -39,10 +42,15 @@
     #toast.show { display:block; }
 
     /* Floating cart (FAB) */
-    #fabCart { position: fixed; right: 16px; bottom: 16px; z-index: 55; } /* ต่ำกว่าลิ้นชัก (60) */
-    .cart-open #fabCart { display: none; } /* ซ่อน FAB เมื่อเปิดตะกร้า */
+    #fabCart { position: fixed; right: 16px; bottom: 16px; z-index: 55; }
     #fabCart .badge { position:absolute; top:-6px; right:-6px; min-width:22px; height:22px; border-radius:9999px; background:#059669; color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center; padding:0 6px; }
     #fabCart .chip { font-size:12px; padding:2px 8px; border-radius:9999px; border:1px solid #e5e7eb; background:#fff; }
+    .cart-open #fabCart { display: none; } /* ซ่อน FAB ตอนลิ้นชักเปิด */
+
+    /* Safe area bottom (iPhone) */
+    .drawer .border-t { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
+
+    #diag.hidden{ display:none; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -51,7 +59,7 @@
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
       <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://picsum.photos/seed/logo/96/96'">
       <div>
-        <h1 class="text-lg font-semibold leading-tight">ร้านแม่น้อย บ้านดอนขี ตำบลลำภู อำเภอเมื่องหนองบัวลำภู จังหวัดหนองบัวลำภู</h1>
+        <h1 class="text-lg font-semibold leading-tight">ร้านขายของชำ</h1>
         <p class="text-xs text-gray-500">เมนูวันนี้ • ประกาศวิ่ง • แบนเนอร์ • สินค้า • ตะกร้า • LINE</p>
       </div>
       <div class="ms-auto flex items-center gap-2">
@@ -222,7 +230,7 @@
           <span class="text-sm text-gray-600">จำนวนที่ต้องการ</span>
           <div class="inline-flex items-center border rounded-xl overflow-hidden">
             <button id="qtyDec" class="px-3 py-2 text-lg leading-none select-none">−</button>
-            <input id="qtyInput" type="number" min="1" value="1" inputmode="numeric" class="w-16 text-center outline-none py-2" />
+            <input id="qtyInput" type="number" min="1" value="1" inputmode="numeric" pattern="[0-9]*" class="w-16 text-center outline-none py-2" />
             <button id="qtyInc" class="px-3 py-2 text-lg leading-none select-none">+</button>
           </div>
         </div>
@@ -388,7 +396,7 @@
           const status = String(r[2]||'ON').trim().toUpperCase();
           const start = toDate(r[3]||'');
           let end = toDate(r[4]||'');
-          if(!end) end = new Date(today.getTime());
+          if(!end) end = new Date(today.getTime()); // end ว่าง = วันนี้
           return { text, href, status, start, end };
         }).filter(a=>{
           if(!a.text) return false;
@@ -543,7 +551,7 @@
       return lines.join('\n');
     }
 
-    // ===== Helpers (ภาพ/Toast) =====
+    // ===== Helpers (ภาพ/Toast/CDN) =====
     function tryLoadImage(el, sources, idx=0){ if(!el || idx >= sources.length) return; const src = sources[idx]; el.onerror = () => tryLoadImage(el, sources, idx+1); el.src = src; }
     function toCdn(u){ try{ const url = new URL(u);
       if (url.hostname === 'github.com') { const p = url.pathname.split('/').filter(Boolean); if (p.length >= 4 && p[2] === 'blob') { const [owner, repo, , branch, ...rest] = p; return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}`; } }
@@ -565,9 +573,12 @@
         this.product = p; this.idx = 0;
         this.title.textContent = p.name;
         this.meta.textContent = `${fmtBaht(p.price)} / ${p.unit || '-'} • ${p.category || '-'}`;
-        this.input.value = 1; // reset จำนวนเริ่มต้น
+        this.input.value = 1; // ✅ ไม่ auto-focus ช่องจำนวน
         this.renderImage(); this.renderThumbs(); this.syncAddButton();
-        this.modal.showModal(); this.input.focus();
+        this.modal.showModal();
+        // โฟกัสปุ่มปิดเพื่อกันคีย์บอร์ดเด้งในมือถือ
+        const closeBtn = document.getElementById('pvCloseTop');
+        setTimeout(()=> closeBtn?.focus({ preventScroll: true }), 0);
       },
       renderImage(){
         const imgs = this.product.images || [];
@@ -649,36 +660,26 @@
         renderGrid(PRODUCTS);
       });
 
-      // Drawer
-    const openCartDrawer = () => {
-      document.getElementById('cartDrawer').classList.add('open');
-      document.getElementById('backdrop').classList.add('show');
-      document.body.classList.add('cart-open'); // ซ่อน FAB ตอนเปิด
-      renderCart();
-    };
+      // Drawer controls
+      const openCartDrawer = () => {
+        document.getElementById('cartDrawer').classList.add('open');
+        document.getElementById('backdrop').classList.add('show');
+        document.body.classList.add('cart-open');
+        renderCart();
+      };
+      const closeCartDrawer = () => {
+        document.getElementById('cartDrawer').classList.remove('open');
+        document.getElementById('backdrop').classList.remove('show');
+        document.body.classList.remove('cart-open');
+      };
 
-    const closeCartDrawer = () => {
-      document.getElementById('cartDrawer').classList.remove('open');
-      document.getElementById('backdrop').classList.remove('show');
-      document.body.classList.remove('cart-open');
-    };
+      document.getElementById('openCart')?.addEventListener('click', openCartDrawer);
+      document.getElementById('closeCart')?.addEventListener('click', closeCartDrawer);
+      document.getElementById('backdrop')?.addEventListener('click', (e) => { if (e.target && e.target.id === 'backdrop') closeCartDrawer(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCartDrawer(); });
 
-    // ผูก event listener ให้ครบ + ปลอดภัย
-    document.getElementById('openCart')?.addEventListener('click', openCartDrawer);
-    document.getElementById('closeCart')?.addEventListener('click', closeCartDrawer);
-
-    // คลิกฉากหลังให้ปิด (กัน miss-click โดยเช็ค target.id)
-    document.getElementById('backdrop')?.addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'backdrop') closeCartDrawer();
-    });
-
-    // ปุ่มลอย (FAB) ให้เปิด/ปิดได้
-    document.getElementById('fabBtn')?.addEventListener('click', openCartDrawer);
-
-    // ปิดด้วยคีย์บอร์ด (ESC)
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeCartDrawer();
-    });
+      // FAB
+      document.getElementById('fabBtn')?.addEventListener('click', openCartDrawer);
 
       // Preview Modal refs
       preview.modal = document.getElementById('previewModal');
@@ -693,7 +694,24 @@
       preview.decBtn= document.getElementById('qtyDec');
       preview.incBtn= document.getElementById('qtyInc');
 
-      // Preview Controls
+      // ป้องกันปุ่ม – / + ดึงโฟกัสเข้า input (กันคีย์บอร์ดเด้ง)
+      preview.decBtn.addEventListener('mousedown', (e)=> e.preventDefault());
+      preview.incBtn.addEventListener('mousedown', (e)=> e.preventDefault());
+
+      // ===== PATCH: qty input allow empty while typing =====
+      document.getElementById('qtyInput').addEventListener('wheel', e => e.preventDefault(), { passive:false });
+      function clampQtyOnUse() {
+        const v = Number(preview.input.value || 0);
+        preview.input.value = v >= 1 ? String(v) : '1';
+      }
+      preview.input.addEventListener('input', () => {
+        let raw = preview.input.value.replace(/[^\d]/g, '');
+        if (raw.length > 3) raw = raw.slice(0, 3);
+        preview.input.value = raw; // ปล่อยว่างได้ระหว่างพิมพ์
+      });
+      preview.input.addEventListener('blur', () => { clampQtyOnUse(); });
+
+      // Preview controls
       document.getElementById('pvClose')?.addEventListener('click', ()=> preview.close());
       document.getElementById('pvCloseTop')?.addEventListener('click', ()=> preview.close());
       preview.modal?.addEventListener('click', (e)=>{ if(e.target === preview.modal) preview.close(); });
@@ -709,12 +727,6 @@
         if(Math.abs(dx) > 40){ if(dx<0) preview.next(); else preview.prev(); }
         preview.touchX=null;
       }, {passive:true});
-
-      // Quantity controls
-      function getQty(){ const v = Math.max(1, Number(preview.input.value||1)); preview.input.value = v; return v; }
-      preview.decBtn.addEventListener('click', ()=> { preview.input.value = Math.max(1, getQty()-1); });
-      preview.incBtn.addEventListener('click', ()=> { preview.input.value = getQty()+1; });
-      preview.input.addEventListener('input', ()=> { getQty(); });
 
       // Click handlers (preview/add/chat)
       document.addEventListener('click', (e) => {
@@ -748,14 +760,17 @@
         }
       });
 
-      // Add from preview with quantity
+      // Add from preview with quantity (คุมขั้นต่ำตอนใช้จริง)
       preview.addBtn?.addEventListener('click', (e)=>{
         const id = normalizeId(e.currentTarget.dataset.id);
         if(!id) return;
         const p = findProduct(id); if (p?.oos) return;
-        const qty = Math.max(1, Number(preview.input.value||1));
+
+        clampQtyOnUse();
+        const qty = Math.max(1, Number(preview.input.value || 1));
         cart[id] = (Number(cart[id]) || 0) + qty;
-        localStorage.setItem('cart', JSON.stringify(cart)); updateBadge();
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateBadge();
         showToast(`เพิ่ม ${qty} ชิ้นลงตะกร้าแล้ว`);
         preview.close();
         if (document.getElementById('cartDrawer').classList.contains('open')) renderCart();
@@ -784,7 +799,7 @@
       bannerWrap?.addEventListener('mouseleave', () => startBannerAuto());
       startBannerAuto();
 
-      // Load QR static once
+      // Load QR static once (PromptPay รูปปกติ)
       const qrImg = document.getElementById('qrImg');
       if (qrImg) {
         const primary = qrImg.getAttribute('data-src') || './images/promptpay.png';
@@ -817,8 +832,8 @@
         openPromptPayWithAmount(amount);
       });
     });
-
   </script>
+
   <div id="backdrop" class="backdrop"></div>
 </body>
 </html>
