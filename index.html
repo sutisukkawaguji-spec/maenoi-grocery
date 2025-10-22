@@ -4,72 +4,47 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำ</title>
-  <meta name="description" content="เว็บขายของชำ: สินค้า สินค้าแนะนำ เมนูวันนี้ ประกาศ และจ่ายเงินพร้อมเพย์">
+  <meta name="description" content="สินค้า สินค้าแนะนำ เมนูวันนี้ (หัวเว็บ), แบนเนอร์สับภาพเอง, ข้อความประกาศวิ่ง, ตะกร้า, พร้อมเพย์">
 
-  <!-- Fonts + Tailwind -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- PapaParse (อ่าน .txt/.csv) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
     body { font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; }
     .card:hover { transform: translateY(-2px); }
     button, a { touch-action: manipulation; }
-    @media (max-width: 480px){
-      .card h3 { font-size: 0.95rem; }
-      #productGrid { gap: 0.6rem; }
-    }
-    .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%;
-      background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.1); transition: right .28s ease;
-      z-index: 60; display: flex; flex-direction: column; }
+    .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%; background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.1); transition: right .28s ease; z-index: 60; display: flex; flex-direction: column; }
     .drawer.open { right: 0; }
-    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px);
-      z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
     .backdrop.show { opacity: 1; pointer-events: all; }
-
-    /* --- Marquee (วิ่งแนวนอน) --- */
     .marquee-viewport { overflow: hidden; }
-    .marquee-track {
-      display: inline-flex; align-items: center; gap: 16px; width: max-content;
-      animation: marquee-linear 20s linear infinite;
-      will-change: transform;
-    }
+    .marquee-track { display: inline-flex; align-items: center; gap: 16px; width: max-content; animation: marquee-linear 20s linear infinite; will-change: transform; }
     .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
-    @keyframes marquee-linear {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
+    @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <!-- Header -->
   <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-      <!-- ไม่มีปุ่ม ☰ แล้ว -->
       <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover">
       <div>
         <h1 class="text-lg font-semibold leading-tight">ร้านขายของชำ</h1>
-        <p class="text-xs text-gray-500">สินค้า • สินค้าแนะนำ • เมนูวันนี้ • ตะกร้า • LINE</p>
+        <p class="text-xs text-gray-500">เมนูวันนี้ • ประกาศวิ่ง • แบนเนอร์สับเอง • สินค้า • ตะกร้า • LINE</p>
       </div>
-
       <div class="ms-auto flex items-center gap-2">
-        <a id="lineLink" href="#" target="_blank"
-           class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-          💬 แชต LINE
-        </a>
+        <a id="lineLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💬 แชต LINE</a>
         <button id="openPromptPayHeader" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
         <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-          🧺 ตะกร้า
-          <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
+          🧺 ตะกร้า <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
         </button>
       </div>
     </div>
 
-    <!-- ป้ายร้าน: แบนเนอร์รูปวิ่ง -->
+    <!-- หัวเว็บ = เมนูวันนี้ (รูปวิ่ง + ชื่อใต้ภาพ) -->
     <div class="bg-white">
       <div class="max-w-6xl mx-auto px-0 md:px-4 py-2">
         <div class="marquee-viewport rounded-xl border overflow-hidden">
@@ -79,10 +54,7 @@
     </div>
   </header>
 
-  <!-- Backdrop -->
-  <div id="backdrop" class="backdrop"></div>
-
-  <!-- 📢 ประกาศ: ข้อความวิ่ง (คลิกได้) -->
+  <!-- 📢 ประกาศวิ่ง (ล็อกไว้ใต้เมนู) -->
   <section id="announce" class="bg-white border-y border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-3">
       <div class="marquee-viewport rounded-xl">
@@ -91,12 +63,14 @@
     </div>
   </section>
 
-  <!-- 🍽️ เมนูวันนี้ (สไลด์รูป+ชื่อ) -->
-  <section id="menu-today" class="relative bg-white">
+  <!-- 🎏 แบนเนอร์ (ผู้ใช้กดสับภาพเอง) -->
+  <section id="banner-manual" class="relative bg-white">
     <div class="max-w-6xl mx-auto px-4 py-4">
-      <h3 class="font-semibold mb-2">🍽️ เมนูวันนี้</h3>
-      <div class="overflow-hidden rounded-xl border">
-        <div id="menuTrack" class="flex transition-transform duration-500 ease-out"></div>
+      <h3 class="font-semibold mb-2">🎏 แบนเนอร์</h3>
+      <div class="overflow-hidden rounded-xl border relative">
+        <div id="manualBanner" class="w-full h-56 md:h-72 flex items-center justify-center bg-gray-100"></div>
+        <button id="bannerPrev" class="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">‹</button>
+        <button id="bannerNext" class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">›</button>
       </div>
     </div>
   </section>
@@ -104,9 +78,7 @@
   <!-- ⭐ สินค้าแนะนำ -->
   <section id="featured" class="bg-white border-y border-gray-200 hidden">
     <div class="max-w-6xl mx-auto px-4 py-4">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="text-lg">⭐</span><h3 class="font-semibold">สินค้าแนะนำ</h3>
-      </div>
+      <div class="flex items-center gap-2 mb-2"><span class="text-lg">⭐</span><h3 class="font-semibold">สินค้าแนะนำ</h3></div>
       <div id="featuredGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
     </div>
   </section>
@@ -134,14 +106,12 @@
       </div>
     </section>
 
-    <!-- Stats -->
     <section class="mb-4 text-sm text-gray-600 flex items-center gap-3">
       <span id="resultCount">0</span> รายการ
       <span class="hidden md:inline">•</span>
       <button id="clearFilters" class="text-emerald-700 hover:underline">ล้างตัวกรอง</button>
     </section>
 
-    <!-- Product Grid -->
     <section id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></section>
   </main>
 
@@ -151,16 +121,9 @@
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
     <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
     <div class="flex items-center justify-center gap-3 mt-3">
-      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener"
-         class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-        Facebook
-      </a>
-      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener"
-         class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-        LINE
-      </a>
-      <button id="openPromptPayFooter" type="button"
-              class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
+      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
+      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">LINE</a>
+      <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
     </div>
     <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี — เว็บไซต์ตัวอย่าง</p>
   </footer>
@@ -191,9 +154,7 @@
       <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
       <img src="images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto border rounded-lg object-contain">
       <p class="text-center text-gray-600 mt-2">สแกนเพื่อชำระเงิน</p>
-      <div class="text-center mt-3">
-        <button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button>
-      </div>
+      <div class="text-center mt-3"><button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button></div>
     </div>
   </dialog>
 
@@ -204,191 +165,124 @@
     const OA_ID_ENC = encodeURIComponent(LINE_ID);
     const lineChatUrl = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?text=${encodeURIComponent(text)}`;
 
-    // ======= DATA FILES (จากโฟลเดอร์ ./data) =======
+    // ======= DATA FILES =======
     const FILE_PRODUCTS = './data/products.txt';   // id,name,price,unit,category,img[,flag]  (flag='A' => แนะนำ)
     const FILE_MENU     = './data/menu.txt';       // title,img
     const FILE_ANN      = './data/announce.txt';   // text,href
 
-    // ======= GLOBAL STATE =======
+    // ======= GLOBAL =======
     let PRODUCTS = [];
     let state = { q:'', category:'', min:'', max:'' };
-    let cart = JSON.parse(localStorage.getItem('cart') || '{}'); // { [id]: qty }
+    let cart = JSON.parse(localStorage.getItem('cart') || '{}');
     let __menuTimer = null;
 
     // ======= HELPERS =======
     const $ = sel => document.querySelector(sel);
     const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
     function normalizeId(x){ return String(x ?? '').trim(); }
-
-    // แปลงลิงก์ GitHub -> jsDelivr (กัน CORS) + เติม cache-busting
     function toCdnGit(url){
       if(!url) return '';
       let u = String(url).trim();
-      let m = u.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^?#]+)(?:\?[^#]*)?/i);
-      if(m){
-        const branchAndPath = m[3];
-        return `https://cdn.jsdelivr.net/gh/${m[1]}/${m[2]}@${branchAndPath}?_=${Date.now()}`;
-      }
-      m = u.match(/^https?:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/i);
-      if(m){
-        return `https://cdn.jsdelivr.net/gh/${m[1]}/${m[2]}@${m[3]}/${m[4]}?_=${Date.now()}`;
-      }
-      const sep = u.includes('?') ? '&' : '?';
-      return `${u}${sep}_=${Date.now()}`;
+      let m = u.match(/^https?:\\/\\/github\\.com\\/([^\\/]+)\\/([^\\/]+)\\/blob\\/([^?#]+)(?:\\?[^#]*)?/i);
+      if(m){ const bp=m[3]; return `https://cdn.jsdelivr.net/gh/${m[1]}/${m[2]}@${bp}?_=${Date.now()}`; }
+      m = u.match(/^https?:\\/\\/raw\\.githubusercontent\\.com\\/([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/i);
+      if(m){ return `https://cdn.jsdelivr.net/gh/${m[1]}/${m[2]}@${m[3]}/${m[4]}?_=${Date.now()}`; }
+      const sep = u.includes('?') ? '&' : '?'; return `${u}${sep}_=${Date.now()}`;
     }
-
-    // อ่านไฟล์ .txt (CSV/TSV อัตโนมัติ)
     function parseTable(text){
-      const clean = text.replace(/^\uFEFF/, '');
+      const clean = text.replace(/^\\uFEFF/, '');
       if (typeof Papa !== 'undefined'){
-        const first = (clean.split('\n')[0]||'');
-        const primary = (first.includes(',')) ? ',' : '\t';
+        const first = (clean.split('\\n')[0]||'');
+        const primary = (first.includes(',')) ? ',' : '\\t';
         const { data } = Papa.parse(clean, { delimiter: primary, skipEmptyLines: true, transform: v => (v ?? '').toString().trim() });
         return data;
       }
-      return clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => l.split(l.includes(',')?',':'\t').map(s=>s.trim()));
+      return clean.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean).map(l => l.split(l.includes(',')?',':'\\t').map(s=>s.trim()));
     }
 
     // ======= LOADERS =======
-    async function fetchText(url){
-      const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' });
-      if(!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`);
-      return await res.text();
-    }
-
+    async function fetchText(url){ const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' }); if(!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`); return await res.text(); }
     async function loadProducts(){
       const text = await fetchText(FILE_PRODUCTS);
       const rows = parseTable(text);
       PRODUCTS = rows.map((r,i)=>{
         const [idRaw, name, priceRaw, unit, category, img, flag] = r;
         const id = idRaw || String(i+1);
-        const price = Number((String(priceRaw||'').replace(/[^\d.]/g,''))) || 0;
+        const price = Number((String(priceRaw||'').replace(/[^\\d.]/g,''))) || 0;
         const featured = String(flag||'').trim().toUpperCase() === 'A';
         return { id:String(id), name, price, unit, category, img: toCdnGit(img||'images/placeholder.png'), featured, active:true };
       });
     }
-
     async function loadDailyMenu(){
-      try{
-        const text = await fetchText(FILE_MENU);
-        const rows = parseTable(text);
+      try{ const text = await fetchText(FILE_MENU); const rows = parseTable(text);
         window.DAILY_MENU = rows.map(r=>({ title:r[0]||'', img: toCdnGit(r[1]||'') })).filter(m=>m.title && m.img);
-      }catch(e){
-        console.warn('ไม่มีไฟล์เมนูวันนี้หรืออ่านไม่ได้', e);
-        window.DAILY_MENU = [];
-      }
+      }catch{ window.DAILY_MENU = []; }
     }
-
     async function loadAnnounces(){
-      try{
-        const text = await fetchText(FILE_ANN);
-        const rows = parseTable(text);
+      try{ const text = await fetchText(FILE_ANN); const rows = parseTable(text);
         window.ANNOUNCES = rows.map(r=>({ text:r[0]||'', href:r[1]||'' })).filter(a=>a.text);
-      }catch(e){
-        console.warn('ไม่มีไฟล์ประกาศหรืออ่านไม่ได้', e);
-        window.ANNOUNCES = [];
-      }
+      }catch{ window.ANNOUNCES = []; }
     }
 
     // ======= RENDER =======
-    function uniqueCategories(items){
-      return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th'));
-    }
+    function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
     function filterItems(items){
       const q = state.q.trim().toLowerCase();
       const c = state.category;
       const min = state.min === '' ? -Infinity : Number(state.min);
       const max = state.max === '' ? Infinity : Number(state.max);
-      return items.filter(it => {
-        const okQ = !q || String(it.name).toLowerCase().includes(q);
-        const okC = !c || String(it.category) === c;
-        const okP = Number(it.price) >= min && Number(it.price) <= max;
-        return okQ && okC && okP;
-      });
+      return items.filter(it => (!q || String(it.name).toLowerCase().includes(q)) && (!c || String(it.category) === c) && (Number(it.price) >= min && Number(it.price) <= max));
     }
     function renderCategories(){
-      const sel = document.getElementById('categorySelect');
-      if(!sel) return;
-      sel.innerHTML = '<option value=\"\">ทั้งหมด</option>';
-      uniqueCategories(PRODUCTS).forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat; opt.textContent = cat; sel.appendChild(opt);
-      });
+      const sel = document.getElementById('categorySelect'); if(!sel) return;
+      sel.innerHTML = '<option value=\"\">ทั้งหมด</option>'; uniqueCategories(PRODUCTS).forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt); });
     }
     function productCard(it){
       const imgSrc = it.img || 'images/placeholder.png';
-      return `
-        <article class="card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all">
-          <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
-            <img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" />
-          </div>
-          <div class="p-3">
-            <h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
-            <div class="mt-1 flex items-center justify-between">
-              <span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit || '-'}</span>
-              <span class="text-xs text-gray-500">${it.category || '-'}</span>
-            </div>
-            <div class="mt-3 grid grid-cols-2 gap-2">
-              <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
-              <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตรายการนี้</button>
-            </div>
-          </div>
-        </article>`;
+      return `<article class="card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all">
+        <div class="aspect-[4/3] bg-gray-100 overflow-hidden"><img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" /></div>
+        <div class="p-3"><h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
+          <div class="mt-1 flex items-center justify-between"><span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit || '-'}</span>
+            <span class="text-xs text-gray-500">${it.category || '-'}</span></div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
+            <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตรายการนี้</button>
+          </div></div></article>`;
     }
     function renderGrid(items){
-      const wrap = document.getElementById('productGrid');
-      if(!wrap) return;
+      const wrap = document.getElementById('productGrid'); if(!wrap) return;
       document.getElementById('resultCount').textContent = items.length;
-      wrap.innerHTML = items.length ? items.map(productCard).join('') :
-        '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า</div>';
+      wrap.innerHTML = items.length ? items.map(productCard).join('') : '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า</div>';
     }
     function renderFeatured(){
       const list = PRODUCTS.filter(p=>p.active!==false && p.featured);
-      const sec = document.getElementById('featured');
-      const grid = document.getElementById('featuredGrid');
-      if(!sec || !grid) return;
+      const sec = document.getElementById('featured'); const grid = document.getElementById('featuredGrid'); if(!sec || !grid) return;
       if(list.length === 0){ sec.classList.add('hidden'); grid.innerHTML=''; return; }
-      sec.classList.remove('hidden');
-      grid.innerHTML = list.map(productCard).join('');
+      sec.classList.remove('hidden'); grid.innerHTML = list.map(productCard).join('');
     }
-    function renderDailyMenu(){
-      const track = document.getElementById('menuTrack');
-      if(!track) return;
-      const data = window.DAILY_MENU || [];
-      if(!data.length){
-        track.innerHTML = '<div class="w-full text-center text-gray-500 py-8">ยังไม่มีเมนูวันนี้ — เพิ่มใน data/menu.txt</div>';
-        return;
-      }
-      track.innerHTML = data.map(m => `
-        <figure class="relative w-full flex-shrink-0">
-          <img src="${m.img}" alt="${m.title}" class="w-full h-56 md:h-72 object-cover">
-          <figcaption class="absolute bottom-2 left-2 right-2 bg-black/50 text-white text-sm md:text-base px-3 py-1 rounded">${m.title}</figcaption>
-        </figure>
-      `).join('');
-      Array.from(track.children).forEach(el=> el.style.width='100%');
-      let i=0; const total=data.length;
-      if(__menuTimer) clearInterval(__menuTimer);
-      __menuTimer = setInterval(()=>{ i=(i+1)%total; track.style.transform=`translateX(-${i*100}%)`; }, 3500);
+    // Header menu-as-banner (figure + caption under)
+    function renderHeaderMenuBanner(){
+      const track = document.getElementById('bannerTrack'); if(!track) return;
+      const data = (window.DAILY_MENU || []);
+      if(!data.length){ track.innerHTML = '<div class="px-4 py-4 text-gray-500">ยังไม่มีเมนูวันนี้ — เพิ่มใน data/menu.txt</div>'; return; }
+      const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-40 md:h-56 object-cover rounded-md border"><figcaption class="text-center text-xs md:text-sm mt-1">${m.title}</figcaption></figure>`).join('');
+      track.innerHTML = items + items;
+    }
+    // Manual banner with Prev/Next
+    const BANNERS = ['images/banner1.jpg','images/banner2.jpg','images/banner3.jpg'];
+    let bannerIdx = 0;
+    function renderManualBanner(){
+      const wrap = document.getElementById('manualBanner'); if(!wrap) return;
+      if(!BANNERS.length){ wrap.innerHTML = '<div class="text-gray-500">ยังไม่มีแบนเนอร์</div>'; return; }
+      const src = toCdnGit(BANNERS[bannerIdx % BANNERS.length]);
+      wrap.innerHTML = `<img src="${src}" class="w-full h-full object-cover" alt="banner">`;
     }
     function renderAnnounce(){
       const track = document.getElementById('announceTrack'); if(!track) return;
       const arr = window.ANNOUNCES || [];
-      if(!arr.length){
-        track.innerHTML = '<span class="px-3 py-2 text-gray-500">ยังไม่มีประกาศ — เพิ่มใน data/announce.txt</span>';
-        return;
-      }
-      const html = arr.map(a => {
-        const href = a.href ? a.href : '#';
-        const safeText = a.text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        return `<a href="${href}" ${a.href?'target="_blank" rel="noopener"':''} class="shrink-0 underline decoration-dotted">${safeText}</a>`;
-      }).join('<span class="opacity-50">•</span>');
+      if(!arr.length){ track.innerHTML = '<span class="px-3 py-2 text-gray-500">ยังไม่มีประกาศ — เพิ่มใน data/announce.txt</span>'; return; }
+      const html = arr.map(a => { const href = a.href ? a.href : '#'; const safeText = a.text.replace(/</g,'&lt;').replace(/>/g,'&gt;'); return `<a href="${href}" ${a.href?'target="_blank" rel="noopener"':''} class="shrink-0 underline decoration-dotted">${safeText}</a>`; }).join('<span class="opacity-50">•</span>');
       track.innerHTML = html + '<span class="opacity-50">•</span>' + html;
-    }
-    function renderBanner(){
-      const track = document.getElementById('bannerTrack'); if(!track) return;
-      const BANNERS = ['images/banner1.jpg','images/banner2.jpg','images/banner3.jpg'];
-      const items = BANNERS.map(src => `<img src="${toCdnGit(src)}" alt="banner" class="h-40 md:h-56 object-cover rounded-md border">`).join('');
-      track.innerHTML = items + items; // duplicate for smooth loop
     }
 
     // ======= CART =======
@@ -396,53 +290,23 @@
     function cartCount(){ return Object.values(cart).reduce((a,b)=>a+(Number(b)||0),0); }
     function updateBadge(){ const el = document.getElementById('cartBadge'); if(el) el.textContent = cartCount(); }
     function findProduct(id){ return PRODUCTS.find(p => normalizeId(p.id) === normalizeId(id)); }
-    function cartTotal(){
-      return Object.entries(cart).reduce((sum,[id,qty]) => {
-        const p = findProduct(id); if(!p) return sum;
-        return sum + (Number(p.price)||0) * (Number(qty)||0);
-      }, 0);
-    }
+    function cartTotal(){ return Object.entries(cart).reduce((sum,[id,qty]) => { const p = findProduct(id); if(!p) return sum; return sum + (Number(p.price)||0) * (Number(qty)||0); }, 0); }
     function renderCart(){
-      const list = document.getElementById('cartList');
-      if(!list) return;
-      list.innerHTML = '';
+      const list = document.getElementById('cartList'); if(!list) return; list.innerHTML = '';
       const entries = Object.entries(cart);
-      if(entries.length === 0){
-        list.innerHTML = '<div class="p-4 text-center text-gray-500">ตะกร้าว่าง</div>';
-      } else {
-        entries.forEach(([id, qty]) => {
-          const p = findProduct(id); if(!p) return;
-          const imgSrc = p.img || 'images/placeholder.png';
-          const row = document.createElement('div');
-          row.className = 'p-3 flex items-center gap-3';
-          row.innerHTML = `
-            <img src="${imgSrc}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border">
-            <div class="flex-1">
-              <div class="text-sm font-semibold">${p.name}</div>
-              <div class="text-xs text-gray-500">${fmtBaht(p.price)} / ${p.unit || '-'}</div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button>
-              <span class="w-8 text-center">${qty}</span>
-              <button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button>
-            </div>
-            <div class="w-20 text-right font-medium">${fmtBaht(p.price * qty)}</div>
-          `;
-          list.appendChild(row);
-        });
-      }
+      if(entries.length === 0){ list.innerHTML = '<div class="p-4 text-center text-gray-500">ตะกร้าว่าง</div>'; }
+      else { entries.forEach(([id, qty]) => { const p = findProduct(id); if(!p) return; const imgSrc = p.img || 'images/placeholder.png';
+        const row = document.createElement('div'); row.className = 'p-3 flex items-center gap-3';
+        row.innerHTML = `<img src="${imgSrc}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border">
+          <div class="flex-1"><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">${fmtBaht(p.price)} / ${p.unit || '-'}</div></div>
+          <div class="flex items-center gap-2"><button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button><span class="w-8 text-center">${qty}</span><button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button></div>
+          <div class="w-20 text-right font-medium">${fmtBaht(p.price * qty)}</div>`; list.appendChild(row); }); }
       document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
     }
     function buildOrderText(){
-      const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, ''];
-      Object.entries(cart).forEach(([id, qty]) => {
-        const p = findProduct(id); if(!p) return;
-        lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*qty)}`);
-      });
-      lines.push('');
-      lines.push('ยอดรวม: ' + fmtBaht(cartTotal()));
-      lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ');
-      return lines.join('\n');
+      const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, '']; Object.entries(cart).forEach(([id, qty]) => { const p = findProduct(id); if(!p) return;
+        lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*qty)}`); });
+      lines.push(''); lines.push('ยอดรวม: ' + fmtBaht(cartTotal())); lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ'); return lines.join('\\n');
     }
 
     // ======= UI BOOT =======
@@ -451,110 +315,63 @@
       renderFeatured();
       renderGrid(filterItems(PRODUCTS));
       updateBadge();
-      renderBanner();
+      renderHeaderMenuBanner();
       renderAnnounce();
-      renderDailyMenu();
+      renderManualBanner();
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
       const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
-
-      // ตั้งลิงก์ LINE
-      const msg = 'สวัสดีครับ สอบถามสินค้า';
-      const lineURL = lineChatUrl(msg);
+      const msg = 'สวัสดีครับ สอบถามสินค้า'; const lineURL = lineChatUrl(msg);
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
-      setHref('lineLink', lineURL);
-      setHref('lineLinkFooter', lineURL);
+      setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
 
-      // เตือนถ้าเปิดแบบ file://
-      if(location.protocol === 'file:'){
-        const warn = document.createElement('div');
-        warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
-        warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้';
-        document.body.prepend(warn);
-      }
+      if(location.protocol === 'file:'){ const warn = document.createElement('div'); warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center'; warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้'; document.body.prepend(warn); }
 
-      // โหลดข้อมูลทั้งหมดจาก ./data
-      try{
-        await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]);
-      }catch(e){
-        console.error(e);
-        alert('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
-      }
+      try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); alert('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 
-      // เริ่มต้นเรนเดอร์
       refreshUI();
 
-      // ฟิลเตอร์/อีเวนต์ทั่วไป
+      // Filters
       document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(filterItems(PRODUCTS)); });
       document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+      document.getElementById('clearFilters').addEventListener('click', () => { state = { q:'', category:'', min:'', max:'' }; document.getElementById('searchInput').value=''; document.getElementById('categorySelect').value=''; document.getElementById('minPrice').value=''; document.getElementById('maxPrice').value=''; renderGrid(filterItems(PRODUCTS)); });
 
-      document.getElementById('clearFilters').addEventListener('click', () => {
-        state = { q:'', category:'', min:'', max:'' };
-        document.getElementById('searchInput').value = '';
-        document.getElementById('categorySelect').value = '';
-        document.getElementById('minPrice').value = '';
-        document.getElementById('maxPrice').value = '';
-        renderGrid(filterItems(PRODUCTS));
-      });
-
-      // Drawer/Cart/Chat
+      // Drawer/Cart
       const openCart = () => { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); };
       const closeCart = () => { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); };
       document.getElementById('openCart')?.addEventListener('click', openCart);
       document.getElementById('closeCart')?.addEventListener('click', closeCart);
       document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
+      // Product grid buttons
       document.getElementById('productGrid').addEventListener('click', (e) => {
-        const addBtn = e.target.closest('.btn-add');
-        const chatBtn = e.target.closest('.btn-chat');
-        if (addBtn) {
-          const id = normalizeId(addBtn.getAttribute('data-id'));
-          cart[id] = (cart[id] || 0) + 1;
-          localStorage.setItem('cart', JSON.stringify(cart)); updateBadge();
-        }
-        if (chatBtn) {
-          const id = normalizeId(chatBtn.getAttribute('data-id'));
-          const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return;
-          const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`;
-          window.open(lineChatUrl(text), '_blank');
-        }
+        const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
+        if (addBtn) { const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (cart[id] || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); }
+        if (chatBtn) { const id = normalizeId(chatBtn.getAttribute('data-id')); const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return; const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`; window.open(lineChatUrl(text), '_blank'); }
       });
 
+      // Cart qty controls
       document.getElementById('cartList').addEventListener('click', (e) => {
-        const dec = e.target.closest('.btn-dec');
-        const inc = e.target.closest('.btn-inc');
-        if (dec) {
-          const id = normalizeId(dec.getAttribute('data-id'));
-          cart[id] = Math.max(0, (cart[id]||0) - 1);
-          if(cart[id] === 0) delete cart[id];
-          persistCart(); renderCart(); updateBadge();
-        }
-        if (inc) {
-          const id = normalizeId(inc.getAttribute('data-id'));
-          cart[id] = (cart[id]||0) + 1;
-          persistCart(); renderCart(); updateBadge();
-        }
+        const dec = e.target.closest('.btn-dec'); const inc = e.target.closest('.btn-inc');
+        if (dec) { const id = normalizeId(dec.getAttribute('data-id')); cart[id] = Math.max(0, (cart[id]||0) - 1); if(cart[id] === 0) delete cart[id]; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
+        if (inc) { const id = normalizeId(inc.getAttribute('data-id')); cart[id] = (cart[id]||0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
       });
 
-      document.getElementById('clearCart')?.addEventListener('click', () => { cart = {}; persistCart(); renderCart(); updateBadge(); });
-      document.getElementById('copyOrder')?.addEventListener('click', async ()=>{
-        try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว'); }
-        catch{ alert('คัดลอกไม่สำเร็จ'); }
-      });
+      document.getElementById('clearCart')?.addEventListener('click', () => { cart = {}; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); });
+      document.getElementById('copyOrder')?.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว'); } catch{ alert('คัดลอกไม่สำเร็จ'); } });
       document.getElementById('checkout')?.addEventListener('click', ()=> window.open(lineChatUrl(buildOrderText()), '_blank'));
 
+      // Manual banner controls
+      document.getElementById('bannerPrev')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx - 1 + BANNERS.length) % BANNERS.length; renderManualBanner(); });
+      document.getElementById('bannerNext')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner(); });
+      renderManualBanner();
+
       // PromptPay modal handlers
-      const qr = document.getElementById('qrModal');
-      const btnPH = document.getElementById('openPromptPayHeader');
-      const btnPF = document.getElementById('openPromptPayFooter');
-      const btnClosePP = document.getElementById('closePromptPay');
-      btnPH && btnPH.addEventListener('click', ()=> qr?.showModal());
-      btnPF && btnPF.addEventListener('click', ()=> qr?.showModal());
-      btnClosePP && btnClosePP.addEventListener('click', ()=> qr?.close());
-      qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
+      const qr = document.getElementById('qrModal'); const btnPH = document.getElementById('openPromptPayHeader'); const btnPF = document.getElementById('openPromptPayFooter'); const btnClosePP = document.getElementById('closePromptPay');
+      btnPH && btnPH.addEventListener('click', ()=> qr?.showModal()); btnPF && btnPF.addEventListener('click', ()=> qr?.showModal()); btnClosePP && btnClosePP.addEventListener('click', ()=> qr?.close()); qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
     });
   </script>
 </body>
