@@ -14,7 +14,7 @@
 14,น้ำยาซักผ้า บรีส (แบบน้ำ),20,ซอง,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order14.png
 15,น้ำยาล้างจาน (ขนากเล็ก),10,ขวด,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order15.png
 16,แชมพู Head & Shoulders,49,ขวด,ของใช้ส่วนตัว,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order16.png
-17,ไขไก่ (สด) ,5,ฟอง,อาหารสด,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order17.png
+17,ไข่ (สด) เบอร์ 2  ฟองละ 5 บาท แผงละ 140 บาท,140,แผง,อาหารสด,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order17.png
 18,หมวกสาน,25,ชิ้น,อื่น ๆ,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order18.png
 19,น้ำยาปรับผ้านุ่ม Comfort,20,ซอง,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order19.png
 20,ซอสหอยนางรมตราเด็กสมบูรณ์,30,ขวด,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order20.png
@@ -30,6 +30,7 @@
 30,กรรไกร เอนกประสงค์,20,ชิ้น,อื่น ๆ,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order30.png
 31,ทำความสะอาดห้องน้ำ DUCK PRO,25,ขวด,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order31.png
 32,ถ่านหุงต้ม (กระสอบเล็ก),50,กระสอบ,ของใช้ในบ้าน,https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/images/order32.png
+
 
 
 
