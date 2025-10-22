@@ -25,6 +25,7 @@
     .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
     @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     #diag.hidden{ display:none; }
+    dialog { border: 0; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -130,40 +131,81 @@
     <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี </p>
   </footer>
 
+  <!-- ตะกร้า -->
   <aside id="cartDrawer" class="drawer" aria-hidden="true">
     <div class="px-4 py-3 border-b flex items-center justify-between">
       <h3 class="font-semibold">ตะกร้าสินค้า</h3>
       <button id="closeCart" class="text-gray-500 hover:text-gray-800">✕</button>
     </div>
     <div id="cartList" class="flex-1 overflow-auto divide-y"></div>
-    <div class="border-t p-4 space-y-2">
+    <div class="border-t p-4 space-y-3">
       <div class="flex items-center justify-between text-sm">
         <span class="text-gray-600">ยอดรวม</span>
         <strong id="cartTotal" class="text-lg">฿0</strong>
       </div>
-      <div class="flex gap-2">
-        <button id="copyOrder" class="flex-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">คัดลอกออเดอร์</button>
-        <button id="checkout" class="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90">ส่งทาง LINE</button>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <button id="btnPayNow" class="w-full px-3 py-2 rounded-xl bg-black text-white text-sm hover:opacity-90">💳 จ่ายตอนนี้</button>
+        <button id="checkout" class="w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90">ส่งทาง LINE</button>
       </div>
-      <button id="clearCart" class="w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">ล้างตะกร้า</button>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <button id="copyOrder" class="w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">คัดลอกออเดอร์</button>
+        <button id="clearCart" class="w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">ล้างตะกร้า</button>
+      </div>
     </div>
   </aside>
 
+  <!-- Modal PromptPay (Static + Dynamic) -->
   <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
-    <div class="p-4 bg-white rounded-2xl">
+    <div class="p-4 bg-white rounded-2xl w-[92vw] max-w-sm">
       <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
-      <img id="qrImg" data-src="./images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto border rounded-lg object-contain" width="192" height="192">
-      <p class="text-center text-gray-600 mt-2">สแกนเพื่อชำระเงิน</p>
+
+      <div id="qrTabs" class="flex items-center justify-center gap-2 mb-3">
+        <button id="tabStatic" class="px-3 py-1.5 rounded-lg border text-xs">QR ปกติ</button>
+        <button id="tabDynamic" class="px-3 py-1.5 rounded-lg border text-xs">QR ตามยอด</button>
+      </div>
+
+      <div id="qrWrap" class="mb-2">
+        <img id="qrImg" data-src="./images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto border rounded-lg object-contain" width="192" height="192">
+      </div>
+
+      <div id="dynArea" class="space-y-2 hidden">
+        <div class="text-center text-sm text-gray-600">
+          <div>ชื่อบัญชี: <span id="ppName">ร้านแม่น้อย บ้านดอนขี</span></div>
+          <div>เลขพร้อมเพย์: <span id="ppId">0880699227</span></div>
+          <div>จำนวนเงิน: <span id="ppAmt">-</span></div>
+        </div>
+        <div class="text-center">
+          <button id="btnCopyEmv" class="mt-2 text-xs underline text-emerald-700">คัดลอกสตริง EMV</button>
+        </div>
+      </div>
+
       <div class="text-center mt-3"><button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button></div>
     </div>
   </dialog>
 
   <script>
+    // ====== ตั้งค่าเบื้องต้น ======
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
-    const LINE_ID = '@906dooke';
-    const OA_ID_ENC = encodeURIComponent(LINE_ID);
-    const lineChatUrl = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?text=${encodeURIComponent(text)}`;
+    const LINE_ID = '@906dooke'; // LINE OA
+    const PROMPTPAY_ID = '0880699227'; // ใส่เบอร์/TaxID สำหรับ PromptPay Dynamic
+    const PROMPTPAY_NAME = 'ร้านแม่น้อย บ้านดอนขี';
 
+    // (สำคัญ) ลิงก์แชต LINE แบบไม่ให้ "text=" ไปโผล่ในข้อความ
+    // รูปแบบหลัก: oaMessage/<OA_ID>/?<message>   (ไม่มีคีย์ text=)
+    // ถ้าเครื่องบางรุ่นไม่รองรับ จะ fallback ไปแบบ ?text= ให้อัตโนมัติ
+    const OA_ID_ENC = encodeURIComponent(LINE_ID);
+    const lineUrlNoKey = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?${encodeURIComponent(text)}`;
+    const lineUrlWithKey = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?text=${encodeURIComponent(text)}`;
+    const openLine = (text='') => {
+      const u1 = lineUrlNoKey(text);
+      const win = window.open(u1, '_blank');
+      // ถ้า popup ถูกบล็อก/ล้มเหลว ค่อยลองแบบมี key
+      setTimeout(()=>{ if(!win || win.closed) window.open(lineUrlWithKey(text), '_blank'); }, 400);
+    };
+
+    // ไฟล์ข้อมูล
     const FILE_PRODUCTS = './data/products.txt';
     const FILE_MENU     = './data/menu.txt';
     const FILE_ANN      = './data/announce.txt';
@@ -180,6 +222,7 @@
       console.warn('[DIAG]', msg);
     }
 
+    // ====== Utils ======
     function toCdnGit(input) {
       if (!input) return '';
       const u = String(input).trim();
@@ -206,12 +249,12 @@
     function parseTable(text){
       const clean = stripBom(text);
       if (typeof Papa !== 'undefined'){
-        const first = (clean.split('\\n')[0]||'');
-        const primary = (first.includes(',')) ? ',' : '\\t';
+        const first = (clean.split('\n')[0]||'');
+        const primary = (first.includes(',')) ? ',' : '\t';
         const { data } = Papa.parse(clean, { delimiter: primary, skipEmptyLines: true, transform: v => (v ?? '').toString().trim() });
         return data;
       }
-      return clean.split('\\n').map(l => l.trim()).filter(Boolean).map(l => (l.includes(',') ? l.split(',') : l.split('\\t')).map(s => s.trim()));
+      return clean.split('\n').map(l => l.trim()).filter(Boolean).map(l => (l.includes(',') ? l.split(',') : l.split('\t')).map(s => s.trim()));
     }
 
     async function fetchText(url){
@@ -241,7 +284,7 @@
     async function loadDailyMenu(){
       try{
         const text = await fetchText(FILE_MENU);
-        const cleaned = text.split('\\n').filter(line => !line.trim().startsWith('#')).join('\\n');
+        const cleaned = text.split('\n').filter(line => !line.trim().startsWith('#')).join('\n');
         const rows = parseTable(cleaned);
         window.DAILY_MENU = rows.map(r=>{
           const title = r[0]||'';
@@ -255,7 +298,7 @@
     async function loadAnnounces(){
       try{
         const text = await fetchText(FILE_ANN);
-        const cleaned = text.split('\\n').filter(line => !line.trim().startsWith('#')).join('\\n');
+        const cleaned = text.split('\n').filter(line => !line.trim().startsWith('#')).join('\n');
         const rows = parseTable(cleaned); // text, href, status, start, end
         const today = new Date(); today.setHours(0,0,0,0);
         const toDate = (s)=>{
@@ -284,17 +327,17 @@
     }
 
     function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
+    function renderCategories(){
+      const sel = document.getElementById('categorySelect'); if(!sel) return;
+      sel.innerHTML = '<option value="">ทั้งหมด</option>';
+      uniqueCategories(PRODUCTS).forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt); });
+    }
     function filterItems(items){
       const q = state.q.trim().toLowerCase();
       const c = state.category;
       const min = state.min === '' ? -Infinity : Number(state.min);
       const max = state.max === '' ? Infinity : Number(state.max);
       return items.filter(it => (!q || String(it.name).toLowerCase().includes(q)) && (!c || String(it.category) === c) && (Number(it.price) >= min && Number(it.price) <= max));
-    }
-    function renderCategories(){
-      const sel = document.getElementById('categorySelect'); if(!sel) return;
-      sel.innerHTML = '<option value=\"\">ทั้งหมด</option>';
-      uniqueCategories(PRODUCTS).forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt); });
     }
     function productCard(it){
       const imgSrc = it.img || 'https://picsum.photos/seed/placeholder/800/600';
@@ -324,8 +367,9 @@
     }
     function renderGrid(items){
       const wrap = document.getElementById('productGrid'); if(!wrap) return;
-      document.getElementById('resultCount').textContent = items.length;
-      wrap.innerHTML = items.length ? items.map(productCard).join('') : '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า</div>';
+      const filtered = filterItems(items);
+      document.getElementById('resultCount').textContent = filtered.length;
+      wrap.innerHTML = filtered.length ? filtered.map(productCard).join('') : '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า</div>';
     }
     function renderFeatured(){
       const list = PRODUCTS.filter(p=>p.active!==false && p.featured);
@@ -374,6 +418,7 @@
       track.innerHTML = html + '<span class="opacity-50">•</span>' + html;
     }
 
+    // ====== CART ======
     function cartCount(){ return Object.values(cart).reduce((a,b)=>a+(Number(b)||0),0); }
     function updateBadge(){ const el = document.getElementById('cartBadge'); if(el) el.textContent = cartCount(); }
     function findProduct(id){ return PRODUCTS.find(p => normalizeId(p.id) === normalizeId(id)); }
@@ -397,24 +442,83 @@
       lines.push('🛒 ออเดอร์จากหน้าเว็บ: ' + STORE_NAME);
       lines.push('');
       lines.push('📦 รายการสินค้า');
-    
       Object.entries(cart).forEach(([id, qty]) => {
         const p = findProduct(id);
         if (!p) return;
-        lines.push(`• ${p.name} × ${qty}  —  ${fmtBaht(p.price)} / ${p.unit || '-'}`);
+        lines.push(`• ${p.name} × ${qty} — ${fmtBaht(p.price)} / ${p.unit || '-'}`);
       });
-    
       lines.push('');
       lines.push(`💰 ยอดรวมทั้งหมด: ${fmtBaht(cartTotal())}`);
       lines.push('🏠 โปรดระบุที่อยู่จัดส่งหรือนัดรับสินค้าได้เลยครับ 🙏');
       return lines.join('\n');
     }
-    function refreshUI(){
-      // categories + products
-      const sel = document.getElementById('categorySelect');
-      sel.innerHTML = '<option value=\"\">ทั้งหมด</option>';
-      uniqueCategories(PRODUCTS).forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt); });
 
+    // ====== PromptPay EMV (Dynamic QR) ======
+    // อ้างอิงมาตรฐาน EMVCo & ThaiPromptPay
+    function tlv(id, value) {
+      const len = String(value.length).padStart(2, '0');
+      return id + len + value;
+    }
+    function crc16ccitt(hexStr) {
+      // hexStr = string (ASCII) -> compute CRC over bytes
+      let crc = 0xFFFF;
+      for (let i = 0; i < hexStr.length; i++) {
+        crc ^= hexStr.charCodeAt(i) << 8;
+        for (let j = 0; j < 8; j++) {
+          if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+          else crc <<= 1;
+          crc &= 0xFFFF;
+        }
+      }
+      return crc.toString(16).toUpperCase().padStart(4, '0');
+    }
+    function sanitizePpid(id) {
+      let s = String(id).replace(/[^0-9]/g, '');
+      // ถ้าเป็นเบอร์มือถือไทย: ต้องแปลงเป็นรูปแบบ 0066 + no leading 0
+      if (s.length === 10 && s.startsWith('0')) {
+        s = '66' + s.slice(1);
+      }
+      return s;
+    }
+    function buildPromptPayEMV({ ppid, amount = 0 }) {
+      // Payload Format Indicator
+      const ID_PAYLOAD = tlv('00', '01');
+      // Point of Initiation Method (12 = dynamic, 11 = static)
+      const ID_POI = tlv('01', amount > 0 ? '12' : '11');
+
+      // Merchant Account Information (AID = A000000677010111)
+      const aid = tlv('00', 'A000000677010111');
+      const acc = tlv('01', sanitizePpid(ppid));
+      const mai = tlv('29', aid + acc);
+
+      // Country / Currency (THB = 764)
+      const country = tlv('58', 'TH');
+      const currency = tlv('53', '764');
+
+      // Amount (optional for dynamic)
+      const amt = amount > 0 ? tlv('54', Number(amount).toFixed(2)) : '';
+
+      // Merchant Name / City (optional non-critical, but nice to have)
+      const mname = tlv('59', (PROMPTPAY_NAME || 'STORE').slice(0, 25));
+      const mcity = tlv('60', 'TH');
+
+      // Additional Data Field (optional) – ข้ามเพื่อความสั้น
+
+      // CRC placeholder
+      const crcPlaceholder = '6304';
+      const raw = ID_PAYLOAD + ID_POI + mai + currency + country + amt + mname + mcity + crcPlaceholder;
+      const crc = crc16ccitt(raw);
+      return raw + crc;
+    }
+    function qrUrlFromEmv(emv) {
+      // ใช้ Google Chart API เป็นภาพ QR (ไม่ต้องลงไลบรารี)
+      const payload = encodeURIComponent(emv);
+      return `https://chart.googleapis.com/chart?cht=qr&chs=256x256&chl=${payload}`;
+    }
+
+    // ====== Init ======
+    function refreshUI(){
+      renderCategories();
       renderFeatured();
       renderGrid(PRODUCTS);
       updateBadge();
@@ -423,8 +527,6 @@
       renderManualBanner();
       startBannerAuto();
     }
-
-    // ---- QR loader with fallbacks ----
     function tryLoadImage(el, sources, idx=0){
       if(!el || idx >= sources.length) return;
       const src = sources[idx];
@@ -454,9 +556,12 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
-      const msg = 'สวัสดีครับ สอบถามสินค้า'; const lineURL = lineChatUrl(msg);
+
+      // เซ็ตลิงก์ LINE (ไม่ใช้ text= ในพารามิเตอร์หลัก)
+      const defaultMsg = 'สวัสดีครับ สนใจสอบถามสินค้า';
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
-      setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
+      setHref('lineLink', lineUrlNoKey(defaultMsg));
+      setHref('lineLinkFooter', lineUrlNoKey(defaultMsg));
 
       if(location.protocol === 'file:'){
         const warn = document.createElement('div');
@@ -474,24 +579,12 @@
 
       refreshUI();
 
-      document.getElementById('searchInput').addEventListener('input', e => {
-        state.q = e.target.value.trim().toLowerCase();
-        const base = PRODUCTS.filter(p => !state.category || p.category===state.category);
-        const filtered = base.filter(p => !state.q || String(p.name).toLowerCase().includes(state.q));
-        document.getElementById('resultCount').textContent = filtered.length;
-        document.getElementById('productGrid').innerHTML = filtered.map(productCard).join('');
-      });
-      document.getElementById('categorySelect').addEventListener('change', e => {
-        state.category = e.target.value;
-        const base = PRODUCTS.filter(p => !state.category || p.category===state.category);
-        const filtered = base.filter(p => !state.q || String(p.name).toLowerCase().includes(state.q));
-        document.getElementById('resultCount').textContent = filtered.length;
-        document.getElementById('productGrid').innerHTML = filtered.map(productCard).join('');
-      });
-      document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; });
-      document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; });
-      document.getElementById('clearFilters').addEventListener('click', () => {
-        state = { q:'', category:'', min:'', max:'' };
+      // Filters
+      document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(PRODUCTS); });
+      document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(PRODUCTS); });
+      document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(PRODUCTS); });
+      document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(PRODUCTS); });
+      document.getElementById('clearFilters').addEventListener('click', () => { state = { q:'', category:'', min:'', max:'' };
         document.getElementById('searchInput').value='';
         document.getElementById('categorySelect').value='';
         document.getElementById('minPrice').value='';
@@ -499,28 +592,45 @@
         renderGrid(PRODUCTS);
       });
 
+      // Drawer
       const openCart = () => { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); };
       const closeCart = () => { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); };
       document.getElementById('openCart')?.addEventListener('click', openCart);
       document.getElementById('closeCart')?.addEventListener('click', closeCart);
       document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
+      // Click add/chat
       document.addEventListener('click', (e) => {
         const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
-        if (addBtn) { if (addBtn.hasAttribute('disabled')) return; const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (Number(cart[id]) || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); if (document.getElementById('cartDrawer').classList.contains('open')) { renderCart(); } }
-        if (chatBtn) { if (chatBtn.hasAttribute('disabled')) return; const id = normalizeId(chatBtn.getAttribute('data-id')); const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return; const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`; window.open(lineChatUrl(text), '_blank'); }
+        if (addBtn) {
+          if (addBtn.hasAttribute('disabled')) return;
+          const id = normalizeId(addBtn.getAttribute('data-id'));
+          cart[id] = (Number(cart[id]) || 0) + 1;
+          localStorage.setItem('cart', JSON.stringify(cart)); updateBadge();
+          if (document.getElementById('cartDrawer').classList.contains('open')) renderCart();
+        }
+        if (chatBtn) {
+          if (chatBtn.hasAttribute('disabled')) return;
+          const id = normalizeId(chatBtn.getAttribute('data-id'));
+          const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return;
+          const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`;
+          openLine(text);
+        }
       });
 
+      // Cart +/- buttons
       document.getElementById('cartList').addEventListener('click', (e) => {
         const dec = e.target.closest('.btn-dec'); const inc = e.target.closest('.btn-inc');
         if (dec) { const id = normalizeId(dec.getAttribute('data-id')); cart[id] = Math.max(0, (cart[id]||0) - 1); if(cart[id] === 0) delete cart[id]; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
         if (inc) { const id = normalizeId(inc.getAttribute('data-id')); cart[id] = (cart[id]||0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
       });
 
+      // Cart actions
       document.getElementById('clearCart')?.addEventListener('click', () => { cart = {}; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); });
       document.getElementById('copyOrder')?.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว'); } catch{ alert('คัดลอกไม่สำเร็จ'); } });
-      document.getElementById('checkout')?.addEventListener('click', ()=> window.open(lineChatUrl(buildOrderText()), '_blank'));
+      document.getElementById('checkout')?.addEventListener('click', ()=> openLine(buildOrderText()));
 
+      // Banner controls
       document.getElementById('bannerPrev')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx - 1 + BANNERS.length) % BANNERS.length; renderManualBanner(); });
       document.getElementById('bannerNext')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner(); });
       const bannerWrap = document.getElementById('manualBanner');
@@ -528,7 +638,7 @@
       bannerWrap?.addEventListener('mouseleave', () => startBannerAuto());
       startBannerAuto();
 
-      // Load PromptPay image with fallbacks
+      // Load static PromptPay image (fallback)
       const qrImg = document.getElementById('qrImg');
       if (qrImg) {
         const primary = qrImg.getAttribute('data-src') || './images/promptpay.png';
@@ -536,12 +646,59 @@
         tryLoadImage(qrImg, candidates);
       }
 
-      // Dialog controls
+      // PromptPay dialog controls
       const qr = document.getElementById('qrModal');
-      document.getElementById('openPromptPayHeader')?.addEventListener('click', ()=> qr?.showModal());
-      document.getElementById('openPromptPayFooter')?.addEventListener('click', ()=> qr?.showModal());
+      const ppNameEl = document.getElementById('ppName');
+      const ppIdEl = document.getElementById('ppId');
+      const ppAmtEl = document.getElementById('ppAmt');
+      const dynArea = document.getElementById('dynArea');
+      const tabStatic = document.getElementById('tabStatic');
+      const tabDynamic = document.getElementById('tabDynamic');
+      function showStatic() { dynArea.classList.add('hidden'); }
+      function showDynamic() { dynArea.classList.remove('hidden'); }
+
+      document.getElementById('openPromptPayHeader')?.addEventListener('click', ()=>{ showStatic(); qr?.showModal(); });
+      document.getElementById('openPromptPayFooter')?.addEventListener('click', ()=>{ showStatic(); qr?.showModal(); });
       document.getElementById('closePromptPay')?.addEventListener('click', ()=> qr?.close());
       qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
+
+      tabStatic?.addEventListener('click', ()=> {
+        showStatic();
+        const primary = qrImg.getAttribute('data-src') || './images/promptpay.png';
+        tryLoadImage(qrImg, [ primary, toCdn(primary), 'https://picsum.photos/seed/promptpay/256/256' ]);
+      });
+
+      tabDynamic?.addEventListener('click', ()=> {
+        const amount = cartTotal();
+        if (amount <= 0) { alert('ยังไม่มีสินค้าในตะกร้าหรือยอดรวมเป็น 0'); return; }
+        const emv = buildPromptPayEMV({ ppid: PROMPTPAY_ID, amount });
+        const url = qrUrlFromEmv(emv);
+        ppNameEl.textContent = PROMPTPAY_NAME;
+        ppIdEl.textContent = PROMPTPAY_ID;
+        ppAmtEl.textContent = fmtBaht(amount);
+        showDynamic();
+        tryLoadImage(qrImg, [ url ]);
+        document.getElementById('btnCopyEmv')?.addEventListener('click', async ()=> {
+          try { await navigator.clipboard.writeText(emv); alert('คัดลอก EMV แล้ว'); } catch { alert('คัดลอกไม่สำเร็จ'); }
+        }, { once:true });
+      });
+
+      // Pay Now -> เปิด Modal แบบ Dynamic ทันที
+      document.getElementById('btnPayNow')?.addEventListener('click', ()=> {
+        const amount = cartTotal();
+        if (amount <= 0) { alert('ยังไม่มีสินค้าในตะกร้า'); return; }
+        const emv = buildPromptPayEMV({ ppid: PROMPTPAY_ID, amount });
+        const url = qrUrlFromEmv(emv);
+        ppNameEl.textContent = PROMPTPAY_NAME;
+        ppIdEl.textContent = PROMPTPAY_ID;
+        ppAmtEl.textContent = fmtBaht(amount);
+        showDynamic();
+        tryLoadImage(qrImg, [ url ]);
+        qr?.showModal();
+        // ปุ่มคัดลอก EMV (bind ใหม่ทุกครั้ง)
+        const btn = document.getElementById('btnCopyEmv');
+        btn.onclick = async ()=> { try { await navigator.clipboard.writeText(emv); alert('คัดลอก EMV แล้ว'); } catch { alert('คัดลอกไม่สำเร็จ'); } };
+      });
     });
   </script>
   <div id="backdrop" class="backdrop"></div>
