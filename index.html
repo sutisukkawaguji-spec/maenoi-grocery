@@ -352,7 +352,7 @@
     function cartCount(){ return Object.values(cart).reduce((a,b)=>a+(Number(b)||0),0); }
     function updateBadge(){ const el = document.getElementById('cartBadge'); if(el) el.textContent = cartCount(); }
     function findProduct(id){ return PRODUCTS.find(p => normalizeId(p.id) === normalizeId(id)); }
-    function cartTotal(){ return Object.entries(cart).reduce((sum,[id,qty]) => { const p = findProduct(id); if(!p) return sum; return sum + (Number(p.price)||0) * (Number(qty)||0); }, 0); }
+    function cartTotal(){ return Object.entries(cart).reduce((sum,[id,qty]) => { const p = findProduct(id); if(!p) return sum; const price = Number(p.price)||0; const q = Number(qty)||0; return sum + (price * q); }, 0); }
     function renderCart(){
       const list = document.getElementById('cartList'); if(!list) return; list.innerHTML = '';
       const entries = Object.entries(cart);
@@ -418,7 +418,7 @@
 
       document.getElementById('productGrid').addEventListener('click', (e) => {
         const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
-        if (addBtn) { const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (cart[id] || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); }
+        if (addBtn) { const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (Number(cart[id]) || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); if(isCartOpen()) { renderCart(); } }
         if (chatBtn) { const id = normalizeId(chatBtn.getAttribute('data-id')); const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return; const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`; window.open(lineChatUrl(text), '_blank'); }
       });
 
