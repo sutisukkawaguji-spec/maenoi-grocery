@@ -4,93 +4,151 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำ</title>
-  <meta name="description" content="สินค้า สินค้าแนะนำ เมนูวันนี้ (หัวเว็บ), แบนเนอร์สับภาพเอง, ข้อความประกาศวิ่ง, ตะกร้า, พร้อมเพย์">
+  <meta name="description" content="เว็บแอปขายของชำ: แสดงสินค้า สินค้าแนะนำ เมนูวันนี้ ประกาศรูปวิ่ง ตะกร้า และแชตผ่าน LINE" />
 
+  <!-- Fonts + Tailwind -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Icons / PWA -->
+  <link rel="icon" href="images/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="images/icon-192.png">
+  <meta name="theme-color" content="#10b981">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำใกล้บ้าน">
+  <meta property="og:description" content="ดูสินค้า สินค้าแนะนำ เมนูวันนี้ ประกาศรูปวิ่ง และแชตสั่งผ่าน LINE">
+  <meta property="og:image" content="images/cover.jpg">
+  <meta property="og:locale" content="th_TH">
 
   <style>
     body { font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; }
     .card:hover { transform: translateY(-2px); }
     button, a { touch-action: manipulation; }
-    .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%; background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.1); transition: right .28s ease; z-index: 60; display: flex; flex-direction: column; }
+    @media (max-width: 480px){
+      .card h3 { font-size: 0.95rem; }
+      #productGrid { gap: 0.6rem; }
+    }
+    .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%;
+      background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.1); transition: right .28s ease;
+      z-index: 60; display: flex; flex-direction: column; }
     .drawer.open { right: 0; }
-    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .drawer-left { position: fixed; top:0; left:-100%; width: 82%; max-width: 360px; height:100%;
+      background:#fff; box-shadow: 8px 0 24px rgba(0,0,0,.12); transition:left .28s ease; z-index:70; }
+    .drawer-left.open { left:0; }
+    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px);
+      z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
     .backdrop.show { opacity: 1; pointer-events: all; }
-    .marquee-viewport { overflow: hidden; }
-    .marquee-track { display: inline-flex; align-items: center; gap: 16px; width: max-content; animation: marquee-linear 20s linear infinite; will-change: transform; }
-    .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
-    @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-    #diag.hidden{ display:none; }
+    /* --- Marquee รูปวิ่ง (ประกาศ) --- */
+    .marquee-viewport { overflow: hidden; }
+    .marquee-track {
+      display: flex; align-items: center; gap: 12px; width: max-content;
+      animation: marquee-linear 20s linear infinite;
+    }
+    .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
+    @keyframes marquee-linear {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
   </style>
+
+  <!-- PapaParse (อ่าน .txt/.csv) -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
+  <!-- Header -->
   <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <!-- ☰ เมนูแฮมเบอร์เกอร์ (ย้ายปุ่มจัดการมาซ่อนที่นี่) -->
+      <button id="openNav" class="me-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">☰</button>
+
       <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover">
       <div>
         <h1 class="text-lg font-semibold leading-tight">ร้านขายของชำ</h1>
-        <p class="text-xs text-gray-500">เมนูวันนี้ • ประกาศวิ่ง • แบนเนอร์สับเอง • สินค้า • ตะกร้า • LINE</p>
+        <p class="text-xs text-gray-500">ค้นหา • หมวดหมู่ • สินค้าแนะนำ • เมนูวันนี้ • ตะกร้า • LINE</p>
       </div>
-      <div class="ms-auto flex items-center gap-2">
-        <a id="lineLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💬 แชต LINE</a>
-        <button id="openPromptPayHeader" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
-        <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
-          🧺 ตะกร้า <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
-        </button>
-      </div>
-    </div>
 
-    <div class="bg-white">
-      <div class="max-w-6xl mx-auto px-0 md:px-4 py-2">
-        <h3 class="font-semibold mb-2 px-4 md:px-0">🍽️ เมนูวันนี้</h3>
-        <div class="marquee-viewport rounded-xl border overflow-hidden">
-          <div id="bannerTrack" class="marquee-track"></div>
-        </div>
+      <div class="ms-auto flex items-center gap-2">
+        <a id="lineLink" href="#" target="_blank"
+           class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+          💬 แชต LINE
+        </a>
+        <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+          🧺 ตะกร้า
+          <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
+        </button>
       </div>
     </div>
   </header>
 
-  <div id="diag" class="max-w-6xl mx-auto px-4 mt-3 hidden">
-    <div class="rounded-xl border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">
-      <strong class="block mb-1">แจ้งเตือน/คำแนะนำ:</strong>
-      <ul id="diagList" class="list-disc ps-5 space-y-1"></ul>
+  <!-- Drawer เมนูซ้าย -->
+  <aside id="navDrawer" class="drawer-left">
+    <div class="px-4 py-3 border-b flex items-center justify-between">
+      <div class="font-semibold">เมนู</div>
+      <button id="closeNav" class="text-gray-500 hover:text-gray-800">✕</button>
     </div>
-  </div>
+    <nav class="p-2 text-sm">
+      <a href="#" id="navOpenAdmin" class="block px-3 py-2 rounded hover:bg-gray-50">⚙️ โหมดจัดการ</a>
+      <a href="#" id="navOpenCart" class="block px-3 py-2 rounded hover:bg-gray-50">🧺 เปิดตะกร้า</a>
+      <a href="#" id="navOpenLine" class="block px-3 py-2 rounded hover:bg-gray-50">💬 แชต LINE</a>
+      <a href="#featured" class="block px-3 py-2 rounded hover:bg-gray-50">⭐ สินค้าแนะนำ</a>
+      <a href="#menu-today" class="block px-3 py-2 rounded hover:bg-gray-50">🍽️ เมนูวันนี้</a>
+      <a href="#announce" class="block px-3 py-2 rounded hover:bg-gray-50">📢 ประกาศ (รูปวิ่ง)</a>
+    </nav>
+  </aside>
 
-  
+  <!-- Backdrop รวม (ใช้ร่วม) -->
+  <div id="backdrop" class="backdrop"></div>
 
-  <section id="banner-manual" class="relative bg-white">
-    <div class="max-w-6xl mx-auto px-4 py-4">
-      <h3 class="font-semibold mb-2">🎁 โปรโมชัน</h3>
-      <div class="overflow-hidden rounded-xl border relative">
-        <div id="manualBanner" class="w-full h-56 md:h-72 flex items-center justify-center bg-gray-100"></div>
-        <button id="bannerPrev" class="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">‹</button>
-        <button id="bannerNext" class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">›</button>
-      </div>
+  <!-- Cover -->
+  <section class="relative">
+    <img src="images/cover.jpg" alt="ภาพหน้าร้าน" class="w-full h-64 md:h-96 object-cover">
+    <div class="absolute inset-0 bg-black/25 flex items-center justify-center">
+      <h2 class="text-white text-2xl md:text-3xl font-bold drop-shadow">ร้านแม่น้อย บ้านดอนขี</h2>
     </div>
   </section>
 
-  <section id="announce" class="bg-white border-y border-gray-200">
-    <div class="max-w-6xl mx-auto px-4 py-3">
-      <div class="marquee-viewport rounded-xl">
-        <div id="announceTrack" class="marquee-track text-sm md:text-base"></div>
-      </div>
-    </div>
-  </section>
-
+  <!-- ⭐ สินค้าแนะนำ (แสดงอัตโนมัติเมื่อมีการตั้งค่า featured ในโหมดจัดการ) -->
   <section id="featured" class="bg-white border-y border-gray-200 hidden">
     <div class="max-w-6xl mx-auto px-4 py-4">
-      <div class="flex items-center gap-2 mb-2"><span class="text-lg">⭐</span><h3 class="font-semibold">สินค้าแนะนำ</h3></div>
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-lg">⭐</span><h3 class="font-semibold">สินค้าแนะนำ</h3>
+      </div>
       <div id="featuredGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
     </div>
   </section>
 
+  <!-- 📢 ประกาศ (รูปวิ่ง) -->
+  <section id="announce" class="bg-white">
+    <div class="max-w-6xl mx-auto px-4 py-3">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-lg">📢</span>
+        <h3 class="font-semibold">ประกาศ</h3>
+        <span class="text-xs text-gray-500">(เลื่อนเมาส์ค้าง = หยุดวิ่ง)</span>
+      </div>
+      <div id="announceViewport" class="marquee-viewport rounded-xl border overflow-hidden">
+        <div id="announceTrack" class="marquee-track"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 🍽️ เมนูวันนี้ (สไลด์รูป+ชื่อ) -->
+  <section id="menu-today" class="relative bg-white mt-4">
+    <div class="max-w-6xl mx-auto px-4">
+      <h3 class="font-semibold mb-2">🍽️ เมนูวันนี้</h3>
+      <div id="menuToday" class="overflow-hidden rounded-xl border">
+        <div id="menuTrack" class="flex transition-transform duration-500 ease-out"></div>
+      </div>
+    </div>
+  </section>
+
   <main class="max-w-6xl mx-auto px-4 py-6">
+    <!-- Filters -->
     <section class="mb-5 grid grid-cols-1 md:grid-cols-12 gap-3">
       <div class="md:col-span-5">
         <label class="text-sm text-gray-600">ค้นหาสินค้า</label>
@@ -112,27 +170,118 @@
       </div>
     </section>
 
+    <!-- Stats -->
     <section class="mb-4 text-sm text-gray-600 flex items-center gap-3">
       <span id="resultCount">0</span> รายการ
       <span class="hidden md:inline">•</span>
       <button id="clearFilters" class="text-emerald-700 hover:underline">ล้างตัวกรอง</button>
     </section>
 
+    <!-- Product Grid -->
     <section id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></section>
   </main>
 
+  <!-- Footer -->
   <footer class="border-t border-gray-200 py-10 text-center text-sm bg-white">
     <h3 class="text-lg font-semibold mb-2 text-emerald-700">ร้านแม่น้อย บ้านดอนขี</h3>
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
     <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
     <div class="flex items-center justify-center gap-3 mt-3">
-      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
-      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">LINE</a>
-      <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
+      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+        <img src="https://cdn-icons-png.flaticon.com/512/124/124010.png" class="w-4 h-4" alt=""> Facebook
+      </a>
+      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+        <img src="https://cdn-icons-png.flaticon.com/512/2111/2111390.png" class="w-4 h-4" alt=""> LINE
+      </a>
+      <button type="button" onclick="document.getElementById('qrModal').showModal()"
+              class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+        <img src="https://cdn-icons-png.flaticon.com/512/1042/1042339.png" class="w-4 h-4" alt=""> PromptPay
+      </button>
     </div>
-    <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี </p>
+    <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี — เว็บไซต์ตัวอย่าง</p>
   </footer>
 
+  <!-- Modal QR PromptPay -->
+  <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
+    <div class="p-4 bg-white rounded-2xl">
+      <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
+      <img src="images/promptpay.png" alt="QR PromptPay" class="w-40 h-40 mx-auto border rounded-lg object-contain">
+      <p class="text-center text-gray-600 mt-2">สแกนเพื่อชำระเงิน</p>
+      <div class="text-center mt-3">
+        <button type="button" onclick="document.getElementById('qrModal').close()" class="text-emerald-700 hover:underline text-sm">ปิด</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Admin Auth Dialog (ใส่ PIN ก่อนเข้า) -->
+  <dialog id="adminAuth" class="rounded-2xl p-0 overflow-hidden">
+    <div class="p-4 bg-white w-[92vw] max-w-md">
+      <h3 class="text-lg font-semibold">🔐 เข้าสู่โหมดจัดการ</h3>
+      <p class="text-sm text-gray-600 mt-1">กรอกรหัส PIN</p>
+      <input id="adminPinInput" type="password" inputmode="numeric" placeholder="เช่น 2468"
+             class="mt-3 w-full px-3 py-2 rounded-xl border" />
+      <div class="mt-4 flex items-center justify-end gap-2">
+        <button class="px-3 py-2 rounded-xl border" onclick="document.getElementById('adminAuth').close()">ยกเลิก</button>
+        <button id="adminLoginBtn" class="px-3 py-2 rounded-xl bg-emerald-600 text-white">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- === ADMIN PANEL (อัปเดต: โหมดประกาศ + เมนูวันนี้ + ปุ่มแก้ไข) === -->
+  <section id="adminPanel" class="max-w-6xl mx-auto px-4 py-6 hidden">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-lg font-semibold">โหมดจัดการ</h2>
+      <div class="flex gap-2">
+        <button id="btnExport" class="px-3 py-1.5 rounded border">Export JSON</button>
+        <label class="px-3 py-1.5 rounded border cursor-pointer">Import JSON
+          <input id="importFile" type="file" accept="application/json" class="hidden">
+        </label>
+        <button id="btnCloseAdmin" class="px-3 py-1.5 rounded border">ปิด</button>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- 🔁 โหมดประกาศ (รูปวิ่ง) -->
+      <div class="border rounded-2xl p-4 bg-white">
+        <h3 class="font-semibold mb-2">ประกาศ (รูปวิ่ง)</h3>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <input id="a_title" placeholder="ข้อความประกาศ (ไม่บังคับ)" class="px-3 py-2 border rounded col-span-2">
+          <input id="a_img" placeholder="ลิงก์รูปจาก GitHub/RAW (เช่น https://raw.githubusercontent.com/...)" class="px-3 py-2 border rounded col-span-2">
+          <input id="a_href" placeholder="ลิงก์เมื่อคลิก (ไม่บังคับ)" class="px-3 py-2 border rounded col-span-2">
+          <button id="btnAddAnn" class="col-span-1 px-4 py-2 bg-emerald-600 text-white rounded">เพิ่มประกาศ</button>
+          <button id="btnClearAnn" class="col-span-1 px-4 py-2 border rounded">ล้างทั้งหมด</button>
+        </div>
+        <div class="text-xs text-gray-500 mt-2">* จัดลำดับขึ้น/ลง ลบ และแก้ไขได้</div>
+        <div id="annList" class="mt-3 text-sm grid gap-2 max-h-[360px] overflow-auto"></div>
+      </div>
+
+      <!-- รายการสินค้า (สลับแสดง/แนะนำ) -->
+      <div class="border rounded-2xl p-4 bg-white">
+        <h3 class="font-semibold mb-2">รายการสินค้า (คลิกสถานะเพื่อสลับ)</h3>
+        <div id="adminList" class="text-sm space-y-2 max-h-[360px] overflow-auto"></div>
+        <p class="text-xs text-gray-500 mt-2">* สินค้าจาก GitHub แสดงด้วย 🔒 — ปรับ “แสดง/แนะนำ” ได้ แต่แก้เนื้อหาไม่ได้</p>
+      </div>
+    </div>
+
+    <!-- 🍽️ เมนูวันนี้ -->
+    <div class="border rounded-2xl p-4 bg-white mt-6">
+      <h3 class="font-semibold mb-3">เมนูวันนี้ (รูปสไลด์ + ชื่ออาหาร)</h3>
+      <div class="grid md:grid-cols-2 gap-3 text-sm">
+        <input id="m_title" placeholder="ชื่อเมนู เช่น ข้าวกะเพรา" class="px-3 py-2 border rounded">
+        <input id="m_img" placeholder="ลิงก์รูปจาก GitHub/RAW (เช่น https://raw.githubusercontent.com/...)" class="px-3 py-2 border rounded">
+        <button id="btnAddMenu" class="px-4 py-2 bg-emerald-600 text-white rounded">เพิ่มเมนู</button>
+        <button id="btnClearMenu" class="px-4 py-2 border rounded">ล้างเมนูทั้งหมด</button>
+      </div>
+      <div id="menuList" class="mt-3 text-sm grid md:grid-cols-2 gap-2"></div>
+    </div>
+  </section>
+
+  <!-- Floating Chat Button (mobile) -->
+  <a id="fabChat" class="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-full shadow-lg bg-emerald-600 text-white text-sm md:hidden">แชต LINE</a>
+
+  <!-- Drawer ตะกร้า -->
   <aside id="cartDrawer" class="drawer" aria-hidden="true">
     <div class="px-4 py-3 border-b flex items-center justify-between">
       <h3 class="font-semibold">ตะกร้าสินค้า</h3>
@@ -152,410 +301,578 @@
     </div>
   </aside>
 
-  <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
-    <div class="p-4 bg-white rounded-2xl">
-      <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
-      <img src="images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto border rounded-lg object-contain">
-      <p class="text-center text-gray-600 mt-2">สแกนเพื่อชำระเงิน</p>
-      <div class="text-center mt-3"><button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button></div>
-    </div>
-  </dialog>
-
   <script>
+    // ======= CONFIG =======
     const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
     const LINE_ID = '@906dooke';
     const OA_ID_ENC = encodeURIComponent(LINE_ID);
     const lineChatUrl = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?text=${encodeURIComponent(text)}`;
 
-    const FILE_PRODUCTS = './data/products.txt';
-    const FILE_MENU     = './data/menu.txt';
-    const FILE_ANN      = './data/announce.txt';
+    // 🔐 PIN โหมดแอดมิน
+    const ADMIN_PIN = '2468';
 
-    let PRODUCTS = [];
+    // อ่านสินค้าจาก GitHub RAW .txt
+    const RAW_TXT_URL = 'https://raw.githubusercontent.com/sutisukkawaguji-spec/maenoi-grocery/main/data/products.txt';
+
+    // ======= GLOBAL STATE =======
+    let PRODUCTS = []; // จาก GitHub
     let state = { q:'', category:'', min:'', max:'' };
-    let cart = JSON.parse(localStorage.getItem('cart') || '{}');
-    let __menuTimer = null;
+    let cart = JSON.parse(localStorage.getItem('cart') || '{}'); // { [id]: qty }
 
+    // ======= LOCAL STORAGE KEYS =======
+    const LS_LOCAL_PRODUCTS = 'local_products_v1';
+    const LS_OVERRIDES     = 'product_overrides_v1'; // {id: {active:true/false, featured:true/false}}
+    const LS_DAILY_MENU    = 'daily_menu_v1';
+    const LS_ANNOUNCE      = 'announce_v1'; // [{title,img,href}]
+
+    // ======= HELPERS =======
     const $ = sel => document.querySelector(sel);
+    function readJSON(key, fallback){ try{ return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }catch{ return fallback; } }
+    function writeJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
     const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
     function normalizeId(x){ return String(x ?? '').trim(); }
-    function showError(msg){ const box = document.getElementById('diag'); const ul = document.getElementById('diagList'); if(box && ul){ box.classList.remove('hidden'); const li = document.createElement('li'); li.textContent = msg; ul.appendChild(li); } console.warn('[DIAG]', msg); }
+// --- Use jsDelivr for GitHub images/files (CORS-friendly) ---
+function toCdnGit(url){
+  if(!url) return '';
+  let u = String(url).trim();
 
-    function toCdnGit(input) {
-      if (!input) return '';
-      const u = String(input).trim();
-      let urlObj;
-      try { urlObj = new URL(u); }
-      catch { const sep = u.includes('?') ? '&' : '?'; return `${u}${sep}_=${Date.now()}`; }
-      if (urlObj.hostname === 'github.com') {
-        const parts = urlObj.pathname.split('/').filter(Boolean);
-        if (parts.length >= 4 && parts[2] === 'blob') {
-          const [owner, repo, , branch, ...rest] = parts;
-          return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}?_=${Date.now()}`;
-        }
-      }
-      if (urlObj.hostname === 'raw.githubusercontent.com') {
-        const parts = urlObj.pathname.split('/').filter(Boolean);
-        if (parts.length >= 4) {
-          const [owner, repo, branch, ...rest] = parts;
-          return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}?_=${Date.now()}`;
-        }
-      }
-      const sep = u.includes('?') ? '&' : '?';
-      return `${u}${sep}_=${Date.now()}`;
-    }
-    function stripBom(t){ if(!t) return ''; return (t.charCodeAt(0) === 0xFEFF) ? t.slice(1) : t; }
-    function parseTable(text){
-      const clean = stripBom(text);
-      if (typeof Papa !== 'undefined'){
-        const first = (clean.split('\n')[0]||'');
-        const primary = (first.includes(',')) ? ',' : '\t';
-        const { data } = Papa.parse(clean, { delimiter: primary, skipEmptyLines: true, transform: v => (v ?? '').toString().trim() });
-        return data;
-      }
-      return clean.split('\n').map(l => l.trim()).filter(Boolean).map(l => (l.includes(',') ? l.split(',') : l.split('\t')).map(s => s.trim()));
-    }
+  // github.com/.../blob/... -> jsDelivr
+  let m = u.match(/^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^?#]+)(?:\?[^#]*)?/i);
+  if(m){
+    const branchAndPath = m[3]; // e.g. main/img/a.jpg
+    return `https://cdn.jsdelivr.net/gh/${m[1]}/${m[2]}@${branchAndPath}?_=${Date.now()}`;
+  }
+  // raw.githubusercontent.com/... -> jsDelivr
+  m = u.match(/^https?:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/i);
+  if(m){
+    return `https://cdn.jsdelivr.net/gh/${m[1]}/${m[2]}@${m[3]}/${m[4]}?_=${Date.now()}`;
+  }
+  const sep = u.includes('?') ? '&' : '?';
+  return `${u}${sep}_=${Date.now()}`;
+}
 
-    async function fetchText(url){
-      try{
-        const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' });
-        if(!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`);
-        return await res.text();
-      }catch(e){ throw new Error(`อ่านไฟล์ไม่ได้: ${url} :: ${e.message}`); }
-    }
 
-    async function loadProducts(){
-      try{
-        const text = await fetchText(FILE_PRODUCTS);
-        const rows = parseTable(text);
-        PRODUCTS = rows.map((r,i)=>{
-          const [idRaw, name, priceRaw, unit, category, img, flagRaw] = r;
-          const id = idRaw || String(i+1);
-          const price = Number((String(priceRaw||'').replace(/[^\d.]/g,''))) || 0;
-    
-          const flags = String(flagRaw||'').toUpperCase();
-          const featured = flags.includes('A');
-          const oos = flags.includes('OOS') || flags.includes('OUT');
-    
-          return {
-            id:String(id), name, price, unit, category,
-            img: toCdnGit(img||'images/placeholder.png'),
-            featured, oos, active:true
-          };
-        });
-        if(!PRODUCTS.length){ showError('ไม่พบสินค้าใน data/products.txt'); }
-      }catch(e){ showError(e.message); PRODUCTS = []; }
-    }
-    async function loadDailyMenu(){
-      try{
-        const text = await fetchText(FILE_MENU);
-        const rows = parseTable(text);
-        window.DAILY_MENU = rows.map(r=>({ title:r[0]||'', img: toCdnGit(r[1]||'') })).filter(m=>m.title && m.img);
-        if(!window.DAILY_MENU.length){
-          showError('เมนูวันนี้ว่าง/อ่านไม่ได้จาก data/menu.txt — ใช้ข้อมูลตัวอย่างชั่วคราว');
-          window.DAILY_MENU = [
-            { title:'ข้าวกะเพราไก่', img:'https://picsum.photos/seed/gaprao/1200/600' },
-            { title:'ผัดไทยกุ้งสด', img:'https://picsum.photos/seed/padthai/1200/600' }
-          ];
-        }
-      }catch(e){ showError(e.message); window.DAILY_MENU = [ { title:'ข้าวกะเพราไก่', img:'https://picsum.photos/seed/gaprao/1200/600' } ]; }
-    }
-    async function loadDailyMenu(){
-      try{
-        const text = await fetchText(FILE_MENU);
-        // ตัดบรรทัดคอมเมนต์ (#) ออกก่อน parse
-        const cleaned = text
-          .split('\n')
-          .filter(line => !line.trim().startsWith('#'))
-          .join('\n');
-    
-        const rows = parseTable(cleaned);
-        // ฟอร์แมต: title,img[,status]
-        window.DAILY_MENU = rows.map(r=>{
-          const title = r[0]||'';
-          const img   = toCdnGit(r[1]||'');
-          const status = String(r[2]||'ON').trim().toUpperCase();
-          return { title, img, status };
-        })
-        // กรองเมนูที่ถูก "พักการแสดง"
-        .filter(m => m.title && m.img && m.status !== 'OFF' && m.status !== '0');
-    
-        if(!window.DAILY_MENU.length){
-          showError('เมนูวันนี้ว่าง/ถูกพักทั้งหมด — เติมใน data/menu.txt');
-        }
-      }catch(e){
-        showError(e.message);
-        window.DAILY_MENU = [];
+    // --- Fix ลิงก์รูปจาก GitHub ให้เป็น RAW เสมอ + กัน cache ---
+        function mergedProducts(){
+      const locals = readJSON(LS_LOCAL_PRODUCTS, []);
+      const overrides = readJSON(LS_OVERRIDES, {});
+      const map = new Map();
+      for(const p of PRODUCTS){
+        const o = overrides[normalizeId(p.id)] || {};
+        map.set(normalizeId(p.id), { ...p, id: normalizeId(p.id), active: o.active !== false, featured: !!o.featured, _locked:true });
       }
+      for(const p of locals){
+        const o = overrides[normalizeId(p.id)] || {};
+        map.set(normalizeId(p.id), { ...p, id: normalizeId(p.id), active: o.active !== false, featured: !!o.featured, _locked:false });
+      }
+      return Array.from(map.values());
     }
-    async function loadAnnounces(){
-      try{
-        const text = await fetchText(FILE_ANN);
-    
-        // ตัดคอมเมนต์ (#...) ออกก่อน parse
-        const cleaned = text
-          .split('\n')
-          .filter(line => !line.trim().startsWith('#'))
-          .join('\n');
-    
-        // ฟอร์แมต: text,href,status,start,end
-        const rows = parseTable(cleaned);
-    
-        const today = new Date(); today.setHours(0,0,0,0);
-        const toDate = (s)=>{
-          if(!s) return null;
-          const [y,m,d] = String(s).trim().split('-').map(Number);
-          if(!y||!m||!d) return null;
-          const dt = new Date(y, m-1, d); dt.setHours(0,0,0,0);
-          return dt;
-        };
-    
-        window.ANNOUNCES = rows.map(r=>{
-          const text  = r[0]||'';
-          const href  = r[1]||'';
-          const status= String(r[2]||'ON').trim().toUpperCase();
-          const start = toDate(r[3]||'');
-          let end     = toDate(r[4]||'');
-          // end ว่าง = วันนี้ (แปลว่าโชว์ตั้งแต่วันเริ่ม “จนถึงวันนี้”)
-          if(!end) end = new Date(today.getTime());
-          return { text, href, status, start, end };
-        }).filter(a=>{
-          if(!a.text) return false;
-          if(a.status === 'OFF' || a.status === '0') return false;
-          if(a.start && today < a.start) return false;
-          if(a.end && today > a.end) return false;
-          return true;
-        });
-    function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
+    function getVisibleItems(){
+      return mergedProducts().filter(i => i.active !== false);
+    }
+    function getFeaturedItems(){
+      return mergedProducts().filter(i => i.active !== false && i.featured);
+    }
+    function uniqueCategories(items){
+      return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th'));
+    }
     function filterItems(items){
       const q = state.q.trim().toLowerCase();
       const c = state.category;
       const min = state.min === '' ? -Infinity : Number(state.min);
       const max = state.max === '' ? Infinity : Number(state.max);
-      return items.filter(it => (!q || String(it.name).toLowerCase().includes(q)) && (!c || String(it.category) === c) && (Number(it.price) >= min && Number(it.price) <= max));
+      return items.filter(it => {
+        const okQ = !q || String(it.name).toLowerCase().includes(q);
+        const okC = !c || String(it.category) === c;
+        const okP = Number(it.price) >= min && Number(it.price) <= max;
+        return okQ && okC && okP;
+      });
     }
     function renderCategories(){
-      const sel = document.getElementById('categorySelect'); if(!sel) return;
-      sel.innerHTML = '<option value=\"\">ทั้งหมด</option>'; uniqueCategories(PRODUCTS).forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt); });
+      const sel = document.getElementById('categorySelect');
+      if(!sel) return;
+      sel.innerHTML = '<option value="">ทั้งหมด</option>';
+      uniqueCategories(mergedProducts()).forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat; opt.textContent = cat; sel.appendChild(opt);
+      });
     }
-    function productCard(it){
-      const imgSrc = it.img || 'images/placeholder.png';
-      const isOos = !!it.oos;
-    
-      // ป้าย + โอเวอร์เลย์
-      const overlay = isOos
-        ? `<div class="absolute inset-0 bg-white/70 flex items-center justify-center">
-             <span class="px-3 py-1 rounded-full border text-xs text-gray-700">สินค้าหมด</span>
-           </div>`
-        : '';
-    
-      // ปุ่ม (ถ้าหมด -> disabled)
-      const addBtnAttrs = isOos ? 'disabled aria-disabled="true"'
-                                : `data-id="${it.id}"`;
-      const addBtnClass = 'w-full px-3 py-2 rounded-xl text-sm ' + (isOos
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-emerald-600 text-white hover:opacity-90');
-    
-      return `<article class="card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all">
-        <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden">
-          <img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" />
-          ${overlay}
-        </div>
-        <div class="p-3">
-          <h3 class="text-sm font-semibold leading-tight ${isOos?'text-gray-400 line-through':''}">${it.name}</h3>
-          <div class="mt-1 flex items-center justify-between">
-            <span class="inline-flex items-center px-2 py-1 rounded-lg ${isOos?'bg-gray-100 text-gray-400':'bg-emerald-50 text-emerald-700'} text-xs font-medium">
-              ${fmtBaht(it.price)} / ${it.unit || '-'}
-            </span>
-            <span class="text-xs ${isOos?'text-gray-300':'text-gray-500'}">${it.category || '-'}</span>
-          </div>
-          <div class="mt-3 grid grid-cols-2 gap-2">
-            <button class="btn-add ${isOos?'pointer-events-none':''} ${addBtnClass}" ${addBtnAttrs}>${isOos?'หมด':'หยิบลงตะกร้า'}</button>
-            <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}" ${isOos?'disabled aria-disabled="true"':''}>แชตรายการนี้</button>
-          </div>
-        </div>
-      </article>`;
-    }
-    function renderGrid(items){
-      const wrap = document.getElementById('productGrid'); if(!wrap) return;
-      document.getElementById('resultCount').textContent = items.length;
-      wrap.innerHTML = items.length ? items.map(productCard).join('') : '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า</div>';
-    }
-    function renderFeatured(){
-      const list = PRODUCTS.filter(p=>p.active!==false && p.featured);
-      const sec = document.getElementById('featured'); const grid = document.getElementById('featuredGrid'); if(!sec || !grid) return;
-      if(list.length === 0){ sec.classList.add('hidden'); grid.innerHTML=''; return; }
-      sec.classList.remove('hidden'); grid.innerHTML = list.map(productCard).join('');
-    }
-    function renderHeaderMenuBanner(){
-      const track = document.getElementById('bannerTrack'); if(!track) return;
-      const data = (window.DAILY_MENU || []);
-      if(!data.length){ track.innerHTML = '<div class="px-4 py-4 text-gray-500">ยังไม่มีเมนูวันนี้ — เพิ่มใน data/menu.txt</div>'; return; }
-      const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-40 md:h-56 object-cover rounded-md border"><figcaption class="text-center text-xs md:text-sm mt-1">${m.title}</figcaption></figure>`).join('');
-      track.innerHTML = items + items;
-    }
-    const BANNERS = ['images/banner1.jpg','images/banner2.jpg','images/banner3.jpg'];
-    let bannerIdx = 0;
-    const AUTO_SLIDE_MS = 4000; // ปรับความเร็วได้ (มิลลิวินาที)
-    let bannerTimer = null;
-    function startBannerAuto(){
-      stopBannerAuto();
-      if(BANNERS.length <= 1) return;
-      bannerTimer = setInterval(()=>{
-        bannerIdx = (bannerIdx + 1) % BANNERS.length;
-        renderManualBanner();
-      startBannerAuto();
-      const bannerWrap = document.getElementById('manualBanner');
-      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
-      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
-
-      }, AUTO_SLIDE_MS);
-    }
-    function stopBannerAuto(){ if(bannerTimer){ clearInterval(bannerTimer); bannerTimer = null; } }
-
-    function renderManualBanner(){
-      const wrap = document.getElementById('manualBanner'); if(!wrap) return;
-      if(!BANNERS.length){ wrap.innerHTML = '<div class="text-gray-500">ยังไม่มีแบนเนอร์</div>'; return; }
-      const src = toCdnGit(BANNERS[bannerIdx % BANNERS.length]);
-      wrap.innerHTML = `<img src="${src}" class="w-full h-full object-cover" alt="banner">`;
-    }
-    function renderAnnounce(){
-      const track = document.getElementById('announceTrack'); if(!track) return;
-      const arr = window.ANNOUNCES || [];
-      if(!arr.length){ track.innerHTML = '<span class="px-3 py-2 text-gray-500">ยังไม่มีประกาศ — เพิ่มใน data/announce.txt</span>'; return; }
-      const html = arr.map(a => { const href = a.href ? a.href : '#'; const safeText = a.text.replace(/</g,'&lt;').replace(/>/g,'&gt;'); return `<a href="${href}" ${a.href?'target="_blank" rel="noopener"':''} class="shrink-0 underline decoration-dotted">${safeText}</a>`; }).join('<span class="opacity-50">•</span>');
-      track.innerHTML = html + '<span class="opacity-50">•</span>' + html;
-    }
-
     function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
     function cartCount(){ return Object.values(cart).reduce((a,b)=>a+(Number(b)||0),0); }
     function updateBadge(){ const el = document.getElementById('cartBadge'); if(el) el.textContent = cartCount(); }
-    function findProduct(id){ return PRODUCTS.find(p => normalizeId(p.id) === normalizeId(id)); }
-    function cartTotal(){ return Object.entries(cart).reduce((sum,[id,qty]) => { const p = findProduct(id); if(!p) return sum; const price = Number(p.price)||0; const q = Number(qty)||0; return sum + (price * q); }, 0); }
+    function findProduct(id){
+      const idStr = normalizeId(id);
+      return mergedProducts().find(p => normalizeId(p.id) === idStr) || PRODUCTS.find(p => normalizeId(p.id) === idStr);
+    }
+    function cartTotal(){
+      return Object.entries(cart).reduce((sum,[id,qty]) => {
+        const p = findProduct(id); if(!p) return sum;
+        return sum + (Number(p.price)||0) * (Number(qty)||0);
+      }, 0);
+    }
+
+    // ======= RENDER GRID =======
+    function productCard(it){
+      const imgSrc = toCdnGit(it.img || 'images/placeholder.png');
+      return `
+        <article class="card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all">
+          <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
+            <img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" />
+          </div>
+          <div class="p-3">
+            <h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
+            <div class="mt-1 flex items-center justify-between">
+              <span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit || '-'}</span>
+              <span class="text-xs text-gray-500">${it.category || '-'}</span>
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
+              <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตรายการนี้</button>
+            </div>
+          </div>
+        </article>`;
+    }
+    function renderGrid(items){
+      const wrap = document.getElementById('productGrid');
+      if(!wrap) return;
+      wrap.innerHTML = '';
+      document.getElementById('resultCount').textContent = items.length;
+      if(items.length === 0){
+        wrap.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า ลองเปลี่ยนคำค้นหาหรือช่วงราคา</div>';
+        return;
+      }
+      wrap.innerHTML = items.map(productCard).join('');
+    }
+
+    // ⭐ Featured render
+    function renderFeatured(){
+      const list = getFeaturedItems();
+      const sec = document.getElementById('featured');
+      const grid = document.getElementById('featuredGrid');
+      if(!sec || !grid) return;
+      if(list.length === 0){
+        sec.classList.add('hidden');
+        grid.innerHTML = '';
+        return;
+      }
+      sec.classList.remove('hidden');
+      grid.innerHTML = list.map(productCard).join('');
+    }
+
+    // ======= CART RENDER =======
     function renderCart(){
-      const list = document.getElementById('cartList'); if(!list) return; list.innerHTML = '';
+      const list = document.getElementById('cartList');
+      if(!list) return;
+      list.innerHTML = '';
       const entries = Object.entries(cart);
-      if(entries.length === 0){ list.innerHTML = '<div class="p-4 text-center text-gray-500">ตะกร้าว่าง</div>'; }
-      else { entries.forEach(([id, qty]) => { let p = findProduct(id); if(!p) { p = { name:`สินค้า ID ${id}`, price:0, unit:'', img:'images/placeholder.png' }; }
-        const imgSrc = p.img || 'images/placeholder.png';
-        const row = document.createElement('div'); row.className = 'p-3 flex items-center gap-3';
-        row.innerHTML = `<img src="${imgSrc}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border">
-          <div class="flex-1"><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">${fmtBaht(p.price||0)} / ${p.unit || '-'}</div></div>
-          <div class="flex items-center gap-2"><button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button><span class="w-8 text-center">${qty}</span><button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button></div>
-          <div class="w-20 text-right font-medium">${fmtBaht((p.price||0) * qty)}</div>`; list.appendChild(row); }); }
+      if(entries.length === 0){
+        list.innerHTML = '<div class="p-4 text-center text-gray-500">ตะกร้าว่าง</div>';
+      } else {
+        entries.forEach(([id, qty]) => {
+          const p = findProduct(id); if(!p) return;
+          const imgSrc = toCdnGit(p.img || 'images/placeholder.png');
+          const row = document.createElement('div');
+          row.className = 'p-3 flex items-center gap-3';
+          row.innerHTML = `
+            <img src="${imgSrc}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border">
+            <div class="flex-1">
+              <div class="text-sm font-semibold">${p.name}</div>
+              <div class="text-xs text-gray-500">${fmtBaht(p.price)} / ${p.unit || '-'}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button>
+              <span class="w-8 text-center">${qty}</span>
+              <button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button>
+            </div>
+            <div class="w-20 text-right font-medium">${fmtBaht(p.price * qty)}</div>
+          `;
+          list.appendChild(row);
+        });
+      }
       document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
     }
+
     function buildOrderText(){
-      const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, '']; Object.entries(cart).forEach(([id, qty]) => { const p = findProduct(id); if(!p) return;
-        lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*qty)}`); });
-      lines.push(''); lines.push('ยอดรวม: ' + fmtBaht(cartTotal())); lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ'); return lines.join('\n');
+      const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, ''];
+      Object.entries(cart).forEach(([id, qty]) => {
+        const p = findProduct(id); if(!p) return;
+        lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*qty)}`);
+      });
+      lines.push('');
+      lines.push('ยอดรวม: ' + fmtBaht(cartTotal()));
+      lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ');
+      return lines.join('\\n');
     }
+    async function copyOrderToClipboard(){
+      try{
+        await navigator.clipboard.writeText(buildOrderText());
+        alert('คัดลอกออเดอร์แล้ว ไปแปะใน LINE ได้เลย');
+      }catch(e){
+        const textarea = document.createElement('textarea');
+        textarea.value = buildOrderText();
+        document.body.appendChild(textarea);
+        textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
+        alert('คัดลอกออเดอร์แล้ว ไปแปะใน LINE ได้เลย');
+      }
+    }
+    function checkout(){ window.open(lineChatUrl(buildOrderText()), '_blank'); }
+
+    function openCart(){ document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); }
+    function closeCart(){ document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); }
+
+    function openNav(){ document.getElementById('navDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); }
+    function closeNav(){ document.getElementById('navDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); }
 
     function refreshUI(){
       renderCategories();
       renderFeatured();
-      renderGrid(filterItems(PRODUCTS));
+      renderGrid(filterItems(getVisibleItems()));
       updateBadge();
-      renderHeaderMenuBanner();
       renderAnnounce();
-      renderManualBanner();
-      startBannerAuto();
-      const bannerWrap = document.getElementById('manualBanner');
-      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
-      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
-
+      renderDailyMenu();
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
-      const msg = 'สวัสดีครับ สอบถามสินค้า'; const lineURL = lineChatUrl(msg);
-      const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
-      setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
+    // ===== LOAD PRODUCTS FROM GITHUB TXT =====
+    function parseLinesAuto(text){
+      const clean = text.replace(/^\\uFEFF/, "");
+      const lines = clean.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);
+      const first = lines[0] || "";
+      const commaCnt = (first.match(/,/g) || []).length;
+      const tabCnt   = (first.match(/\\t/g) || []).length;
 
-      if(location.protocol === 'file:'){
-        const warn = document.createElement('div');
-        warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
-        warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้';
-        document.body.prepend(warn);
-        showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
+      if (typeof Papa !== "undefined") {
+        const tryPapa = (delimiter) => {
+          const { data } = Papa.parse(clean, {
+            delimiter, skipEmptyLines: true,
+            transform: v => (v ?? "").toString().trim()
+          });
+          return data.filter(r => Array.isArray(r) && r.length >= 5);
+        };
+        const primary = (commaCnt >= tabCnt) ? "," : "\\t";
+        let rows = tryPapa(primary);
+        if (!rows.length) rows = tryPapa(primary === "," ? "\\t" : ",");
+        return rows;
+      }
+      const useComma = commaCnt >= tabCnt;
+      return lines.map(line => line.split(useComma ? "," : "\\t").map(s => s.trim()));
+    }
+    function toItem(cols, idx){
+      const [idRaw, name, priceRaw, unit, category, img] = cols.map(v => (v ?? "").toString().trim());
+      const id = idRaw || String(idx+1);
+      const price = Number((priceRaw || "").replace(/[^\\d.]/g, ""));
+      return {
+        id: String(id),
+        name,
+        price: Number.isFinite(price) ? price : 0,
+        unit,
+        category,
+        img: img || "images/placeholder.png",
+        stock: 0
+      };
+    }
+    async function loadProductsFromGitHubTxt(url = RAW_TXT_URL){
+      try{
+        if (location.protocol === 'file:') {
+          $('#productGrid').innerHTML = '<div class="col-span-full text-center text-red-500 py-10">โปรดเปิดผ่าน http(s) (ตอนนี้เป็น file://)</div>';
+          return;
+        }
+        const res = await fetch(`${url}?_=${Date.now()}`, { cache: "no-store" });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const rows = parseLinesAuto(text);
+        PRODUCTS = rows.map(toItem);
+        refreshUI();
+      }catch(err){
+        console.error("โหลดสินค้าล้มเหลว:", err);
+        $('#productGrid').innerHTML = '<div class="col-span-full text-center text-red-500 py-10">โหลดสินค้าจาก GitHub ไม่สำเร็จ</div>';
+      }
+    }
+
+    // ===== ADMIN: OVERRIDES & LOCAL =====
+    function setOverride(id, patch){
+      const ov = readJSON(LS_OVERRIDES, {});
+      ov[normalizeId(id)] = { ...(ov[normalizeId(id)]||{}), ...patch };
+      writeJSON(LS_OVERRIDES, ov);
+    }
+    function openAdminPanel(){ document.getElementById('adminPanel').classList.remove('hidden'); renderAdmin(); }
+    function closeAdminPanel(){ document.getElementById('adminPanel').classList.add('hidden'); }
+
+    // ===== ประกาศ: Render (รูปวิ่ง) =====
+    function renderAnnounce(){
+      const data = readJSON(LS_ANNOUNCE, []);
+      const track = document.getElementById('announceTrack');
+      if(!track) return;
+      if(!data.length){
+        track.innerHTML = '<div class="px-4 py-2 text-sm text-gray-500">ยังไม่มีประกาศ</div>';
+        return;
+      }
+      // ทำให้ track ยาวพอสำหรับ marquee loop (คูณ 2)
+      const itemHTML = data.map(a => `
+        <a href="${a.href||'#'}" target="${a.href?'_blank':'_self'}" class="flex items-center gap-2 shrink-0">
+          <img src="${toCdnGit(a.img)}" alt="${a.title||'announce'}" class="h-16 md:h-20 object-cover rounded border">
+          ${a.title?`<span class="text-sm md:text-base">${a.title}</span>`:''}
+        </a>`).join('');
+      track.innerHTML = itemHTML + itemHTML;
+    }
+
+    // ===== เมนูวันนี้: แสดงสไลด์ =====
+    function renderDailyMenu(){
+      const data = readJSON(LS_DAILY_MENU, []);
+      const track = document.getElementById('menuTrack'); if(!track) return;
+      if(!data.length){
+        track.innerHTML = '<div class="w-full text-center text-gray-500 py-8">ยังไม่มีเมนูวันนี้ — เพิ่มจากโหมดจัดการ</div>';
+        return;
+      }
+      track.innerHTML = data.map(m => `
+        <figure class="relative w-full flex-shrink-0">
+          <img src="${toCdnGit(m.img)}" alt="${m.title}" class="w-full h-56 md:h-72 object-cover">
+          <figcaption class="absolute bottom-2 left-2 right-2 bg-black/50 text-white text-sm md:text-base px-3 py-1 rounded">${m.title}</figcaption>
+        </figure>
+      `).join('');
+      Array.from(track.children).forEach(el=> el.style.width='100%');
+      let i=0; const total=data.length;
+      setInterval(()=>{ i=(i+1)%total; track.style.transform=`translateX(-${i*100}%)`; }, 3500);
+    }
+
+    // ===== ADMIN Render =====
+    function renderAdmin(){
+      // รายการสินค้า
+      const list = document.getElementById('adminList');
+      const items = mergedProducts().sort((a,b)=>String(a.name).localeCompare(String(b.name),'th'));
+      list.innerHTML = '';
+      for(const p of items){
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2';
+        row.innerHTML = `
+          <span class="w-6 text-xs ${p._locked ? 'opacity-60' : ''}">${p._locked ? '🔒' : ''}</span>
+          <img src="${toCdnGit(p.img)}" class="w-10 h-8 object-cover rounded border">
+          <div class="flex-1">
+            <div class="font-medium">${p.name}</div>
+            <div class="text-xs text-gray-500">${p.category || '-'} • ${p.unit||'-'} • ฿${p.price}</div>
+          </div>
+          <button class="px-2 py-1 border rounded text-xs ${p.active!==false?'bg-emerald-50':''}" data-act="toggle" data-id="${p.id}">
+            ${p.active!==false ? 'แสดงอยู่' : 'ปิด'}
+          </button>
+          <button class="px-2 py-1 border rounded text-xs ${p.featured?'bg-yellow-50':''}" data-act="feat" data-id="${p.id}">
+            ${p.featured?'แนะนำ✓':'แนะนำ'}
+          </button>
+          ${p._locked ? '' : `<button class="px-2 py-1 border rounded text-xs" data-act="del" data-id="${p.id}">ลบ</button>`}
+        `;
+        list.appendChild(row);
       }
 
-      try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
-
-      // Reconcile cart with loaded products
-      for (const id of Object.keys(cart)) { if (!findProduct(id)) { delete cart[id]; } }
-      localStorage.setItem('cart', JSON.stringify(cart));
-      refreshUI();
-
-      document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(PRODUCTS)); });
-      document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(filterItems(PRODUCTS)); });
-      document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(filterItems(PRODUCTS)); });
-      document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(filterItems(PRODUCTS)); });
-      document.getElementById('clearFilters').addEventListener('click', () => { state = { q:'', category:'', min:'', max:'' }; document.getElementById('searchInput').value=''; document.getElementById('categorySelect').value=''; document.getElementById('minPrice').value=''; document.getElementById('maxPrice').value=''; renderGrid(filterItems(PRODUCTS)); });
-
-      const openCart = () => { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); };
-      const closeCart = () => { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); };
-      document.getElementById('openCart')?.addEventListener('click', openCart);
-      document.getElementById('closeCart')?.addEventListener('click', closeCart);
-      document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
-
-    // กดปุ่มหยิบ/แชท (ครอบทั้งหน้า เผื่อ “สินค้าแนะนำ” ด้วย)
-    document.addEventListener('click', (e) => {
-      const addBtn = e.target.closest('.btn-add');
-      const chatBtn = e.target.closest('.btn-chat');
-    
-      if (addBtn) {
-        if (addBtn.hasAttribute('disabled')) return; // ถ้าหมด ไม่ทำงาน
-        const id = normalizeId(addBtn.getAttribute('data-id'));
-        cart[id] = (Number(cart[id]) || 0) + 1;
-        localStorage.setItem('cart', JSON.stringify(cart));
-        updateBadge();
-        if (document.getElementById('cartDrawer').classList.contains('open')) { renderCart(); }
-      }
-    
-      if (chatBtn) {
-        if (chatBtn.hasAttribute('disabled')) return; // ไม่แชทกรณีหมด
-        const id = normalizeId(chatBtn.getAttribute('data-id'));
-        const p = PRODUCTS.find(x => normalizeId(x.id) === id);
-        if(!p) return;
-        const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`;
-        window.open(lineChatUrl(text), '_blank');
-      }
-    });
-
-      document.getElementById('cartList').addEventListener('click', (e) => {
-        const dec = e.target.closest('.btn-dec'); const inc = e.target.closest('.btn-inc');
-        if (dec) { const id = normalizeId(dec.getAttribute('data-id')); cart[id] = Math.max(0, (cart[id]||0) - 1); if(cart[id] === 0) delete cart[id]; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
-        if (inc) { const id = normalizeId(inc.getAttribute('data-id')); cart[id] = (cart[id]||0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
+      // เมนูวันนี้ (ลิสต์แก้ไข)
+      const menus = readJSON(LS_DAILY_MENU, []);
+      const wrap = document.getElementById('menuList'); wrap.innerHTML='';
+      menus.forEach((m,i)=>{
+        const el = document.createElement('div');
+        el.className='border rounded p-2 flex items-center gap-2';
+        el.innerHTML = `
+          <img src="${toCdnGit(m.img)}" class="w-16 h-12 object-cover rounded">
+          <div class="flex-1">
+            <input class="w-full text-sm border rounded px-2 py-1 mb-1" value="${m.title}" data-mi="${i}" data-field="title">
+            <input class="w-full text-xs border rounded px-2 py-1" value="${m.img}" data-mi="${i}" data-field="img">
+          </div>
+          <button class="px-2 py-1 border rounded text-xs" data-mi="${i}" data-act="save">บันทึก</button>
+          <button class="px-2 py-1 border rounded text-xs" data-mi="${i}" data-act="up">ขึ้น</button>
+          <button class="px-2 py-1 border rounded text-xs" data-mi="${i}" data-act="down">ลง</button>
+          <button class="px-2 py-1 border rounded text-xs" data-mi="${i}" data-act="rm">ลบ</button>
+        `;
+        wrap.appendChild(el);
       });
 
-      document.getElementById('clearCart')?.addEventListener('click', () => { cart = {}; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); });
-      document.getElementById('copyOrder')?.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว'); } catch{ alert('คัดลอกไม่สำเร็จ'); } });
-      document.getElementById('checkout')?.addEventListener('click', ()=> window.open(lineChatUrl(buildOrderText()), '_blank'));
+      // ประกาศ (ลิสต์แก้ไข)
+      const anns = readJSON(LS_ANNOUNCE, []);
+      const annWrap = document.getElementById('annList'); annWrap.innerHTML='';
+      anns.forEach((a,i)=>{
+        const el = document.createElement('div');
+        el.className='border rounded p-2 flex items-center gap-2';
+        el.innerHTML = `
+          <img src="${toCdnGit(a.img)}" class="w-16 h-12 object-cover rounded">
+          <div class="flex-1">
+            <input class="w-full text-sm border rounded px-2 py-1 mb-1" value="${a.title || ''}" data-ai="${i}" data-field="title">
+            <input class="w-full text-xs border rounded px-2 py-1 mb-1" value="${a.img}" data-ai="${i}" data-field="img">
+            <input class="w-full text-xs border rounded px-2 py-1" value="${a.href || ''}" data-ai="${i}" data-field="href">
+          </div>
+          <button class="px-2 py-1 border rounded text-xs" data-ai="${i}" data-act="asave">บันทึก</button>
+          <button class="px-2 py-1 border rounded text-xs" data-ai="${i}" data-act="aup">ขึ้น</button>
+          <button class="px-2 py-1 border rounded text-xs" data-ai="${i}" data-act="adown">ลง</button>
+          <button class="px-2 py-1 border rounded text-xs" data-ai="${i}" data-act="arm">ลบ</button>
+        `;
+        annWrap.appendChild(el);
+      });
+    }
 
-      document.getElementById('bannerPrev')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx - 1 + BANNERS.length) % BANNERS.length; renderManualBanner();
-      startBannerAuto();
-      const bannerWrap = document.getElementById('manualBanner');
-      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
-      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
- });
-      document.getElementById('bannerNext')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner();
-      startBannerAuto();
-      const bannerWrap = document.getElementById('manualBanner');
-      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
-      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
- });
-      renderManualBanner();
-      startBannerAuto();
-      const bannerWrap = document.getElementById('manualBanner');
-      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
-      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
+    // ===== INIT =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
 
+      // ตั้งลิงก์ LINE
+      const msg = 'สวัสดีครับ สอบถามสินค้า';
+      const lineURL = lineChatUrl(msg);
+      const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
+      setHref('lineLink', lineURL);
+      setHref('fabChat', lineURL);
+      setHref('lineLinkFooter', lineURL);
 
-      const qr = document.getElementById('qrModal'); const btnPH = document.getElementById('openPromptPayHeader'); const btnPF = document.getElementById('openPromptPayFooter'); const btnClosePP = document.getElementById('closePromptPay');
-      btnPH && btnPH.addEventListener('click', ()=> qr?.showModal()); btnPF && btnPF.addEventListener('click', ()=> qr?.showModal()); btnClosePP && btnClosePP.addEventListener('click', ()=> qr?.close()); qr && qr.addEventListener('click', (e)=>{ if(e.target === qr) qr.close(); });
+      // โหลดสินค้า + เมนูวันนี้ + ประกาศ
+      const grid = document.getElementById('productGrid');
+      if (grid) grid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">กำลังโหลดสินค้า...</div>';
+      loadProductsFromGitHubTxt();
+      renderDailyMenu();
+      renderAnnounce();
+      updateBadge();
+
+      // ฟิลเตอร์
+      document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(getVisibleItems())); });
+      document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(filterItems(getVisibleItems())); });
+      document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(filterItems(getVisibleItems())); });
+      document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(filterItems(getVisibleItems())); });
+
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        state = { q:'', category:'', min:'', max:'' };
+        document.getElementById('searchInput').value = '';
+        document.getElementById('categorySelect').value = '';
+        document.getElementById('minPrice').value = '';
+        document.getElementById('maxPrice').value = '';
+        renderGrid(filterItems(getVisibleItems()));
+      });
+
+      // ปุ่มในกริด
+      document.getElementById('productGrid').addEventListener('click', (e) => {
+        const addBtn = e.target.closest('.btn-add');
+        const chatBtn = e.target.closest('.btn-chat');
+        if (addBtn) {
+          const id = normalizeId(addBtn.getAttribute('data-id'));
+          cart[id] = (cart[id] || 0) + 1;
+          persistCart(); updateBadge();
+        }
+        if (chatBtn) {
+          const id = normalizeId(chatBtn.getAttribute('data-id'));
+          const p = findProduct(id); if(!p) return;
+          const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`;
+          window.open(lineChatUrl(text), '_blank');
+        }
+      });
+
+      // ตะกร้า
+      document.getElementById('openCart').addEventListener('click', openCart);
+      document.getElementById('closeCart').addEventListener('click', closeCart);
+      document.getElementById('backdrop').addEventListener('click', () => { closeCart(); closeNav(); });
+      document.getElementById('clearCart').addEventListener('click', () => { cart = {}; persistCart(); renderCart(); updateBadge(); });
+      document.getElementById('copyOrder').addEventListener('click', copyOrderToClipboard);
+      document.getElementById('checkout').addEventListener('click', checkout);
+
+      // ☰ เมนูซ้าย
+      document.getElementById('openNav').addEventListener('click', openNav);
+      document.getElementById('closeNav').addEventListener('click', closeNav);
+      document.getElementById('navOpenCart').addEventListener('click', (e)=>{ e.preventDefault(); closeNav(); openCart(); });
+      document.getElementById('navOpenLine').addEventListener('click', (e)=>{ e.preventDefault(); window.open(lineURL, '_blank'); });
+      document.getElementById('navOpenAdmin').addEventListener('click', (e)=>{ e.preventDefault(); closeNav(); document.getElementById('adminPinInput').value=''; document.getElementById('adminAuth').showModal(); });
+
+      // 🔐 Auth โหมดจัดการ
+      document.getElementById('adminLoginBtn').addEventListener('click', () => {
+        const pin = document.getElementById('adminPinInput').value.trim();
+        if(pin === ADMIN_PIN){
+          sessionStorage.setItem('admin_ok','1');
+          document.getElementById('adminAuth').close();
+          openAdminPanel();
+        } else {
+          alert('รหัสไม่ถูกต้อง');
+        }
+      });
+
+      // ปุ่มในแอดมิน (Export/Import/Close)
+      document.getElementById('btnCloseAdmin').addEventListener('click', () => { closeAdminPanel(); });
+      document.getElementById('btnExport').addEventListener('click', ()=>{
+        const blob = new Blob([JSON.stringify({
+          local_products: readJSON(LS_LOCAL_PRODUCTS, []),
+          overrides: readJSON(LS_OVERRIDES, {}),
+          daily_menu: readJSON(LS_DAILY_MENU, []),
+          announce: readJSON(LS_ANNOUNCE, [])
+        }, null, 2)], {type:'application/json'});
+        const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'maenoi-export.json' });
+        a.click(); URL.revokeObjectURL(a.href);
+      });
+      document.getElementById('importFile').addEventListener('change', async (e)=>{
+        const file = e.target.files?.[0]; if(!file) return;
+        const data = JSON.parse(await file.text());
+        if(data.local_products) writeJSON(LS_LOCAL_PRODUCTS, data.local_products);
+        if(data.overrides) writeJSON(LS_OVERRIDES, data.overrides);
+        if(data.daily_menu) writeJSON(LS_DAILY_MENU, data.daily_menu);
+        if(data.announce) writeJSON(LS_ANNOUNCE, data.announce);
+        renderAdmin(); renderDailyMenu(); renderAnnounce(); refreshUI();
+      });
+
+      // ===== สินค้า: toggle/feat/del =====
+      document.getElementById('adminList').addEventListener('click', (e)=>{
+        const btn = e.target.closest('button'); if(!btn) return;
+        const id  = btn.dataset.id;
+        const act = btn.dataset.act;
+        if(act==='toggle'){ const cur = (readJSON(LS_OVERRIDES, {})[normalizeId(id)]?.active!==false); setOverride(id,{active:!cur}); }
+        if(act==='feat'){ const cur = !!(readJSON(LS_OVERRIDES, {})[normalizeId(id)]?.featured); setOverride(id,{featured:!cur}); }
+        if(act==='del'){
+          const locals = readJSON(LS_LOCAL_PRODUCTS, []).filter(x=>normalizeId(x.id)!==normalizeId(id));
+          writeJSON(LS_LOCAL_PRODUCTS, locals);
+        }
+        renderAdmin(); refreshUI();
+      });
+
+      // ===== เมนูวันนี้: เพิ่ม/แก้ไข/ย้าย/ลบ =====
+      document.getElementById('btnAddMenu').addEventListener('click', ()=>{
+        const m = { title: document.getElementById('m_title').value.trim(), img: document.getElementById('m_img').value.trim() };
+        if(!m.title || !m.img) return alert('กรอกชื่อเมนูและลิงก์รูป');
+        const arr = readJSON(LS_DAILY_MENU, []); arr.push(m); writeJSON(LS_DAILY_MENU, arr);
+        document.getElementById('m_title').value=''; document.getElementById('m_img').value='';
+        renderAdmin(); renderDailyMenu();
+      });
+      document.getElementById('btnClearMenu').addEventListener('click', ()=>{ writeJSON(LS_DAILY_MENU, []); renderAdmin(); renderDailyMenu(); });
+      document.getElementById('menuList').addEventListener('click', (e)=>{
+        const b=e.target.closest('button'); if(!b) return;
+        const i=Number(b.dataset.mi); const act=b.dataset.act;
+        const arr=readJSON(LS_DAILY_MENU, []);
+        if(act==='rm') arr.splice(i,1);
+        if(act==='up' && i>0) [arr[i-1],arr[i]]=[arr[i],arr[i-1]];
+        if(act==='down' && i<arr.length-1) [arr[i+1],arr[i]]=[arr[i],arr[i+1]];
+        if(act==='save'){
+          const title = document.querySelector(`input[data-mi="${i}"][data-field="title"]`)?.value.trim() || '';
+          const img   = document.querySelector(`input[data-mi="${i}"][data-field="img"]`)?.value.trim() || '';
+          if(!title||!img) return alert('กรอกให้ครบก่อนบันทึก');
+          arr[i] = { title, img };
+        }
+        writeJSON(LS_DAILY_MENU, arr); renderAdmin(); renderDailyMenu();
+      });
+
+      // ===== ประกาศ: เพิ่ม/แก้ไข/ย้าย/ลบ =====
+      document.getElementById('btnAddAnn').addEventListener('click', ()=>{
+        const a = {
+          title: document.getElementById('a_title').value.trim(),
+          img: document.getElementById('a_img').value.trim(),
+          href: document.getElementById('a_href').value.trim()
+        };
+        if(!a.img) return alert('กรอกลิงก์รูปอย่างน้อย 1 ช่อง');
+        const arr = readJSON(LS_ANNOUNCE, []); arr.push(a); writeJSON(LS_ANNOUNCE, arr);
+        document.getElementById('a_title').value=''; document.getElementById('a_img').value=''; document.getElementById('a_href').value='';
+        renderAdmin(); renderAnnounce();
+      });
+      document.getElementById('btnClearAnn').addEventListener('click', ()=>{ writeJSON(LS_ANNOUNCE, []); renderAdmin(); renderAnnounce(); });
+      document.getElementById('annList').addEventListener('click', (e)=>{
+        const b=e.target.closest('button'); if(!b) return;
+        const i=Number(b.dataset.ai); const act=b.dataset.act;
+        const arr=readJSON(LS_ANNOUNCE, []);
+        if(act==='arm') arr.splice(i,1);
+        if(act==='aup' && i>0) [arr[i-1],arr[i]]=[arr[i],arr[i-1]];
+        if(act==='adown' && i<arr.length-1) [arr[i+1],arr[i]]=[arr[i],arr[i+1]];
+        if(act==='asave'){
+          const title = document.querySelector(`input[data-ai="${i}"][data-field="title"]`)?.value.trim() || '';
+          const img   = document.querySelector(`input[data-ai="${i}"][data-field="img"]`)?.value.trim() || '';
+          const href  = document.querySelector(`input[data-ai="${i}"][data-field="href"]`)?.value.trim() || '';
+          if(!img) return alert('ลิงก์รูปต้องไม่ว่าง');
+          arr[i] = { title, img, href };
+        }
+        writeJSON(LS_ANNOUNCE, arr); renderAdmin(); renderAnnounce();
+      });
     });
   </script>
-  <div id="backdrop" class="backdrop"></div>
 </body>
 </html>
