@@ -464,7 +464,7 @@
       const track = document.getElementById('bannerTrack'); if(!track) return;
       const data = (window.DAILY_MENU || []);
       if(!data.length){ track.innerHTML = '<div class="px-4 py-4 text-gray-500">ยังไม่มีเมนูวันนี้ — เพิ่มใน data/menu.txt</div>'; return; }
-      const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-40 md:h-56 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/menu/800/560'"><figcaption class="text-center text-xs md:text-sm mt-1">${m.title}</figcaption></figure>`).join('');
+     const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-32 md:h-44 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/menu/800/560'"><figcaption class="text-center text-[11px] md:text-sm mt-0.5">${m.title}</figcaption></figure>`).join('');
       track.innerHTML = items + items;
     }
 
