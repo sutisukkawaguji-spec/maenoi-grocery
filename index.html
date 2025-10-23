@@ -352,17 +352,56 @@
       try{
         const text = await fetchText(FILE_PRODUCTS);
         const rows = parseTable(text);
-        PRODUCTS = rows.map((r,i)=>{
-          const [idRaw, name, priceRaw, unit, category, imgField, flagRaw] = r;
-          const id = idRaw || String(i+1);
-          const price = Number((String(priceRaw||'').replace(/[^\d.]/g,''))) || 0;
-          const flags = String(flagRaw||'').toUpperCase();
+        PRODUCTS = rows.map((r, i) => {
+          // รูปแบบคอลัมน์: id, name, price, unit, category, ...media_or_flags
+          const [idRaw, name, priceRaw, unit, category, ...rest] = r;
+        
+          // ฟังก์ชันช่วย: เช็คว่าเป็น “รูป/URL รูป” ไหม
+          const looksLikeImage = (s) => {
+            const t = String(s || '').trim();
+            return /^https?:\/\//i.test(t) && /\.(png|jpe?g|webp|gif|svg)$/i.test(t)
+                   || t.startsWith('images/'); // รองรับพาธโลคัลในโปรเจ็กต์
+          };
+        
+          // 1) รวบรวมรูปจากทุกคอลัมน์ตั้งแต่ col6 ขึ้นไป
+          //    (และรองรับกรณีคอลัมน์เดียวแต่มีตัวคั่นหลายรูป เช่น "a.png|b.png; c.png")
+          const images = [];
+          for (const cell of rest) {
+            if (!cell) continue;
+            const piece = String(cell).trim();
+            // แตกหลายรูปในช่องเดียวด้วย | ; เว้นวรรค
+            const parts = piece.split(/[|;\s]+/).filter(Boolean);
+            for (const p of parts) {
+              if (looksLikeImage(p)) images.push(toCdnGit(p));
+            }
+          }
+        
+          // 2) หา flags จาก “ค่าที่ไม่ใช่รูป” ในคอลัมน์ที่เหลือ
+          const nonImageBits = rest.filter(x => !looksLikeImage(x)).join(' ').toUpperCase();
+          const flags = nonImageBits;
           const featured = flags.includes('A');
           const oos = flags.includes('OOS') || flags.includes('OUT');
-          const images = normalizeImages(imgField);
-          if(images.length===0) images.push('https://picsum.photos/seed/placeholder/800/600');
-          return { id:String(id), name, price, unit, category, images, featured, oos, active:true };
+        
+          // ถ้าไม่มีรูปเลย ใส่ placeholder
+          if (images.length === 0) images.push('https://picsum.photos/seed/placeholder/800/600');
+        
+          // ค่าทั่วไป
+          const id = idRaw || String(i + 1);
+          const price = Number((String(priceRaw || '').replace(/[^\d.]/g, ''))) || 0;
+        
+          return {
+            id: String(id),
+            name,
+            price,
+            unit,
+            category,
+            images,
+            featured,
+            oos,
+            active: true
+          };
         });
+
       }catch(e){ showError(e.message); PRODUCTS = []; }
     }
 
