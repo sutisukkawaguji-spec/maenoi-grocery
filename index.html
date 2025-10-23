@@ -51,6 +51,15 @@
     .drawer .border-t { padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); }
 
     #diag.hidden{ display:none; }
+  
+  /* === iPhone only tweaks (≤ 430px) === */
+  @media screen and (max-width: 430px){
+    #bannerTrack img { height: 7rem !important; }
+    #bannerTrack figcaption { font-size: 11px; margin-top: 2px; }
+    .marquee-track { gap: 8px !important; }
+    #banner-manual #manualBanner { height: 11rem !important; }
+    header .max-w-6xl.mx-auto.px-0.md\:px-4.py-2 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+  }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -464,7 +473,7 @@
       const track = document.getElementById('bannerTrack'); if(!track) return;
       const data = (window.DAILY_MENU || []);
       if(!data.length){ track.innerHTML = '<div class="px-4 py-4 text-gray-500">ยังไม่มีเมนูวันนี้ — เพิ่มใน data/menu.txt</div>'; return; }
-     const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-32 md:h-44 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/menu/800/560'"><figcaption class="text-center text-[11px] md:text-sm mt-0.5">${m.title}</figcaption></figure>`).join('');
+     const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-40 md:h-56 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/menu/800/560'"><figcaption class="text-center text-xs md:text-sm mt-1">${m.title}</figcaption></figure>`).join('');
       track.innerHTML = items + items;
     }
 
