@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Survey App (Stable Version)</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+    <style>
+        /* บังคับความสูงเต็มจอ เพื่อแก้ปัญหาแผนที่ขาว */
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Sarabun', sans-serif; overflow: hidden; background: #eee; }
+        
+        #map { 
+            height: 100%; 
+            width: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+            background: #ddd; /* สีพื้นหลังเผื่อแผนที่โหลดช้า */
+        }
+
+        /* Top Bar */
+        #top-bar {
+            position: absolute; top: 10px; left: 10px; right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px; border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 1000; display: flex; justify-content: space-between; align-items: center;
+        }
+        .stat-pill { font-size: 14px; color: #333; font-weight: bold; }
+        
+        .btn-icon {
+            display: inline-flex; justify-content: center; align-items: center;
+            width: 35px; height: 35px; border-radius: 8px; border: none;
+            color: white; font-size: 16px; cursor: pointer; margin-left: 5px;
+        }
+        input[type="file"] { display: none; }
+
+        /* Floating Buttons */
+        .fab-container {
+            position: absolute; bottom: 200px; right: 15px;
+            display: flex; flex-direction: column; gap: 15px;
+            z-index: 900;
+        }
+        .fab-btn {
+            width: 55px; height: 55px; border-radius: 50%;
+            background: white; color: #333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; cursor: pointer;
+        }
+        .fab-btn:active { transform: scale(0.95); }
+        #fab-find { background: #ffc107; }
+        #fab-location.active-follow { background: #3498db; color: white; border: 2px solid white; }
+
+        /* Bottom Sheet */
+        #bottom-sheet {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: white; border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+            z-index: 1001;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 60vh; overflow-y: auto;
+        }
+        #bottom-sheet.active { transform: translateY(0); }
+        .sheet-content { padding: 20px; }
+        .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .sheet-title { font-size: 18px; font-weight: bold; color: #2c3e50; }
+        .close-sheet { font-size: 20px; color: #999; cursor: pointer; padding: 5px; }
+        
+        /* Status Badges */
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; color: white; }
+        .bg-red { background: #e74c3c; } .bg-orange { background: #e67e22; } .bg-green { background: #27ae60; } .bg-gray { background: #95a5a6; }
+        
+        /* Form Elements */
+        textarea { width: 100%; height: 70px; border: 1px solid #ddd; border-radius: 8px; padding: 10px; font-family: 'Sarabun'; margin: 10px 0; box-sizing: border-box; }
+        .btn-full { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: white; margin-top: 5px; cursor: pointer; }
+        .btn-blue { background: #3498db; } .btn-green { background: #27ae60; } .btn-orange { background: #f39c12; } .btn-gray { background: #95a5a6; }
+        
+        .btn-google { 
+            background: white; color: #4285F4; border: 2px solid #4285F4; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .action-row { display: flex; gap: 10px; } .action-row button { flex: 1; }
+        
+        /* ซ่อนกล่องดำบอกทางของ Leaflet Routing Machine */
+        .leaflet-routing-container { display: none !important; }
+        .parcel-label { background: transparent; border: none; box-shadow: none; font-weight: bold; text-shadow: 1px 1px 0 #fff; font-size: 12px; color: #333; }
+    </style>
+</head>
+<body>
+
+    <div id="top-bar">
+        <div class="stat-pill">
+            <i class="fas fa-map-marker-alt"></i> เหลือ: <span id="txt-remain" style="color:#e74c3c">0</span> / <span id="txt-total">0</span>
+        </div>
+        <div>
+            <label for="fileInput" class="btn-icon" style="background:#3498db;"><i class="fas fa-folder-open"></i></label>
+            <input type="file" id="fileInput" accept=".csv, .xlsx, .xls" />
+            <button onclick="exportData()" class="btn-icon" style="background:#27ae60;"><i class="fas fa-save"></i></button>
+            <button onclick="clearAllData()" class="btn-icon" style="background:#e74c3c;"><i class="fas fa-trash"></i></button>
+        </div>
+    </div>
+
+    <div class="fab-container">
+        <div id="fab-location" class="fab-btn" onclick="toggleFollowMode()">
+            <i class="fas fa-location-arrow"></i>
+        </div>
+        <div id="fab-find" class="fab-btn" onclick="findNextJob()">
+            <i class="fas fa-search-location"></i>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header">
+                <div>
+                    <div id="sheet-name" class="sheet-title">เลือกแปลงที่ดิน</div>
+                    <span id="sheet-status" class="status-badge bg-gray">...</span>
+                </div>
+                <div class="close-sheet" onclick="closeSheet()"><i class="fas fa-times"></i></div>
+            </div>
+            <div id="sheet-body">
+                <p style="color:#777;">แตะที่หมุดบนแผนที่ หรือกดปุ่มค้นหาเพื่อเริ่มงาน</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+        // --- 1. Map Initialization (ใช้ HTTPS URL เพื่อความชัวร์) ---
+        var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 10);
+        
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Variables
+        var markers = [];
+        var parcelsData = [];
+        var routingControl = null;
+        var userMarker = null;
+        var myJobId = null;
+        var currentSelectedId = null;
+        var isMapFollowing = false;
+
+        // Icons
+        var icons = {
+            waiting: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] }),
+            booked: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] }),
+            done: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41] }),
+            user: L.divIcon({ className: 'user', html: '<div style="background:#2980b9;width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', iconSize: [26,26] })
+        };
+
+        // --- 2. Local Storage (ระบบจำข้อมูล) ---
+        window.addEventListener('load', function() {
+            var savedData = localStorage.getItem('survey_parcels');
+            var savedJob = localStorage.getItem('survey_current_job');
+            if (savedData) {
+                try {
+                    var parsed = JSON.parse(savedData);
+                    if (parsed.length > 0) loadParcels(parsed, false);
+                } catch(e) {}
+            }
+            if (savedJob) myJobId = parseInt(savedJob);
+        });
+
+        function saveDataToLocal() {
+            localStorage.setItem('survey_parcels', JSON.stringify(parcelsData));
+            if(myJobId !== null) localStorage.setItem('survey_current_job', myJobId);
+            else localStorage.removeItem('survey_current_job');
+        }
+
+        window.clearAllData = function() {
+            if(confirm("ล้างข้อมูลทั้งหมด?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // --- 3. File Import ---
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, {type: 'array'});
+                var jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                
+                var cleanData = [];
+                jsonData.forEach((row, index) => {
+                    // รองรับชื่อคอลัมน์หลากหลาย
+                    var lat = row['lat'] || row['Lat'] || row['latitude'] || row['Y'];
+                    var lng = row['lng'] || row['Lng'] || row['longitude'] || row['X'];
+                    var name = row['name'] || row['Name'] || row['แปลงที่'];
+                    if(lat && lng) {
+                        cleanData.push({ id: index, lat: parseFloat(lat), lng: parseFloat(lng), name: name, status: 'waiting', note: "", bookedBy: null });
+                    }
+                });
+                loadParcels(cleanData, true);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function loadParcels(data, saveToMemory) {
+            markers.forEach(m => map.removeLayer(m));
+            markers = []; parcelsData = data;
+            if(saveToMemory) saveDataToLocal();
+            renderMarkers();
+            updateStats();
+            startGPS();
+            
+            // Zoom Fit All
+            var group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds(), {padding: [50, 50]});
+        }
+
+        function renderMarkers() {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            parcelsData.forEach(parcel => {
+                var marker = L.marker([parcel.lat, parcel.lng], {icon: icons[parcel.status]}).addTo(map);
+                marker.bindTooltip(String(parcel.name), { permanent: true, direction: 'top', className: 'parcel-label' });
+                marker.on('click', () => { openBottomSheet(parcel.id); });
+                marker.parcelId = parcel.id;
+                markers.push(marker);
+            });
+            // ถ้ามีงานค้าง ให้วาดเส้นทันที
+            if (myJobId !== null && userMarker) {
+                var job = parcelsData.find(p => p.id === myJobId);
+                if(job) calculateRoute(job.lat, job.lng);
+            }
+        }
+
+        // --- 4. Routing System (Fix HTTPS & Error Handling) ---
+        function calculateRoute(lat, lng) {
+            if(!userMarker) return;
+            var userPos = userMarker.getLatLng();
+
+            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+
+            try {
+                routingControl = L.Routing.control({
+                    waypoints: [userPos, L.latLng(lat, lng)],
+                    createMarker: function() { return null; },
+                    lineOptions: { styles: [{color: '#2980b9', weight: 6, opacity: 0.8}] },
+                    addWaypoints: false, 
+                    draggableWaypoints: false,
+                    fitSelectedRoutes: true, // Zoom to route
+                    show: false,
+                    // สำคัญ: บังคับใช้ HTTPS Router
+                    router: L.Routing.osrmv1({
+                        serviceUrl: 'https://router.project-osrm.org/route/v1'
+                    })
+                }).addTo(map);
+
+                // ถ้า Router พังหรือ Error ให้แจ้งเตือน แต่ไม่แครช
+                routingControl.on('routingerror', function(e) {
+                    console.warn("Routing Failed", e);
+                    // ไม่ต้องทำอะไร ปล่อยให้ผู้ใช้กดปุ่ม Google Maps เอา
+                });
+            } catch (e) {
+                console.error("Routing Setup Error", e);
+            }
+        }
+
+        // --- 5. GPS System ---
+        function startGPS() {
+            if(navigator.geolocation) {
+                navigator.geolocation.watchPosition(p => {
+                    var lat = p.coords.latitude;
+                    var lng = p.coords.longitude;
+                    
+                    if(!userMarker) {
+                        userMarker = L.marker([lat, lng], {icon: icons.user}).addTo(map);
+                        map.setView([lat, lng], 16);
+                        isMapFollowing = true; updateFollowButtonUI();
+                        // งานค้าง ให้วาดเส้นเมื่อเจอ GPS ครั้งแรก
+                        if(myJobId !== null) {
+                            var job = parcelsData.find(p => p.id === myJobId);
+                            calculateRoute(job.lat, job.lng);
+                        }
+                    } else {
+                        userMarker.setLatLng([lat, lng]);
+                    }
+
+                    if (isMapFollowing) map.setView([lat, lng], 18, {animate: true});
+                }, err => console.log(err), { enableHighAccuracy: true, maximumAge: 0 });
+            }
+        }
+
+        window.toggleFollowMode = function() {
+            if (!userMarker) { alert("กำลังหาสัญญาณ GPS..."); return; }
+            isMapFollowing = !isMapFollowing;
+            if (isMapFollowing) map.setView(userMarker.getLatLng(), 18, {animate: true});
+            updateFollowButtonUI();
+        }
+
+        function updateFollowButtonUI() {
+            var btn = document.getElementById('fab-location');
+            if (isMapFollowing) {
+                btn.classList.add('active-follow'); btn.innerHTML = '<i class="fas fa-location-arrow"></i>';
+            } else {
+                btn.classList.remove('active-follow'); btn.innerHTML = '<i class="fas fa-crosshairs"></i>';
+            }
+        }
+        
+        // Stop follow on drag
+        map.on('dragstart', function() {
+            if (isMapFollowing) { isMapFollowing = false; updateFollowButtonUI(); }
+        });
+
+        // --- 6. Workflow & UI ---
+        function openBottomSheet(id) {
+            currentSelectedId = id;
+            var parcel = parcelsData.find(p => p.id === id);
+            document.getElementById('sheet-name').innerText = parcel.name;
+            var badge = document.getElementById('sheet-status');
+            var html = '';
+
+            if (parcel.status === 'waiting') {
+                badge.className = 'status-badge bg-red'; badge.innerText = 'รอสำรวจ';
+                html += `<div style="text-align:center; color:#555; margin-bottom:10px;">ยังไม่ได้ดำเนินการ</div>`;
+                html += `<button class="btn-full btn-blue" onclick="startNavigation(${id})"><i class="fas fa-location-arrow"></i> จองและนำทาง</button>`;
+            } 
+            else if (parcel.status === 'booked') {
+                badge.className = 'status-badge bg-orange'; badge.innerText = 'กำลังเดินทาง';
+                html += `<div>`;
+                // ปุ่ม Google Maps
+                html += `<button class="btn-full btn-google" onclick="openGoogleMaps(${id})"><i class="fas fa-map-marked-alt"></i> นำทางด้วย Google Maps</button>`;
+                html += `<label style="font-size:12px; color:#666; display:block; margin-top:10px;">📝 บันทึกร่าง</label>`;
+                html += `<textarea id="input-note" placeholder="พิมพ์บันทึก...">${parcel.note || ''}</textarea>`;
+                html += `<div class="action-row"><button class="btn-full btn-orange" onclick="saveDraft(${id})">บันทึกร่าง</button><button class="btn-full btn-green" onclick="confirmArrival(${id})">ถึงที่หมายแล้ว</button></div>`;
+                html += `</div>`;
+            } 
+            else if (parcel.status === 'done') {
+                badge.className = 'status-badge bg-green'; badge.innerText = 'เสร็จสิ้น';
+                html += `<div><label style="font-size:12px; color:#666;">✅ รายละเอียด</label><textarea id="input-note" disabled>${parcel.note || ''}</textarea><button id="btn-edit" class="btn-full btn-gray" onclick="enableEditMode(${id})">แก้ไขข้อมูล</button><button id="btn-save-edit" class="btn-full btn-green" style="display:none;" onclick="saveEdit(${id})">บันทึกการแก้ไข</button></div>`;
+            }
+
+            document.getElementById('sheet-body').innerHTML = html;
+            document.getElementById('bottom-sheet').classList.add('active');
+            isMapFollowing = false; updateFollowButtonUI();
+            map.panTo([parcel.lat, parcel.lng]);
+        }
+
+        function closeSheet() {
+            document.getElementById('bottom-sheet').classList.remove('active');
+            currentSelectedId = null;
+        }
+
+        window.startNavigation = function(id) {
+            if (myJobId !== null && myJobId !== id) { alert("เคลียร์งานเก่าก่อนครับ"); return; }
+            var parcel = parcelsData.find(p => p.id === id);
+            parcel.status = 'booked'; parcel.bookedBy = 'ME'; myJobId = id;
+            saveDataToLocal(); refreshUI(id); calculateRoute(parcel.lat, parcel.lng);
+            isMapFollowing = true; updateFollowButtonUI();
+        }
+
+        window.openGoogleMaps = function(id) {
+            var parcel = parcelsData.find(p => p.id === id);
+            if(parcel) {
+                // Link Google Maps Universal
+                var url = `https://www.google.com/maps/dir/?api=1&destination=${parcel.lat},${parcel.lng}`;
+                window.open(url, '_blank');
+            }
+        }
+
+        window.saveDraft = function(id) {
+            var val = document.getElementById('input-note').value;
+            parcelsData.find(p => p.id === id).note = val;
+            saveDataToLocal(); alert("บันทึกร่างแล้ว");
+        }
+
+        window.confirmArrival = function(id) {
+            var val = document.getElementById('input-note').value;
+            if (val && val.trim() !== "") { if(confirm("บันทึกจบงานเลยไหม?")) finishJob(id, val); } 
+            else alert("กรุณาใส่รายละเอียด");
+        }
+
+        function finishJob(id, note) {
+            var parcel = parcelsData.find(p => p.id === id);
+            parcel.note = note; parcel.status = 'done'; parcel.bookedBy = null; myJobId = null;
+            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+            saveDataToLocal(); refreshUI(id); updateStats();
+        }
+
+        window.enableEditMode = function(id) {
+            document.getElementById('input-note').disabled = false;
+            document.getElementById('btn-edit').style.display = 'none';
+            document.getElementById('btn-save-edit').style.display = 'block';
+        }
+
+        window.saveEdit = function(id) {
+            var val = document.getElementById('input-note').value;
+            parcelsData.find(p => p.id === id).note = val;
+            saveDataToLocal(); refreshUI(id); alert("แก้ไขเรียบร้อย");
+        }
+
+        window.findNextJob = function() {
+            if(!userMarker) { alert("กำลังหา GPS..."); return; }
+            if(myJobId) { alert("ทำงานเดิมให้เสร็จก่อนครับ"); openBottomSheet(myJobId); return; }
+            var waiting = parcelsData.filter(p => p.status === 'waiting');
+            if(waiting.length === 0) { alert("สำรวจครบแล้ว!"); return; }
+            var nearest = waiting.reduce((prev, curr) => {
+                var pD = userMarker.getLatLng().distanceTo([prev.lat, prev.lng]);
+                var cD = userMarker.getLatLng().distanceTo([curr.lat, curr.lng]);
+                return cD < pD ? curr : prev;
+            });
+            startNavigation(nearest.id); openBottomSheet(nearest.id);
+        }
+
+        function refreshUI(id) {
+            var marker = markers.find(m => m.parcelId === id);
+            var parcel = parcelsData.find(p => p.id === id);
+            marker.setIcon(icons[parcel.status]);
+            if (currentSelectedId === id) openBottomSheet(id);
+        }
+
+        function updateStats() {
+            var total = parcelsData.length;
+            var done = parcelsData.filter(p => p.status === 'done').length;
+            document.getElementById('txt-remain').innerText = (total - done);
+            document.getElementById('txt-total').innerText = total;
+        }
+
+        window.exportData = function() {
+            var ws = XLSX.utils.json_to_sheet(parcelsData);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "SurveyData");
+            XLSX.writeFile(wb, "Survey_Data.xlsx");
+        }
+    </script>
+</body>
+</html>
