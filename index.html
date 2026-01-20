@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Survey App (Smart Save)</title>
+    <title>Survey App (Voice Alert)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
@@ -58,9 +58,16 @@
         
         /* Buttons */
         .btn-full { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: white; margin-top: 5px; cursor: pointer; }
-        .btn-blue { background: #3498db; } .btn-green { background: #27ae60; } .btn-orange { background: #f39c12; } .btn-gray { background: #7f8c8d; } .btn-red { background: #e74c3c; }
+        .btn-blue { background: #3498db; } 
+        .btn-green { background: #27ae60; } 
+        .btn-orange { background: #f39c12; } 
+        .btn-gray { background: #7f8c8d; } 
+        .btn-red { background: #e74c3c; }
+        
         .btn-google { background: white; color: #4285F4; border: 2px solid #4285F4; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .action-row { display: flex; gap: 10px; margin-top: 5px; } .action-row button { flex: 1; }
+        
+        .action-row { display: flex; gap: 10px; margin-top: 5px; } 
+        .action-row button { flex: 1; }
         
         .leaflet-routing-container { display: none !important; }
         .parcel-label { background: transparent; border: none; box-shadow: none; font-weight: bold; text-shadow: 1px 1px 0 #fff; font-size: 12px; color: #333; }
@@ -71,7 +78,7 @@
 
     <div id="top-bar">
         <div class="row-control">
-            <div><i class="fas fa-map-marked-alt"></i> ระบบสำรวจ (Pro)</div>
+            <div><i class="fas fa-volume-up"></i> ระบบนำทาง (Voice)</div>
             <div style="font-size:12px;">เหลือ: <span id="txt-remain" style="color:red">0</span> / <span id="txt-total">0</span></div>
         </div>
         <select id="filter-amphoe" onchange="applyFilter()">
@@ -117,6 +124,8 @@
         var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 10);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
 
+        var markerLayer = L.layerGroup().addTo(map);
+
         var markers = [];
         var parcelsData = [];
         var routingControl = null;
@@ -125,6 +134,10 @@
         var isMapFollowing = false;
         var currentFilter = 'all';
 
+        // ✅ ตัวแปรสำหรับระบบแจ้งเตือน
+        var hasAlerted = false; // ตัวกันพูดซ้ำ
+        var ALERT_DISTANCE = 50; // ระยะเตือน (เมตร)
+
         var icons = {
             waiting: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
             booked: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
@@ -132,6 +145,19 @@
             gray: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
             user: L.divIcon({ className: 'user', html: '<div style="background:#2980b9;width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', iconSize: [26,26] })
         };
+
+        // --- Voice Alert Function ---
+        function speakAlert(text) {
+            if ('speechSynthesis' in window) {
+                var utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'th-TH'; // ภาษาไทย
+                utterance.rate = 1; // ความเร็วปกติ
+                window.speechSynthesis.speak(utterance);
+                
+                // สั่นเตือนด้วย (ถ้าเครื่องรองรับ)
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+            }
+        }
 
         function fetchDataFromSheet() {
             fetch(APPS_SCRIPT_URL)
@@ -155,7 +181,6 @@
                 alert("โหลดข้อมูลไม่ได้: " + error);
             });
         }
-        
         window.onload = fetchDataFromSheet;
 
         function updateFilterDropdown() {
@@ -175,25 +200,23 @@
         function applyFilter() {
             currentFilter = document.getElementById('filter-amphoe').value;
             renderMarkers();
-            var activeMarkers = markers.filter(m => {
-                var p = parcelsData.find(d => d.id == m.parcelId);
-                return currentFilter === 'all' || p.amphoe === currentFilter;
-            });
-            if(activeMarkers.length > 0) {
-                var group = new L.featureGroup(activeMarkers);
-                map.fitBounds(group.getBounds(), {padding: [50, 50]});
+            var activeParcels = parcelsData.filter(p => currentFilter === 'all' || p.amphoe === currentFilter);
+            if(activeParcels.length > 0) {
+                var latlngs = activeParcels.map(p => [p.lat, p.lng]);
+                var bounds = L.latLngBounds(latlngs);
+                map.fitBounds(bounds, {padding: [50, 50]});
             }
         }
 
         function renderMarkers() {
-            markers.forEach(m => map.removeLayer(m));
+            markerLayer.clearLayers();
             markers = [];
             parcelsData.forEach(parcel => {
                 var isInFilter = (currentFilter === 'all' || parcel.amphoe == currentFilter);
                 var currentStatus = parcel.status || 'waiting'; 
                 var iconType = isInFilter ? (icons[currentStatus] || icons.waiting) : icons.gray;
                 
-                var marker = L.marker([parcel.lat, parcel.lng], {icon: iconType, opacity: isInFilter ? 1 : 0.6 }).addTo(map);
+                var marker = L.marker([parcel.lat, parcel.lng], {icon: iconType, opacity: isInFilter ? 1 : 0.6 });
                 
                 var labelClass = isInFilter ? 'parcel-label' : 'parcel-label parcel-label-gray';
                 marker.bindTooltip(String(parcel.name), { permanent: true, direction: 'top', className: labelClass });
@@ -203,69 +226,71 @@
                     openBottomSheet(parcel.id); 
                 });
                 marker.parcelId = parcel.id;
+                markerLayer.addLayer(marker);
                 markers.push(marker);
             });
         }
 
-        // --- Core: Save to Sheet (Smart Logic) ---
-        window.confirmSave = function(id) {
-            var note = document.getElementById('inp-note').value.trim(); // ตัดช่องว่าง
-            var status = 'done'; // ค่าปกติคือเสร็จ
-
-            // ✅ เช็ค: ถ้าข้อมูลว่าง ให้ถามว่าจะกลับเป็น Waiting ไหม
-            if (!note) {
-                if(confirm("⚠️ คุณไม่ได้กรอกรายละเอียด\nต้องการเปลี่ยนสถานะกลับเป็น 'รอสำรวจ' (ยังไม่เสร็จ) ใช่หรือไม่?")) {
-                    status = 'waiting';
-                } else {
-                    return; // กดยกเลิก ไม่ทำอะไร
-                }
-            }
-
-            // ถ้ามีข้อมูล ก็บันทึกเป็น done ตามปกติ
-            saveToSheet(id, note, status);
+        // --- Booking Logic ---
+        function requestBooking(id) {
+            var body = document.getElementById('sheet-body');
+            body.innerHTML = `
+                <div style="text-align:center; padding:10px;">
+                    <p style="font-size:16px;">ยืนยันการเดินทางไปยังแปลงนี้?</p>
+                    <div class="action-row">
+                        <button class="btn-full btn-gray" onclick="closeSheet()">ยกเลิก</button>
+                        <button class="btn-full btn-blue" onclick="confirmBooking(${id})">ยืนยัน</button>
+                    </div>
+                </div>
+            `;
         }
 
-        function saveToSheet(id, note, status) {
-            // Optimistic Update
+        function confirmBooking(id) {
+            if (myJobId !== null && myJobId !== id) { alert("มีงานอื่นค้างอยู่"); return; }
+            myJobId = id;
             var p = parcelsData.find(d => d.id == id);
-            p.note = note;
-            p.status = status;
+            p.status = 'booked'; 
+            
+            hasAlerted = false; // Reset ตัวเตือน
             
             renderMarkers();
-            updateStats();
+            calculateRoute(p.lat, p.lng);
+            isMapFollowing = true;
+            updateFollowButton();
+            
+            saveToSheet(id, p.note, 'booked'); 
             closeSheet();
             
-            if ((status === 'waiting' || status === 'done') && routingControl) { 
-                map.removeControl(routingControl); 
-                routingControl = null; 
-            }
-            if (status !== 'booked') { myJobId = null; }
-
-            fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, note: note, status: status })
-            }).then(() => {
-                console.log("Updated sheet successfully");
-                alert("✅ บันทึกข้อมูลเรียบร้อย");
-            }).catch(err => {
-                alert("บันทึกไม่สำเร็จ (เน็ตหลุด?): " + err);
-            });
+            // พูดแจ้งเริ่มเดินทาง
+            speakAlert("เริ่มการเดินทางค่ะ");
         }
 
-        window.cancelBooking = function(id) {
-            if(confirm("ต้องการยกเลิกการจอง และปล่อยแปลงนี้ให้ว่างใช่ไหม?")) {
-                var p = parcelsData.find(d => d.id == id);
-                saveToSheet(id, p.note, 'waiting');
-            }
-        }
-
-        // --- Workflow ---
+        // --- Find Next Job ---
         window.findNextJob = function() {
             if(!userMarker) { alert("กำลังหา GPS..."); return; }
-            if(myJobId) { alert("เคลียร์งานเก่าก่อนครับ"); openBottomSheet(myJobId); return; }
 
+            if (myJobId) {
+                if(confirm("⚠️ คุณมีเส้นทางค้างอยู่ ต้องการยกเลิกและหาแปลงใหม่ใช่ไหม?")) {
+                    var oldJob = parcelsData.find(d => d.id == myJobId);
+                    oldJob.status = 'waiting';
+                    
+                    if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+                    
+                    saveToSheet(myJobId, oldJob.note, 'waiting');
+                    myJobId = null; 
+                    hasAlerted = false;
+
+                    setTimeout(() => { searchNearest(); }, 500); 
+                } else {
+                    openBottomSheet(myJobId);
+                    return;
+                }
+            } else {
+                searchNearest();
+            }
+        }
+
+        function searchNearest() {
             var waiting = parcelsData.filter(p => {
                 var matchFilter = (currentFilter === 'all' || p.amphoe == currentFilter);
                 return p.status === 'waiting' && matchFilter;
@@ -280,22 +305,60 @@
                 var cD = userMarker.getLatLng().distanceTo([curr.lat, curr.lng]);
                 return cD < pD ? curr : prev;
             });
-            startNavigation(nearest.id);
             openBottomSheet(nearest.id);
         }
 
-        window.startNavigation = function(id) {
-            if (myJobId !== null && myJobId !== id) { alert("มีงานอื่นค้างอยู่"); return; }
-            myJobId = id;
+        // --- Save / Cancel ---
+        window.confirmSave = function(id) {
+            var note = document.getElementById('inp-note').value.trim();
+            var status = 'done';
+            if (!note) {
+                if(confirm("⚠️ คุณไม่ได้กรอกรายละเอียด\nต้องการเปลี่ยนสถานะกลับเป็น 'รอสำรวจ' (ยังไม่เสร็จ) ใช่หรือไม่?")) {
+                    status = 'waiting';
+                } else {
+                    return;
+                }
+            }
+            saveToSheet(id, note, status);
+        }
+
+        function saveToSheet(id, note, status) {
             var p = parcelsData.find(d => d.id == id);
-            p.status = 'booked'; 
+            p.note = note;
+            p.status = status;
+            
+            if ((status === 'waiting' || status === 'done') && routingControl) { 
+                map.removeControl(routingControl); 
+                routingControl = null; 
+            }
+            if (status !== 'booked') { 
+                myJobId = null; 
+                hasAlerted = false;
+            }
+
             renderMarkers();
-            calculateRoute(p.lat, p.lng);
-            isMapFollowing = true;
-            updateFollowButton();
-            // บันทึกว่าจองแล้ว (Booked) แต่ยังไม่เสร็จ
-            saveToSheet(id, p.note, 'booked'); 
-            openBottomSheet(id);
+            updateStats();
+            closeSheet();
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, note: note, status: status })
+            }).then(() => {
+                console.log("Updated sheet");
+                if(status === 'done') alert("✅ บันทึกข้อมูลเรียบร้อย");
+            }).catch(err => {
+                alert("บันทึกไม่สำเร็จ: " + err);
+            });
+        }
+
+        window.cancelBooking = function(id) {
+            if(confirm("ต้องการยกเลิกการเดินทางแปลงนี้ ใช่ไหม?")) {
+                var p = parcelsData.find(d => d.id == id);
+                saveToSheet(id, p.note, 'waiting');
+                alert("ยกเลิกการเดินทางแล้ว");
+            }
         }
 
         // --- UI Logic ---
@@ -311,11 +374,11 @@
 
             if (currentStatus === 'waiting') {
                 badge.className = 'status-badge bg-red'; badge.innerText = 'รอสำรวจ';
-                html = `<button class="btn-full btn-blue" onclick="startNavigation(${id})">📍 จองและนำทาง</button>`;
+                html = `<button class="btn-full btn-blue" onclick="requestBooking(${id})">📍 จองและนำทาง</button>`;
             
             } else if (currentStatus === 'booked') {
                 badge.className = 'status-badge bg-orange'; badge.innerText = 'กำลังเดินทาง';
-                html = `<button class="btn-full btn-google" onclick="openGoogle(${id})"><i class="fas fa-map-marked-alt"></i> Google Maps</button>
+                html = `<button class="btn-full btn-google" onclick="openGoogle(${id})"><i class="fas fa-map-marked-alt"></i> เปิด Google Maps (นำทาง)</button>
                         <label style="font-size:12px; color:#666; margin-top:10px; display:block;">📝 บันทึกผล</label>
                         <textarea id="inp-note" placeholder="พิมพ์รายละเอียด...">${p.note || ''}</textarea>
                         <div class="action-row">
@@ -349,22 +412,38 @@
 
         window.openGoogle = function(id) {
             var p = parcelsData.find(d => d.id == id);
-            window.open(`http://googleusercontent.com/maps.google.com/maps?q=${p.lat},${p.lng}`, '_blank');
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
         }
 
-        // --- GPS & Route ---
+        // --- GPS & Route & ALERT Logic ---
         function startGPS() {
             if(navigator.geolocation) {
                 navigator.geolocation.watchPosition(p => {
                     var lat = p.coords.latitude, lng = p.coords.longitude;
+                    var userPos = [lat, lng];
+
                     if(!userMarker) {
-                        userMarker = L.marker([lat, lng], {icon: icons.user}).addTo(map);
-                        map.setView([lat, lng], 16);
+                        userMarker = L.marker(userPos, {icon: icons.user}).addTo(map);
+                        map.setView(userPos, 16);
                         isMapFollowing = true; updateFollowButton();
                     } else {
-                        userMarker.setLatLng([lat, lng]);
+                        userMarker.setLatLng(userPos);
                     }
-                    if(isMapFollowing) map.setView([lat, lng], 18);
+                    if(isMapFollowing) map.setView(userPos, 18);
+
+                    // --- ระบบเตือนเมื่อใกล้ถึง ---
+                    if (myJobId && !hasAlerted) {
+                         var job = parcelsData.find(d => d.id == myJobId);
+                         if (job) {
+                             // คำนวณระยะทาง (หน่วยเป็นเมตร)
+                             var dist = map.distance(userPos, [job.lat, job.lng]);
+                             if (dist < ALERT_DISTANCE) {
+                                 speakAlert("ใกล้ถึงจุดหมายแล้วค่ะ");
+                                 hasAlerted = true; // ล็อกไว้ไม่ให้พูดซ้ำ
+                             }
+                         }
+                    }
+
                 }, null, {enableHighAccuracy: true});
             }
         }
