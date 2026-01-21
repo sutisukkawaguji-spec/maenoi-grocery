@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Survey App (Polygon Support)</title>
+    <title>Survey App (Only Done Report)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:300,400,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
     <style>
-        /* Setup Full Screen */
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Sarabun', sans-serif; overflow: hidden; background: #eee; }
         #map { height: 100%; width: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #ddd; }
 
-        /* Top Bar */
         #top-bar {
             position: absolute; top: 10px; left: 10px; right: 10px;
             background: rgba(255, 255, 255, 0.95);
@@ -24,9 +24,12 @@
             z-index: 1000; display: flex; flex-direction: column; gap: 8px;
         }
         .row-control { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        
+        .stats-info { font-size: 13px; color: #555; }
+        .stats-today { color: #27ae60; font-weight: bold; margin-left: 5px; }
+
         select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd; font-family: 'Sarabun'; font-size: 14px; background: white; }
 
-        /* Floating Buttons */
         .fab-container {
             position: absolute; bottom: 200px; right: 15px;
             display: flex; flex-direction: column; gap: 15px; z-index: 900;
@@ -37,11 +40,19 @@
             font-size: 24px; cursor: pointer;
         }
         .fab-btn:active { transform: scale(0.95); }
+        
+        #fab-download { background: #8e44ad; color: white; }
+        #fab-calendar { background: #e67e22; color: white; }
         #fab-refresh { background: #27ae60; color: white; }
         #fab-find { background: #ffc107; }
         #fab-location.active-follow { background: #3498db; color: white; border: 2px solid white; }
-                #fab-layer { background: white; color: #333; }
-        /* Bottom Sheet */
+        #fab-layer { background: white; color: #333; }
+
+        .event-dot {
+            width: 6px; height: 6px; background-color: #27ae60;
+            border-radius: 50%; position: absolute; bottom: 2px; left: calc(50% - 3px);
+        }
+
         #bottom-sheet {
             position: absolute; bottom: 0; left: 0; width: 100%; background: white;
             border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
@@ -63,7 +74,6 @@
             background-color: #f0f8ff;
         }
 
-        /* Buttons */
         .btn-full { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: white; margin-top: 5px; cursor: pointer; }
         .btn-blue { background: #3498db; } .btn-green { background: #27ae60; } .btn-orange { background: #f39c12; } .btn-gray { background: #7f8c8d; } .btn-red { background: #e74c3c; }
         .btn-google { background: white; color: #4285F4; border: 2px solid #4285F4; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -78,8 +88,12 @@
 
     <div id="top-bar">
         <div class="row-control">
-            <div><i class="fas fa-draw-polygon"></i> ระบบสำรวจ (Polygon)</div>
-            <div style="font-size:12px;">เหลือ: <span id="txt-remain" style="color:red">0</span> / <span id="txt-total">0</span></div>
+            <div><i class="fas fa-draw-polygon"></i> ระบบสำรวจ</div>
+            <div class="stats-info">
+                เหลือ: <span id="txt-remain" style="color:red; font-weight:bold;">0</span> 
+                <span style="color:#ccc">|</span>
+                วันนี้: <span id="txt-today" class="stats-today">0</span>
+            </div>
         </div>
         <select id="filter-amphoe" onchange="applyFilter()">
             <option value="all">กำลังโหลดข้อมูล...</option>
@@ -87,10 +101,15 @@
     </div>
 
     <div class="fab-container">
+        <div id="fab-download" class="fab-btn" onclick="downloadExcel()">
+            <i class="fas fa-file-download"></i>
+        </div>
+        <div id="fab-calendar" class="fab-btn">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
         <div id="fab-layer" class="fab-btn" onclick="toggleMapLayer()">
             <i class="fas fa-layer-group"></i>
         </div>
-
         <div id="fab-refresh" class="fab-btn" onclick="fetchDataFromSheet()">
             <i class="fas fa-sync-alt"></i>
         </div>
@@ -122,26 +141,23 @@
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <script>
-        // ✅ URL Apps Script ของคุณ
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIT8RhB1Ea9HRjVAmjy46amGTjWt5rZVDpmqiGbZkjitiWS5UDHwxyZMiOzR-cNvfV/exec'; 
 
-        // 1. สร้างแผนที่
+        // Helper แปลงเวลาให้ตรงโซนไทย
+        function toLocalISOString(date) {
+            const offset = date.getTimezoneOffset();
+            const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+            return localDate.toISOString().split('T')[0];
+        }
+
         var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 10);
 
-        // 2. เตรียม Layer แผนที่ 2 แบบ
-        var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19, attribution: '© OpenStreetMap'
-        });
+        var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
+        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' });
 
-        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19, attribution: 'Tiles © Esri'
-        });
-
-        // 3. ตั้งค่าเริ่มต้นเป็นแผนที่ถนน
         var currentMapType = 'street';
         osmLayer.addTo(map);
 
-        // 4. ฟังก์ชันสลับแผนที่ (เรียกใช้เมื่อกดปุ่มวงกลม)
         function toggleMapLayer() {
             if (currentMapType === 'street') {
                 map.removeLayer(osmLayer);
@@ -154,7 +170,6 @@
             }
         }
         
-        // Layers (หมุดและขอบเขต)
         var markerLayer = L.layerGroup().addTo(map);
         var polygonLayer = L.layerGroup().addTo(map);
 
@@ -165,9 +180,9 @@
         var myJobId = null;
         var isMapFollowing = false;
         var currentFilter = 'all';
-
         var hasAlerted = false; 
         var ALERT_DISTANCE = 50; 
+        var workDates = new Set(); 
 
         var icons = {
             waiting: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
@@ -177,22 +192,44 @@
             user: L.divIcon({ className: 'user', html: '<div style="background:#2980b9;width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', iconSize: [26,26] })
         };
 
-        // สีของเส้นขอบเขตตามสถานะ
-        var polyColors = {
-            waiting: '#e74c3c', // แดง
-            booked: '#e67e22',  // ส้ม
-            done: '#27ae60',    // เขียว
-            gray: '#95a5a6'     // เทา
-        };
+        var polyColors = { waiting: '#e74c3c', booked: '#e67e22', done: '#27ae60', gray: '#95a5a6' };
 
         function speakAlert(text) {
             if ('speechSynthesis' in window) {
                 var utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'th-TH';
-                utterance.rate = 1;
+                utterance.lang = 'th-TH'; utterance.rate = 1;
                 window.speechSynthesis.speak(utterance);
                 if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
             }
+        }
+
+        // --- Init Calendar ---
+        function initCalendar() {
+            workDates.clear();
+            // เก็บเฉพาะวันที่ที่มีงานและเสร็จแล้ว (done)
+            parcelsData.forEach(p => {
+                if (p.timestamp && p.status === 'done') {
+                    var d = new Date(p.timestamp);
+                    if (!isNaN(d.getTime())) {
+                        var dateStr = toLocalISOString(d);
+                        workDates.add(dateStr);
+                    }
+                }
+            });
+
+            flatpickr("#fab-calendar", {
+                disableMobile: "true",
+                dateFormat: "Y-m-d",
+                onChange: function(selectedDates, dateStr, instance) {
+                    downloadExcel(dateStr);
+                },
+                onDayCreate: function(dObj, dStr, fp, dayElem) {
+                    var dateKey = toLocalISOString(dayElem.dateObj);
+                    if (workDates.has(dateKey)) {
+                        dayElem.innerHTML += "<span class='event-dot'></span>";
+                    }
+                }
+            });
         }
 
         function fetchDataFromSheet() {
@@ -204,17 +241,15 @@
             .then(response => response.json())
             .then(data => {
                 parcelsData = data.map(item => {
-                    if (!item.status || item.status.toString().trim() === "") {
-                        item.status = 'waiting';
-                    } else {
-                        item.status = item.status.toString().toLowerCase();
-                    }
+                    if (!item.status) item.status = 'waiting';
+                    else item.status = item.status.toString().toLowerCase();
                     return item;
                 });
                 updateFilterDropdown();
                 renderMarkers();
                 updateStats();
                 startGPS();
+                initCalendar(); 
                 btnIcon.className = 'fas fa-sync-alt';
             })
             .catch(error => {
@@ -232,8 +267,7 @@
             select.innerHTML = '<option value="all">แสดงทุกอำเภอ</option>';
             amphoes.forEach(amphoe => {
                 var option = document.createElement('option');
-                option.value = amphoe;
-                option.text = "อ." + amphoe;
+                option.value = amphoe; option.text = "อ." + amphoe;
                 select.appendChild(option);
             });
             if(amphoes.includes(oldVal)) select.value = oldVal;
@@ -250,7 +284,6 @@
             }
         }
 
-        // --- 2. ฟังก์ชันวาดหมุดและแปลง (เพิ่มระบบแก้ JSON อัตโนมัติ) ---
         function renderMarkers() {
             markerLayer.clearLayers();
             polygonLayer.clearLayers(); 
@@ -261,7 +294,6 @@
                 var currentStatus = parcel.status || 'waiting'; 
                 var iconType = isInFilter ? (icons[currentStatus] || icons.waiting) : icons.gray;
                 
-                // 1. วาดหมุด
                 var marker = L.marker([parcel.lat, parcel.lng], {icon: iconType, opacity: isInFilter ? 1 : 0.6 });
                 var labelClass = isInFilter ? 'parcel-label' : 'parcel-label parcel-label-gray';
                 marker.bindTooltip(String(parcel.name), { permanent: true, direction: 'top', className: labelClass });
@@ -276,38 +308,19 @@
                 markerLayer.addLayer(marker);
                 markers.push(marker);
 
-                // 2. วาดขอบเขต (Polygon) - เพิ่มระบบ Auto-Clean
                 if (parcel.geojson && parcel.geojson.toString().trim() !== "") {
                     try {
                         var rawJson = parcel.geojson.toString();
-                        
-                        // 🛠️ FIX: ล้างเครื่องหมายแปลกปลอมจากการ Copy-Paste
-                        // ถ้ามีเครื่องหมายคำพูดครอบหน้าหลัง ให้เอาออก
-                        if (rawJson.startsWith('"') && rawJson.endsWith('"')) {
-                            rawJson = rawJson.slice(1, -1);
-                        }
-                        // แปลง \" ให้กลับมาเป็น " (Unescape)
+                        if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
                         rawJson = rawJson.replace(/\\"/g, '"');
-
                         var geoData = JSON.parse(rawJson);
-                        
                         var polyColor = isInFilter ? (polyColors[currentStatus] || polyColors.waiting) : polyColors.gray;
-                        
                         var poly = L.geoJSON(geoData, {
-                            style: {
-                                color: polyColor,
-                                weight: 2,
-                                opacity: isInFilter ? 0.8 : 0.3,
-                                fillOpacity: isInFilter ? 0.2 : 0.1
-                            }
+                            style: { color: polyColor, weight: 2, opacity: isInFilter ? 0.8 : 0.3, fillOpacity: isInFilter ? 0.2 : 0.1 }
                         });
-
                         poly.on('click', clickAction);
                         polygonLayer.addLayer(poly);
-                    } catch(e) {
-                        console.error("GeoJSON Error ID:" + parcel.id, e);
-                        // ไม่แสดง Alert เพื่อไม่ให้รบกวนหน้าจอ แต่ดูใน Console ได้
-                    }
+                    } catch(e) {}
                 }
             });
         }
@@ -330,14 +343,11 @@
             myJobId = id;
             var p = parcelsData.find(d => d.id == id);
             p.status = 'booked'; 
-            
             hasAlerted = false;
-            
             renderMarkers();
             calculateRoute(p.lat, p.lng);
             isMapFollowing = true;
             updateFollowButton();
-            
             saveToSheet(id, p.note, 'booked'); 
             closeSheet();
             speakAlert("เริ่มการเดินทางค่ะ");
@@ -345,22 +355,16 @@
 
         window.findNextJob = function() {
             if(!userMarker) { alert("กำลังหา GPS..."); return; }
-
             if (myJobId) {
                 if(confirm("⚠️ คุณมีเส้นทางค้างอยู่ ต้องการยกเลิกและหาแปลงใหม่ใช่ไหม?")) {
                     var oldJob = parcelsData.find(d => d.id == myJobId);
                     oldJob.status = 'waiting';
-                    
                     if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-                    
                     saveToSheet(myJobId, oldJob.note, 'waiting');
-                    myJobId = null; 
-                    hasAlerted = false;
-
+                    myJobId = null; hasAlerted = false;
                     setTimeout(() => { searchNearest(); }, 500); 
                 } else {
-                    openBottomSheet(myJobId);
-                    return;
+                    openBottomSheet(myJobId); return;
                 }
             } else {
                 searchNearest();
@@ -372,11 +376,7 @@
                 var matchFilter = (currentFilter === 'all' || p.amphoe == currentFilter);
                 return p.status === 'waiting' && matchFilter;
             });
-
-            if(waiting.length === 0) { 
-                alert(currentFilter === 'all' ? "สำรวจครบแล้ว!" : "ไม่พบแปลงว่างในอำเภอนี้"); return; 
-            }
-
+            if(waiting.length === 0) { alert(currentFilter === 'all' ? "สำรวจครบแล้ว!" : "ไม่พบแปลงว่างในอำเภอนี้"); return; }
             var nearest = waiting.reduce((prev, curr) => {
                 var pD = userMarker.getLatLng().distanceTo([prev.lat, prev.lng]);
                 var cD = userMarker.getLatLng().distanceTo([curr.lat, curr.lng]);
@@ -386,9 +386,7 @@
         }
 
         window.pickReason = function(val) {
-            if(val) {
-                document.getElementById('inp-note').value = val;
-            }
+            if(val) document.getElementById('inp-note').value = val;
         }
 
         function getReasonSelectorHTML() {
@@ -407,44 +405,32 @@
             var note = document.getElementById('inp-note').value.trim();
             var status = 'done';
             if (!note) {
-                if(confirm("⚠️ ยังไม่ได้ระบุรายละเอียด\nต้องการเปลี่ยนสถานะกลับเป็น 'รอสำรวจ' ใช่หรือไม่?")) {
-                    status = 'waiting';
-                } else {
-                    return;
-                }
+                if(confirm("⚠️ ยังไม่ได้ระบุรายละเอียด\nต้องการเปลี่ยนสถานะกลับเป็น 'รอสำรวจ' ใช่หรือไม่?")) status = 'waiting';
+                else return;
             }
             saveToSheet(id, note, status);
         }
 
         function saveToSheet(id, note, status) {
             var p = parcelsData.find(d => d.id == id);
-            p.note = note;
-            p.status = status;
+            p.note = note; p.status = status;
             
             if ((status === 'waiting' || status === 'done') && routingControl) { 
-                map.removeControl(routingControl); 
-                routingControl = null; 
+                map.removeControl(routingControl); routingControl = null; 
             }
-            if (status !== 'booked') { 
-                myJobId = null; 
-                hasAlerted = false;
-            }
+            if (status !== 'booked') { myJobId = null; hasAlerted = false; }
 
             renderMarkers();
             updateStats();
             closeSheet();
 
             fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
+                method: 'POST', mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id, note: note, status: status })
             }).then(() => {
-                console.log("Updated sheet");
                 if(status === 'done') alert("✅ บันทึกข้อมูลเรียบร้อย");
-            }).catch(err => {
-                alert("บันทึกไม่สำเร็จ: " + err);
-            });
+            }).catch(err => { alert("บันทึกไม่สำเร็จ: " + err); });
         }
 
         window.cancelBooking = function(id) {
@@ -468,16 +454,13 @@
             if (currentStatus === 'waiting') {
                 badge.className = 'status-badge bg-red'; badge.innerText = 'รอสำรวจ';
                 html = `<button class="btn-full btn-blue" onclick="requestBooking(${id})">📍 จองและนำทาง</button>`;
-            
             } else if (currentStatus === 'booked') {
                 badge.className = 'status-badge bg-orange'; badge.innerText = 'กำลังเดินทาง';
                 html = `<button class="btn-full btn-google" onclick="openGoogle(${id})"><i class="fas fa-map-marked-alt"></i> เปิด Google Maps (นำทาง)</button>
-                        
                         <hr style="border:1px solid #eee; margin:10px 0;">
                         <label style="font-size:12px; color:#666; display:block; margin-bottom:5px;">📝 บันทึกผลการสำรวจ</label>
                         ${getReasonSelectorHTML()}
                         <textarea id="inp-note" placeholder="พิมพ์รายละเอียดเพิ่มเติม...">${p.note || ''}</textarea>
-                        
                         <div class="action-row">
                             <button class="btn-full btn-red" onclick="cancelBooking(${id})">❌ ยกเลิก</button>
                             <button class="btn-full btn-green" onclick="confirmSave(${id})">💾 จบงาน</button>
@@ -486,9 +469,7 @@
                 badge.className = 'status-badge bg-green'; badge.innerText = 'เสร็จแล้ว';
                 html = `<label style="font-size:12px; color:#666;">✅ รายละเอียด</label>
                         <textarea id="inp-note" disabled>${p.note || ''}</textarea>
-                        <div id="div-edit-actions">
-                            <button class="btn-full btn-gray" onclick="enableEditMode()">✏️ แก้ไขข้อมูล</button>
-                        </div>
+                        <div id="div-edit-actions"><button class="btn-full btn-gray" onclick="enableEditMode()">✏️ แก้ไขข้อมูล</button></div>
                         <div id="div-save-actions" style="display:none;">
                             ${getReasonSelectorHTML()}
                             <button class="btn-full btn-green" onclick="confirmSave(${id})">💾 บันทึกการแก้ไข</button>
@@ -501,13 +482,11 @@
         }
 
         function closeSheet() { document.getElementById('bottom-sheet').classList.remove('active'); }
-        
         window.enableEditMode = function() {
             document.getElementById('inp-note').disabled = false;
             document.getElementById('div-edit-actions').style.display = 'none';
             document.getElementById('div-save-actions').style.display = 'block';
         }
-
         window.openGoogle = function(id) {
             var p = parcelsData.find(d => d.id == id);
             window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
@@ -518,27 +497,19 @@
                 navigator.geolocation.watchPosition(p => {
                     var lat = p.coords.latitude, lng = p.coords.longitude;
                     var userPos = [lat, lng];
-
                     if(!userMarker) {
                         userMarker = L.marker(userPos, {icon: icons.user}).addTo(map);
                         map.setView(userPos, 16);
                         isMapFollowing = true; updateFollowButton();
-                    } else {
-                        userMarker.setLatLng(userPos);
-                    }
+                    } else { userMarker.setLatLng(userPos); }
                     if(isMapFollowing) map.setView(userPos, 18);
-
                     if (myJobId && !hasAlerted) {
                          var job = parcelsData.find(d => d.id == myJobId);
                          if (job) {
                              var dist = map.distance(userPos, [job.lat, job.lng]);
-                             if (dist < ALERT_DISTANCE) {
-                                 speakAlert("ใกล้ถึงจุดหมายแล้วค่ะ");
-                                 hasAlerted = true; 
-                             }
+                             if (dist < ALERT_DISTANCE) { speakAlert("ใกล้ถึงจุดหมายแล้วค่ะ"); hasAlerted = true; }
                          }
                     }
-
                 }, null, {enableHighAccuracy: true});
             }
         }
@@ -559,7 +530,6 @@
             if(isMapFollowing && userMarker) map.setView(userMarker.getLatLng(), 18);
             updateFollowButton();
         }
-
         function updateFollowButton() {
             var btn = document.getElementById('fab-location');
             btn.className = isMapFollowing ? 'fab-btn active-follow' : 'fab-btn';
@@ -569,7 +539,73 @@
         function updateStats() {
             var done = parcelsData.filter(d => d.status === 'done').length;
             document.getElementById('txt-remain').innerText = parcelsData.length - done;
-            document.getElementById('txt-total').innerText = parcelsData.length;
+            
+            var todayStr = toLocalISOString(new Date());
+            var todayCount = parcelsData.filter(d => {
+                if (d.status !== 'done') return false;
+                if (!d.timestamp) return false;
+                var dDate = toLocalISOString(new Date(d.timestamp));
+                return dDate === todayStr;
+            }).length;
+
+            document.getElementById('txt-today').innerText = todayCount;
+        }
+
+        // ✅ ฟังก์ชันดาวน์โหลดรายงาน (กรองเฉพาะที่เสร็จแล้วเท่านั้น)
+        function downloadExcel(filterDate = null) {
+            // 1. ดึงเฉพาะงานที่ "เสร็จแล้ว" (Status = done) เท่านั้น
+            var completedParcels = parcelsData.filter(p => p.status === 'done');
+
+            if (completedParcels.length === 0) {
+                alert("ยังไม่มีแปลงที่สำรวจเสร็จสิ้นเลยครับ");
+                return;
+            }
+
+            var exportData = completedParcels;
+            var fileNamePrefix = "Report_Done_All";
+
+            // 2. ถ้ามีการระบุวันที่ (จากปฏิทิน) ให้กรองตามวัน
+            if (filterDate) {
+                exportData = completedParcels.filter(p => {
+                    if (!p.timestamp) return false;
+                    var pDate = toLocalISOString(new Date(p.timestamp));
+                    return pDate === filterDate;
+                });
+                
+                if (exportData.length === 0) {
+                    alert("วันที่ " + filterDate + " ไม่มีงานที่สำรวจเสร็จครับ"); 
+                    return; 
+                }
+                fileNamePrefix = "Report_Done_" + filterDate;
+            } else {
+                // ถ้าไม่ระบุวัน (กดปุ่ม Download) -> ถามยืนยันโหลดทั้งหมดที่เสร็จ
+                var choice = confirm("พบแปลงที่สำรวจเสร็จทั้งหมด " + completedParcels.length + " แปลง\nต้องการดาวน์โหลดรายชื่อทั้งหมดใช่ไหม?\n(กด 'ตกลง' โหลดทั้งหมด / กด 'ยกเลิก' เพื่อไปเลือกวัน)");
+                if (!choice) return;
+            }
+
+            var csvContent = "ชื่อแปลง,อำเภอ,ตำบล,สถานะ,หมายเหตุ,เวลาบันทึก\n";
+            exportData.forEach(function(row) {
+                var name = row.name || "-";
+                var amphoe = row.amphoe || "-";
+                var tambon = row.tambon || "-";
+                var status = "เสร็จสิ้น"; // เพราะเรากรองมาแล้ว
+                var note = (row.note || "").replace(/,/g, " ").replace(/\n/g, " ");
+                var time = row.timestamp || "-";
+                csvContent += `${name},${amphoe},${tambon},${status},${note},${time}\n`;
+            });
+
+            var blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            var fileName = fileNamePrefix + ".csv";
+            var link = document.createElement("a");
+            if (link.download !== undefined) { 
+                var url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
         }
     </script>
 </body>
