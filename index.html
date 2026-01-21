@@ -165,10 +165,19 @@
         }
 
         function fetchDataFromSheet() {
-            fetch(APPS_SCRIPT_URL)
+            // เปลี่ยนไอคอนปุ่มรีเฟรชให้หมุนๆ (UX)
+            var btnIcon = document.querySelector('#fab-refresh i');
+            btnIcon.className = 'fas fa-sync-alt fa-spin';
+
+            // เติม ?t=... เพื่อหลอก Browser ว่าเป็นลิงก์ใหม่เสมอ (กัน Cache)
+            var noCacheUrl = APPS_SCRIPT_URL + '?t=' + new Date().getTime();
+
+            fetch(noCacheUrl)
             .then(response => response.json())
             .then(data => {
+                // อัปเดตข้อมูลเข้าตัวแปรหลัก
                 parcelsData = data.map(item => {
+                    // Clean Data: ถ้า status ว่าง ให้เป็น waiting
                     if (!item.status || item.status.toString().trim() === "") {
                         item.status = 'waiting';
                     } else {
@@ -176,13 +185,19 @@
                     }
                     return item;
                 });
+
+                // รีเซ็ตหน้าจอใหม่ทั้งหมด
                 updateFilterDropdown();
-                renderMarkers();
-                updateStats();
-                startGPS();
+                renderMarkers(); // วาดหมุดใหม่
+                updateStats();   // อัปเดตตัวเลข
+                
+                // แจ้งเตือนเมื่อเสร็จ
+                btnIcon.className = 'fas fa-sync-alt'; // หยุดหมุน
+                // alert("อัปเดตข้อมูลล่าสุดแล้ว!"); // (เอาออกก็ได้ถ้ารำคาญ)
             })
             .catch(error => {
                 console.error('Error:', error);
+                btnIcon.className = 'fas fa-sync-alt';
                 alert("โหลดข้อมูลไม่ได้: " + error);
             });
         }
@@ -214,14 +229,20 @@
         }
 
         function renderMarkers() {
-            markerLayer.clearLayers();
-            markers = [];
+            // ลบหมุดเก่าทิ้งให้เกลี้ยงก่อนวาดใหม่
+            if (markerLayer) {
+                markerLayer.clearLayers(); 
+            }
+            
+            markers = []; // ล้าง Array อ้างอิง
+            
             parcelsData.forEach(parcel => {
                 var isInFilter = (currentFilter === 'all' || parcel.amphoe == currentFilter);
                 var currentStatus = parcel.status || 'waiting'; 
                 var iconType = isInFilter ? (icons[currentStatus] || icons.waiting) : icons.gray;
                 
                 var marker = L.marker([parcel.lat, parcel.lng], {icon: iconType, opacity: isInFilter ? 1 : 0.6 });
+                
                 var labelClass = isInFilter ? 'parcel-label' : 'parcel-label parcel-label-gray';
                 marker.bindTooltip(String(parcel.name), { permanent: true, direction: 'top', className: labelClass });
                 
@@ -229,6 +250,7 @@
                     if (!isInFilter) alert(`⚠️ พื้นที่นี้อยู่นอกเขตที่คุณเลือก (อ.${parcel.amphoe})`);
                     openBottomSheet(parcel.id); 
                 });
+                
                 marker.parcelId = parcel.id;
                 markerLayer.addLayer(marker);
                 markers.push(marker);
