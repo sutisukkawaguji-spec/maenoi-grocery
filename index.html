@@ -40,7 +40,7 @@
         #fab-refresh { background: #27ae60; color: white; }
         #fab-find { background: #ffc107; }
         #fab-location.active-follow { background: #3498db; color: white; border: 2px solid white; }
-
+                #fab-layer { background: white; color: #333; }
         /* Bottom Sheet */
         #bottom-sheet {
             position: absolute; bottom: 0; left: 0; width: 100%; background: white;
@@ -87,6 +87,10 @@
     </div>
 
     <div class="fab-container">
+        <div id="fab-layer" class="fab-btn" onclick="toggleMapLayer()">
+            <i class="fas fa-layer-group"></i>
+        </div>
+
         <div id="fab-refresh" class="fab-btn" onclick="fetchDataFromSheet()">
             <i class="fas fa-sync-alt"></i>
         </div>
@@ -121,12 +125,38 @@
         // ✅ URL Apps Script ของคุณ
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIT8RhB1Ea9HRjVAmjy46amGTjWt5rZVDpmqiGbZkjitiWS5UDHwxyZMiOzR-cNvfV/exec'; 
 
+        // 1. สร้างแผนที่
         var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 10);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
 
-        // Layers
+        // 2. เตรียม Layer แผนที่ 2 แบบ
+        var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19, attribution: '© OpenStreetMap'
+        });
+
+        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19, attribution: 'Tiles © Esri'
+        });
+
+        // 3. ตั้งค่าเริ่มต้นเป็นแผนที่ถนน
+        var currentMapType = 'street';
+        osmLayer.addTo(map);
+
+        // 4. ฟังก์ชันสลับแผนที่ (เรียกใช้เมื่อกดปุ่มวงกลม)
+        function toggleMapLayer() {
+            if (currentMapType === 'street') {
+                map.removeLayer(osmLayer);
+                map.addLayer(satelliteLayer);
+                currentMapType = 'satellite';
+            } else {
+                map.removeLayer(satelliteLayer);
+                map.addLayer(osmLayer);
+                currentMapType = 'street';
+            }
+        }
+        
+        // Layers (หมุดและขอบเขต)
         var markerLayer = L.layerGroup().addTo(map);
-        var polygonLayer = L.layerGroup().addTo(map); // ✅ เพิ่ม Layer สำหรับเส้นขอบเขต
+        var polygonLayer = L.layerGroup().addTo(map);
 
         var markers = [];
         var parcelsData = [];
