@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Survey App (Quick Select)</title>
+    <title>Survey App (Polygon Support)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
@@ -46,7 +46,7 @@
             position: absolute; bottom: 0; left: 0; width: 100%; background: white;
             border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
             z-index: 1001; transform: translateY(100%); transition: transform 0.3s ease-out;
-            max-height: 75vh; overflow-y: auto; /* เพิ่มความสูงนิดหน่อย */
+            max-height: 75vh; overflow-y: auto;
         }
         #bottom-sheet.active { transform: translateY(0); }
         .sheet-content { padding: 20px; }
@@ -56,7 +56,6 @@
         
         textarea { width: 100%; height: 60px; border: 1px solid #ddd; border-radius: 8px; padding: 10px; font-family: 'Sarabun'; margin: 5px 0 10px 0; box-sizing: border-box; font-size: 16px; }
         
-        /* Select Box สำหรับเหตุผล */
         .reason-select {
             width: 100%; padding: 10px; margin-bottom: 5px;
             border: 2px solid #3498db; border-radius: 8px;
@@ -66,16 +65,9 @@
 
         /* Buttons */
         .btn-full { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: white; margin-top: 5px; cursor: pointer; }
-        .btn-blue { background: #3498db; } 
-        .btn-green { background: #27ae60; } 
-        .btn-orange { background: #f39c12; } 
-        .btn-gray { background: #7f8c8d; } 
-        .btn-red { background: #e74c3c; }
-        
+        .btn-blue { background: #3498db; } .btn-green { background: #27ae60; } .btn-orange { background: #f39c12; } .btn-gray { background: #7f8c8d; } .btn-red { background: #e74c3c; }
         .btn-google { background: white; color: #4285F4; border: 2px solid #4285F4; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        
-        .action-row { display: flex; gap: 10px; margin-top: 5px; } 
-        .action-row button { flex: 1; }
+        .action-row { display: flex; gap: 10px; margin-top: 5px; } .action-row button { flex: 1; }
         
         .leaflet-routing-container { display: none !important; }
         .parcel-label { background: transparent; border: none; box-shadow: none; font-weight: bold; text-shadow: 1px 1px 0 #fff; font-size: 12px; color: #333; }
@@ -86,7 +78,7 @@
 
     <div id="top-bar">
         <div class="row-control">
-            <div><i class="fas fa-clipboard-list"></i> ระบบสำรวจ (Quick Select)</div>
+            <div><i class="fas fa-draw-polygon"></i> ระบบสำรวจ (Polygon)</div>
             <div style="font-size:12px;">เหลือ: <span id="txt-remain" style="color:red">0</span> / <span id="txt-total">0</span></div>
         </div>
         <select id="filter-amphoe" onchange="applyFilter()">
@@ -132,7 +124,9 @@
         var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 10);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
 
+        // Layers
         var markerLayer = L.layerGroup().addTo(map);
+        var polygonLayer = L.layerGroup().addTo(map); // ✅ เพิ่ม Layer สำหรับเส้นขอบเขต
 
         var markers = [];
         var parcelsData = [];
@@ -142,7 +136,6 @@
         var isMapFollowing = false;
         var currentFilter = 'all';
 
-        // Variables for Alert
         var hasAlerted = false; 
         var ALERT_DISTANCE = 50; 
 
@@ -152,6 +145,14 @@
             done: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
             gray: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
             user: L.divIcon({ className: 'user', html: '<div style="background:#2980b9;width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', iconSize: [26,26] })
+        };
+
+        // สีของเส้นขอบเขตตามสถานะ
+        var polyColors = {
+            waiting: '#e74c3c', // แดง
+            booked: '#e67e22',  // ส้ม
+            done: '#27ae60',    // เขียว
+            gray: '#95a5a6'     // เทา
         };
 
         function speakAlert(text) {
@@ -165,19 +166,14 @@
         }
 
         function fetchDataFromSheet() {
-            // เปลี่ยนไอคอนปุ่มรีเฟรชให้หมุนๆ (UX)
             var btnIcon = document.querySelector('#fab-refresh i');
             btnIcon.className = 'fas fa-sync-alt fa-spin';
-
-            // เติม ?t=... เพื่อหลอก Browser ว่าเป็นลิงก์ใหม่เสมอ (กัน Cache)
             var noCacheUrl = APPS_SCRIPT_URL + '?t=' + new Date().getTime();
 
             fetch(noCacheUrl)
             .then(response => response.json())
             .then(data => {
-                // อัปเดตข้อมูลเข้าตัวแปรหลัก
                 parcelsData = data.map(item => {
-                    // Clean Data: ถ้า status ว่าง ให้เป็น waiting
                     if (!item.status || item.status.toString().trim() === "") {
                         item.status = 'waiting';
                     } else {
@@ -185,15 +181,11 @@
                     }
                     return item;
                 });
-
-                // รีเซ็ตหน้าจอใหม่ทั้งหมด
                 updateFilterDropdown();
-                renderMarkers(); // วาดหมุดใหม่
-                updateStats();   // อัปเดตตัวเลข
-                
-                // แจ้งเตือนเมื่อเสร็จ
-                btnIcon.className = 'fas fa-sync-alt'; // หยุดหมุน
-                // alert("อัปเดตข้อมูลล่าสุดแล้ว!"); // (เอาออกก็ได้ถ้ารำคาญ)
+                renderMarkers();
+                updateStats();
+                startGPS();
+                btnIcon.className = 'fas fa-sync-alt';
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -228,32 +220,65 @@
             }
         }
 
+        // --- 2. ฟังก์ชันวาดหมุดและแปลง (เพิ่มระบบแก้ JSON อัตโนมัติ) ---
         function renderMarkers() {
-            // ลบหมุดเก่าทิ้งให้เกลี้ยงก่อนวาดใหม่
-            if (markerLayer) {
-                markerLayer.clearLayers(); 
-            }
-            
-            markers = []; // ล้าง Array อ้างอิง
+            markerLayer.clearLayers();
+            polygonLayer.clearLayers(); 
+            markers = [];
             
             parcelsData.forEach(parcel => {
                 var isInFilter = (currentFilter === 'all' || parcel.amphoe == currentFilter);
                 var currentStatus = parcel.status || 'waiting'; 
                 var iconType = isInFilter ? (icons[currentStatus] || icons.waiting) : icons.gray;
                 
+                // 1. วาดหมุด
                 var marker = L.marker([parcel.lat, parcel.lng], {icon: iconType, opacity: isInFilter ? 1 : 0.6 });
-                
                 var labelClass = isInFilter ? 'parcel-label' : 'parcel-label parcel-label-gray';
                 marker.bindTooltip(String(parcel.name), { permanent: true, direction: 'top', className: labelClass });
                 
-                marker.on('click', () => { 
+                var clickAction = () => { 
                     if (!isInFilter) alert(`⚠️ พื้นที่นี้อยู่นอกเขตที่คุณเลือก (อ.${parcel.amphoe})`);
                     openBottomSheet(parcel.id); 
-                });
-                
+                };
+
+                marker.on('click', clickAction);
                 marker.parcelId = parcel.id;
                 markerLayer.addLayer(marker);
                 markers.push(marker);
+
+                // 2. วาดขอบเขต (Polygon) - เพิ่มระบบ Auto-Clean
+                if (parcel.geojson && parcel.geojson.toString().trim() !== "") {
+                    try {
+                        var rawJson = parcel.geojson.toString();
+                        
+                        // 🛠️ FIX: ล้างเครื่องหมายแปลกปลอมจากการ Copy-Paste
+                        // ถ้ามีเครื่องหมายคำพูดครอบหน้าหลัง ให้เอาออก
+                        if (rawJson.startsWith('"') && rawJson.endsWith('"')) {
+                            rawJson = rawJson.slice(1, -1);
+                        }
+                        // แปลง \" ให้กลับมาเป็น " (Unescape)
+                        rawJson = rawJson.replace(/\\"/g, '"');
+
+                        var geoData = JSON.parse(rawJson);
+                        
+                        var polyColor = isInFilter ? (polyColors[currentStatus] || polyColors.waiting) : polyColors.gray;
+                        
+                        var poly = L.geoJSON(geoData, {
+                            style: {
+                                color: polyColor,
+                                weight: 2,
+                                opacity: isInFilter ? 0.8 : 0.3,
+                                fillOpacity: isInFilter ? 0.2 : 0.1
+                            }
+                        });
+
+                        poly.on('click', clickAction);
+                        polygonLayer.addLayer(poly);
+                    } catch(e) {
+                        console.error("GeoJSON Error ID:" + parcel.id, e);
+                        // ไม่แสดง Alert เพื่อไม่ให้รบกวนหน้าจอ แต่ดูใน Console ได้
+                    }
+                }
             });
         }
 
@@ -330,18 +355,16 @@
             openBottomSheet(nearest.id);
         }
 
-        // --- Helper: เลือกเหตุผลแล้วใส่ในช่องข้อความ ---
         window.pickReason = function(val) {
             if(val) {
                 document.getElementById('inp-note').value = val;
             }
         }
 
-        // --- HTML สำหรับ Dropdown เลือกสถานะ ---
         function getReasonSelectorHTML() {
             return `
             <select class="reason-select" onchange="pickReason(this.value)">
-                <option value="">-- เลือกสภาพการใช้ประโยชน์ (แตะเพื่อใส่ข้อมูล) --</option>
+                <option value="">-- เลือกสภาพการใช้ประโยชน์ --</option>
                 <option value="ใช้ผิดวัตถุประสงค์">ใช้ผิดวัตถุประสงค์</option>
                 <option value="นำไปจัดหาประโยชน์">นำไปจัดหาประโยชน์</option>
                 <option value="เลิกใช้ประโยชน์">เลิกใช้ประโยชน์</option>
@@ -402,7 +425,6 @@
             }
         }
 
-        // --- UI Logic ---
         function openBottomSheet(id) {
             var p = parcelsData.find(d => d.id == id);
             document.getElementById('sheet-name').innerText = p.name;
@@ -422,11 +444,8 @@
                 html = `<button class="btn-full btn-google" onclick="openGoogle(${id})"><i class="fas fa-map-marked-alt"></i> เปิด Google Maps (นำทาง)</button>
                         
                         <hr style="border:1px solid #eee; margin:10px 0;">
-                        
                         <label style="font-size:12px; color:#666; display:block; margin-bottom:5px;">📝 บันทึกผลการสำรวจ</label>
-                        
                         ${getReasonSelectorHTML()}
-                        
                         <textarea id="inp-note" placeholder="พิมพ์รายละเอียดเพิ่มเติม...">${p.note || ''}</textarea>
                         
                         <div class="action-row">
@@ -461,10 +480,9 @@
 
         window.openGoogle = function(id) {
             var p = parcelsData.find(d => d.id == id);
-            window.open(`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`, '_blank');
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
         }
 
-        // --- GPS & Route ---
         function startGPS() {
             if(navigator.geolocation) {
                 navigator.geolocation.watchPosition(p => {
