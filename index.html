@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Survey App (Only Done Report)</title>
+    <title>Survey App (iOS Fix)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
@@ -47,6 +47,7 @@
         #fab-find { background: #ffc107; }
         #fab-location.active-follow { background: #3498db; color: white; border: 2px solid white; }
         #fab-layer { background: white; color: #333; }
+        #fab-gps-fix { background: #e74c3c; color: white; display: none; } /* ปุ่มแก้ GPS */
 
         .event-dot {
             width: 6px; height: 6px; background-color: #27ae60;
@@ -101,6 +102,10 @@
     </div>
 
     <div class="fab-container">
+        <div id="fab-gps-fix" class="fab-btn" onclick="requestGPS()">
+            <i class="fas fa-satellite-dish"></i>
+        </div>
+
         <div id="fab-download" class="fab-btn" onclick="downloadExcel()">
             <i class="fas fa-file-download"></i>
         </div>
@@ -143,7 +148,6 @@
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIT8RhB1Ea9HRjVAmjy46amGTjWt5rZVDpmqiGbZkjitiWS5UDHwxyZMiOzR-cNvfV/exec'; 
 
-        // Helper แปลงเวลาให้ตรงโซนไทย
         function toLocalISOString(date) {
             const offset = date.getTimezoneOffset();
             const localDate = new Date(date.getTime() - (offset * 60 * 1000));
@@ -203,10 +207,8 @@
             }
         }
 
-        // --- Init Calendar ---
         function initCalendar() {
             workDates.clear();
-            // เก็บเฉพาะวันที่ที่มีงานและเสร็จแล้ว (done)
             parcelsData.forEach(p => {
                 if (p.timestamp && p.status === 'done') {
                     var d = new Date(p.timestamp);
@@ -248,7 +250,10 @@
                 updateFilterDropdown();
                 renderMarkers();
                 updateStats();
-                startGPS();
+                
+                // ✅ โหลด GPS หลังข้อมูลมา
+                startGPS(); 
+                
                 initCalendar(); 
                 btnIcon.className = 'fas fa-sync-alt';
             })
@@ -354,7 +359,7 @@
         }
 
         window.findNextJob = function() {
-            if(!userMarker) { alert("กำลังหา GPS..."); return; }
+            if(!userMarker) { alert("กำลังหา GPS..."); requestGPS(); return; }
             if (myJobId) {
                 if(confirm("⚠️ คุณมีเส้นทางค้างอยู่ ต้องการยกเลิกและหาแปลงใหม่ใช่ไหม?")) {
                     var oldJob = parcelsData.find(d => d.id == myJobId);
@@ -492,17 +497,42 @@
             window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
         }
 
-        function startGPS() {
-            if(navigator.geolocation) {
-                navigator.geolocation.watchPosition(p => {
+        // ✅ iOS GPS FIX: ฟังก์ชันเริ่ม GPS แบบบังคับ
+        window.requestGPS = function() {
+            startGPS(true);
+        }
+
+        function startGPS(force = false) {
+            if (!navigator.geolocation) {
+                alert("อุปกรณ์นี้ไม่รองรับ GPS");
+                return;
+            }
+
+            var options = {
+                enableHighAccuracy: true,
+                timeout: 10000, 
+                maximumAge: 0   
+            };
+
+            navigator.geolocation.watchPosition(
+                function(p) {
+                    // Success
                     var lat = p.coords.latitude, lng = p.coords.longitude;
                     var userPos = [lat, lng];
+                    
                     if(!userMarker) {
                         userMarker = L.marker(userPos, {icon: icons.user}).addTo(map);
                         map.setView(userPos, 16);
                         isMapFollowing = true; updateFollowButton();
-                    } else { userMarker.setLatLng(userPos); }
+                    } else { 
+                        userMarker.setLatLng(userPos); 
+                    }
                     if(isMapFollowing) map.setView(userPos, 18);
+
+                    // ซ่อนปุ่มแก้ GPS ถ้าเจอสัญญาณแล้ว
+                    document.getElementById('fab-gps-fix').style.display = 'none';
+
+                    // Alert check
                     if (myJobId && !hasAlerted) {
                          var job = parcelsData.find(d => d.id == myJobId);
                          if (job) {
@@ -510,8 +540,18 @@
                              if (dist < ALERT_DISTANCE) { speakAlert("ใกล้ถึงจุดหมายแล้วค่ะ"); hasAlerted = true; }
                          }
                     }
-                }, null, {enableHighAccuracy: true});
-            }
+                }, 
+                function(err) {
+                    // Error
+                    console.warn('GPS Error(' + err.code + '): ' + err.message);
+                    if (force || err.code === 1) { // 1 = Permission Denied
+                         alert("⚠️ ไม่ได้รับอนุญาตให้ใช้ GPS\nโปรดไปที่ Settings > Privacy > Location Services > Safari Websites > เลือก 'While Using'");
+                         // โชว์ปุ่มแดงให้กดขอใหม่
+                         document.getElementById('fab-gps-fix').style.display = 'flex';
+                    }
+                }, 
+                options
+            );
         }
 
         function calculateRoute(lat, lng) {
@@ -551,9 +591,7 @@
             document.getElementById('txt-today').innerText = todayCount;
         }
 
-        // ✅ ฟังก์ชันดาวน์โหลดรายงาน (กรองเฉพาะที่เสร็จแล้วเท่านั้น)
         function downloadExcel(filterDate = null) {
-            // 1. ดึงเฉพาะงานที่ "เสร็จแล้ว" (Status = done) เท่านั้น
             var completedParcels = parcelsData.filter(p => p.status === 'done');
 
             if (completedParcels.length === 0) {
@@ -564,7 +602,6 @@
             var exportData = completedParcels;
             var fileNamePrefix = "Report_Done_All";
 
-            // 2. ถ้ามีการระบุวันที่ (จากปฏิทิน) ให้กรองตามวัน
             if (filterDate) {
                 exportData = completedParcels.filter(p => {
                     if (!p.timestamp) return false;
@@ -578,7 +615,6 @@
                 }
                 fileNamePrefix = "Report_Done_" + filterDate;
             } else {
-                // ถ้าไม่ระบุวัน (กดปุ่ม Download) -> ถามยืนยันโหลดทั้งหมดที่เสร็จ
                 var choice = confirm("พบแปลงที่สำรวจเสร็จทั้งหมด " + completedParcels.length + " แปลง\nต้องการดาวน์โหลดรายชื่อทั้งหมดใช่ไหม?\n(กด 'ตกลง' โหลดทั้งหมด / กด 'ยกเลิก' เพื่อไปเลือกวัน)");
                 if (!choice) return;
             }
@@ -588,7 +624,7 @@
                 var name = row.name || "-";
                 var amphoe = row.amphoe || "-";
                 var tambon = row.tambon || "-";
-                var status = "เสร็จสิ้น"; // เพราะเรากรองมาแล้ว
+                var status = "เสร็จสิ้น"; 
                 var note = (row.note || "").replace(/,/g, " ").replace(/\n/g, " ");
                 var time = row.timestamp || "-";
                 csvContent += `${name},${amphoe},${tambon},${status},${note},${time}\n`;
