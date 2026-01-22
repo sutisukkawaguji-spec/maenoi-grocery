@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Survey App (iOS Fix)</title>
+    <title>Survey App (Google Hybrid)</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
@@ -47,7 +47,7 @@
         #fab-find { background: #ffc107; }
         #fab-location.active-follow { background: #3498db; color: white; border: 2px solid white; }
         #fab-layer { background: white; color: #333; }
-        #fab-gps-fix { background: #e74c3c; color: white; display: none; } /* ปุ่มแก้ GPS */
+        #fab-gps-fix { background: #e74c3c; color: white; display: none; }
 
         .event-dot {
             width: 6px; height: 6px; background-color: #27ae60;
@@ -156,8 +156,15 @@
 
         var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 10);
 
+        // 1. แผนที่ถนน (OSM)
         var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
-        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' });
+        
+        // 2. แผนที่ Google Hybrid (ดาวเทียม + ถนน) ✅ เปลี่ยนใหม่
+        var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0','mt1','mt2','mt3'],
+            attribution: '&copy; Google Maps'
+        });
 
         var currentMapType = 'street';
         osmLayer.addTo(map);
@@ -250,10 +257,7 @@
                 updateFilterDropdown();
                 renderMarkers();
                 updateStats();
-                
-                // ✅ โหลด GPS หลังข้อมูลมา
                 startGPS(); 
-                
                 initCalendar(); 
                 btnIcon.className = 'fas fa-sync-alt';
             })
@@ -497,7 +501,6 @@
             window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
         }
 
-        // ✅ iOS GPS FIX: ฟังก์ชันเริ่ม GPS แบบบังคับ
         window.requestGPS = function() {
             startGPS(true);
         }
@@ -516,7 +519,6 @@
 
             navigator.geolocation.watchPosition(
                 function(p) {
-                    // Success
                     var lat = p.coords.latitude, lng = p.coords.longitude;
                     var userPos = [lat, lng];
                     
@@ -529,10 +531,8 @@
                     }
                     if(isMapFollowing) map.setView(userPos, 18);
 
-                    // ซ่อนปุ่มแก้ GPS ถ้าเจอสัญญาณแล้ว
                     document.getElementById('fab-gps-fix').style.display = 'none';
 
-                    // Alert check
                     if (myJobId && !hasAlerted) {
                          var job = parcelsData.find(d => d.id == myJobId);
                          if (job) {
@@ -542,11 +542,9 @@
                     }
                 }, 
                 function(err) {
-                    // Error
                     console.warn('GPS Error(' + err.code + '): ' + err.message);
-                    if (force || err.code === 1) { // 1 = Permission Denied
+                    if (force || err.code === 1) { 
                          alert("⚠️ ไม่ได้รับอนุญาตให้ใช้ GPS\nโปรดไปที่ Settings > Privacy > Location Services > Safari Websites > เลือก 'While Using'");
-                         // โชว์ปุ่มแดงให้กดขอใหม่
                          document.getElementById('fab-gps-fix').style.display = 'flex';
                     }
                 }, 
