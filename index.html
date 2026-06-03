@@ -43,12 +43,8 @@
           <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
             🧺 ตะกร้า <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
           </button>
-          <!-- Admin auth links (Toggled dynamically by JS) -->
+          <!-- Admin link (Visible dynamically by JS) -->
           <a id="adminButton" href="admin.html" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">⚙️ จัดการร้าน</a>
-          <button id="userPhoneButton" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100 transition-colors">
-            👤 <span id="userPhoneText"></span>
-          </button>
-          <button id="btnLogoutStorefront" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-colors">ออกระบบ</button>
       </div>
     </div>
 
@@ -149,98 +145,6 @@
     <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี </p>
   </footer>
   </div>
-
-  <!-- Auth Screen (Full-Screen Overlay) -->
-  <div id="authScreen" class="fixed inset-0 bg-slate-50 flex items-center justify-center p-4 z-50 hidden">
-    <!-- Unconfigured Alert Banner -->
-    <div id="unconfiguredAlert" class="fixed top-4 left-4 right-4 bg-amber-50 border border-amber-300 rounded-2xl p-4 text-amber-900 text-sm hidden flex items-center justify-between shadow-lg max-w-md mx-auto">
-      <div class="flex items-center gap-3">
-        <span class="text-xl">⚠️</span>
-        <div>
-          <strong>ยังไม่ได้ตั้งค่าโปรเจกต์:</strong> กรุณาไปตั้งค่าการเชื่อมต่อก่อนใช้งาน
-        </div>
-      </div>
-      <a href="admin.html" class="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-xs hover:bg-amber-700 transition-colors shrink-0">ไปหน้าตั้งค่า</a>
-    </div>
-
-    <!-- Auth Card -->
-    <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 md:p-8 border border-slate-100 space-y-6 relative">
-      <button id="btnCloseAuth" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-1">✕</button>
-      <div class="text-center space-y-2">
-        <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 text-3xl mx-auto shadow-inner">🔐</div>
-        <h2 id="authTitle" class="text-2xl font-bold text-slate-900">เข้าสู่ระบบร้านแม่น้อย</h2>
-        <p id="authSubtitle" class="text-sm text-slate-500">กรอกเบอร์โทรศัพท์และรหัสผ่านเพื่อเข้าจัดการร้านแม่น้อย</p>
-      </div>
-
-      <!-- Login/Signup Forms -->
-      <form id="authForm" class="space-y-4 text-sm">
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์ผู้ใช้งาน</label>
-          <input type="tel" id="authPhone" required placeholder="เช่น 0880699227" pattern="[0-9]{10}" maxlength="10" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-base font-mono bg-slate-50" />
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">รหัสผ่าน</label>
-          <div class="relative">
-            <input type="password" id="authPassword" required placeholder="••••••••" minlength="6" class="w-full pl-4 pr-12 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-base bg-slate-50" />
-            <button type="button" id="btnTogglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-slate-400 hover:text-slate-600 focus:outline-none">
-              👁️
-            </button>
-          </div>
-        </div>
-
-        <!-- Remember Me Checkbox -->
-        <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" id="authRemember" checked class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500" />
-            <span>จดจำการเข้าสู่ระบบในเครื่องนี้</span>
-          </label>
-        </div>
-
-        <!-- Error / Success Messages -->
-        <div id="authError" class="text-rose-500 font-semibold text-xs hidden bg-rose-50 p-3 rounded-xl border border-rose-100 leading-relaxed"></div>
-        <div id="authSuccess" class="text-emerald-600 font-semibold text-xs hidden bg-emerald-50 p-3 rounded-xl border border-emerald-100 leading-relaxed"></div>
-
-        <button type="submit" id="btnSubmit" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-lg shadow-emerald-600/20">
-          เข้าสู่ระบบ
-        </button>
-      </form>
-
-      <!-- Toggle Action -->
-      <div class="text-center text-xs text-slate-500">
-        <span id="toggleText">ยังไม่มีบัญชีผู้ใช้งาน?</span>
-        <button id="btnToggleAuthMode" class="text-emerald-600 font-bold hover:underline ml-1">สมัครสมาชิกใหม่</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Change Password Modal -->
-  <dialog id="changePasswordModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
-    <div class="bg-white p-6 text-center space-y-4">
-      <div class="flex justify-between items-center border-b pb-3 mb-2">
-        <h3 class="font-bold text-slate-900 text-base">ตั้งรหัสผ่านใหม่</h3>
-        <button id="btnClosePasswordModal" class="text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-      
-      <form id="changePasswordForm" class="space-y-4 text-left text-sm">
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)</label>
-          <div class="relative">
-            <input type="password" id="newPasswordInput" required placeholder="รหัสผ่านใหม่" minlength="6" class="w-full pl-4 pr-12 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-base bg-slate-50" />
-            <button type="button" id="btnToggleNewPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-slate-400 hover:text-slate-600 focus:outline-none">
-              👁️
-            </button>
-          </div>
-        </div>
-        
-        <div id="changePasswordError" class="text-rose-500 font-semibold text-xs hidden bg-rose-50 p-3 rounded-xl border border-rose-100"></div>
-        <div id="changePasswordSuccess" class="text-emerald-600 font-semibold text-xs hidden bg-emerald-50 p-3 rounded-xl border border-emerald-100"></div>
-        
-        <button type="submit" id="btnSubmitChangePassword" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-lg shadow-emerald-600/20">
-          บันทึกรหัสผ่านใหม่
-        </button>
-      </form>
-    </div>
-  </dialog>
 
   <aside id="cartDrawer" class="drawer" aria-hidden="true">
     <div class="px-4 py-3 border-b flex items-center justify-between">
@@ -587,14 +491,8 @@
 
       // 2. Initialize Supabase if configured
       const c = AppConfig.get();
-      const remember = localStorage.getItem('MN_AUTH_REMEMBER') !== 'false';
       if (c.supabaseUrl && c.supabaseAnonKey) {
-        sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey, {
-          auth: {
-            persistSession: true,
-            storage: remember ? localStorage : sessionStorage
-          }
-        });
+        sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
       }
 
       // 3. Session Validation
@@ -609,19 +507,9 @@
       }
 
       if (session) {
-        // Logged in: update header indicators
         const userEmail = session.user.email || '';
         const phone = userEmail.split('@')[0];
         
-        const userPhoneText = document.getElementById('userPhoneText');
-        if (userPhoneText) {
-          const formattedPhone = phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-          userPhoneText.textContent = formattedPhone;
-        }
-        document.getElementById('userPhoneButton')?.classList.remove('hidden');
-        document.getElementById('btnLogoutStorefront')?.classList.remove('hidden');
-        document.getElementById('loginButton')?.classList.add('hidden');
-
         // Admin privilege check
         const isAdmin = (phone === c.promptpayId || phone === '0880699227');
         const adminBtn = document.getElementById('adminButton');
@@ -630,44 +518,10 @@
           else adminBtn.classList.add('hidden');
         }
       } else {
-        // Not logged in: hide profile/logout/admin options
-        document.getElementById('userPhoneButton')?.classList.add('hidden');
-        document.getElementById('btnLogoutStorefront')?.classList.add('hidden');
         document.getElementById('adminButton')?.classList.add('hidden');
       }
 
-      // 4. Toggle Login Screen Overlay Listeners
-      const showLoginOverlay = () => {
-        if (!AppConfig.isConfigured()) {
-          document.getElementById('unconfiguredAlert').classList.remove('hidden');
-          document.getElementById('btnSubmit').disabled = true;
-          document.getElementById('btnSubmit').classList.add('opacity-50', 'cursor-not-allowed');
-        }
-        document.getElementById('authScreen').classList.remove('hidden');
-      };
-
-      // Check URL parameters or hash to open login overlay automatically
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('login') === 'true' || window.location.hash === '#login') {
-        showLoginOverlay();
-      }
-
-      // Allow triggering via custom hash change
-      window.addEventListener('hashchange', () => {
-        if (window.location.hash === '#login') {
-          showLoginOverlay();
-        }
-      });
-
-      document.getElementById('btnCloseAuth')?.addEventListener('click', () => {
-        document.getElementById('authScreen').classList.add('hidden');
-        // Clear hash if it was #login
-        if (window.location.hash === '#login') {
-          history.replaceState(null, null, ' ');
-        }
-      });
-
-      // 5. Load catalog data immediately and unconditionally
+      // 4. Load catalog data immediately and unconditionally
       try {
         await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]);
       } catch (e) {
@@ -682,128 +536,6 @@
       }
       localStorage.setItem('cart', JSON.stringify(cart));
       refreshUI();
-
-      // 5. Auth Mode Switching & Form Handlers
-      let isSignUpMode = false;
-      const btnToggleAuthMode = document.getElementById('btnToggleAuthMode');
-      const authTitle = document.getElementById('authTitle');
-      const authSubtitle = document.getElementById('authSubtitle');
-      const btnSubmit = document.getElementById('btnSubmit');
-      const toggleText = document.getElementById('toggleText');
-      const authError = document.getElementById('authError');
-      const authSuccess = document.getElementById('authSuccess');
-      const authPasswordInput = document.getElementById('authPassword');
-      const btnTogglePassword = document.getElementById('btnTogglePassword');
-
-      btnTogglePassword?.addEventListener('click', () => {
-        if (authPasswordInput.type === 'password') {
-          authPasswordInput.type = 'text';
-          btnTogglePassword.textContent = '🔒';
-        } else {
-          authPasswordInput.type = 'password';
-          btnTogglePassword.textContent = '👁️';
-        }
-      });
-
-      btnToggleAuthMode?.addEventListener('click', () => {
-        isSignUpMode = !isSignUpMode;
-        authError.classList.add('hidden');
-        authSuccess.classList.add('hidden');
-        
-        if (isSignUpMode) {
-          authTitle.textContent = 'สมัครสมาชิกใหม่';
-          authSubtitle.textContent = 'สมัครสมาชิกด้วยเบอร์โทรศัพท์เพื่อเริ่มเข้าชมและสั่งซื้อสินค้า';
-          btnSubmit.textContent = 'สมัครสมาชิกและเข้าใช้งานทันที';
-          toggleText.textContent = 'มีบัญชีผู้ใช้งานอยู่แล้ว?';
-          btnToggleAuthMode.textContent = 'เข้าสู่ระบบ';
-        } else {
-          authTitle.textContent = 'เข้าสู่ระบบร้านแม่น้อย';
-          authSubtitle.textContent = 'กรอกเบอร์โทรศัพท์และรหัสผ่านเพื่อเข้าใช้งานและดูสินค้า';
-          btnSubmit.textContent = 'เข้าสู่ระบบ';
-          toggleText.textContent = 'ยังไม่มีบัญชีผู้ใช้งาน?';
-          btnToggleAuthMode.textContent = 'สมัครสมาชิกใหม่';
-        }
-      });
-
-      document.getElementById('authForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        authError.classList.add('hidden');
-        authSuccess.classList.add('hidden');
-
-        const phoneRaw = document.getElementById('authPhone').value.trim();
-        const password = authPasswordInput.value;
-        const rememberCheck = document.getElementById('authRemember').checked;
-        localStorage.setItem('MN_AUTH_REMEMBER', rememberCheck);
-
-        if (phoneRaw.length !== 10 || isNaN(phoneRaw)) {
-          authError.textContent = 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (10 หลัก)';
-          authError.classList.remove('hidden');
-          return;
-        }
-
-        const email = `${phoneRaw}@maenoi.store`;
-
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = 'กำลังดำเนินการ...';
-
-        try {
-          // Re-initialize to apply persist storage preference
-          sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey, {
-            auth: {
-              persistSession: true,
-              storage: rememberCheck ? localStorage : sessionStorage
-            }
-          });
-
-          if (isSignUpMode) {
-            // Sign Up
-            const { data, error } = await sbClient.auth.signUp({ email, password });
-            if (error) throw error;
-
-            // Auto login after sign up
-            if (!data.session) {
-              const loginRes = await sbClient.auth.signInWithPassword({ email, password });
-              if (loginRes.error) throw loginRes.error;
-              data.session = loginRes.data.session;
-            }
-
-            if (data.session) {
-              authSuccess.textContent = 'สมัครสมาชิกและเข้าสู่ระบบสำเร็จ!';
-              authSuccess.classList.remove('hidden');
-              setTimeout(() => { window.location.reload(); }, 1000);
-            } else {
-              authSuccess.textContent = 'สมัครสมาชิกสำเร็จ! กรุณาลงชื่อเข้าใช้งาน';
-              authSuccess.classList.remove('hidden');
-              btnSubmit.disabled = false;
-              btnSubmit.textContent = 'สมัครสมาชิกและเข้าใช้งานทันที';
-            }
-          } else {
-            // Sign In
-            const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-
-            if (data.session) {
-              authSuccess.textContent = 'เข้าสู่ระบบสำเร็จ!';
-              authSuccess.classList.remove('hidden');
-              setTimeout(() => { window.location.reload(); }, 1000);
-            } else {
-              throw new Error('ไม่พบข้อมูลเซสชันหลังเข้าสู่ระบบ');
-            }
-          }
-        } catch (err) {
-          console.error(err);
-          let errorMsg = err.message || 'การยืนยันตัวตนล้มเหลว';
-          if (errorMsg.includes('Invalid login credentials')) {
-            errorMsg = 'เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง';
-          } else if (errorMsg.includes('User already registered')) {
-            errorMsg = 'เบอร์โทรศัพท์นี้ถูกใช้สมัครสมาชิกไปแล้ว';
-          }
-          authError.textContent = 'ข้อผิดพลาด: ' + errorMsg;
-          authError.classList.remove('hidden');
-          btnSubmit.disabled = false;
-          btnSubmit.textContent = isSignUpMode ? 'สมัครสมาชิกและเข้าใช้งานทันที' : 'เข้าสู่ระบบ';
-        }
-      });
 
       // 6. User Logout
       document.getElementById('btnLogoutStorefront')?.addEventListener('click', async () => {

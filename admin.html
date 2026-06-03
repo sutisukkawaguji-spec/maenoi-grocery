@@ -55,6 +55,119 @@
 
   <!-- Note: old loginOverlay (PIN login) removed to use secure Supabase Auth (login.html) -->
 
+  <!-- Auth Screen Overlay (Admin Login) -->
+  <div id="authScreen" class="min-h-screen flex items-center justify-center bg-slate-900 px-4 py-12 relative overflow-hidden hidden">
+    <!-- Animated background patterns / gradients -->
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-800 via-slate-900 to-slate-950 opacity-90 z-0"></div>
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse z-0"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000 z-0"></div>
+
+    <div class="glass max-w-md w-full space-y-6 p-8 md:p-10 rounded-3xl border border-slate-700/30 shadow-2xl relative z-10 text-white bg-slate-900/60">
+      <div class="text-center">
+        <div class="mx-auto h-16 w-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-white font-extrabold text-3xl shadow-lg shadow-emerald-500/30">M</div>
+        <h2 class="mt-4 text-3xl font-extrabold text-white tracking-tight">ระบบหลังบ้านร้านแม่น้อย</h2>
+        <p id="authSubtitle" class="mt-2 text-sm text-slate-400">กรุณาเข้าสู่ระบบด้วยเบอร์โทรศัพท์ผู้ดูแลร้าน</p>
+      </div>
+
+      <!-- Tab Buttons -->
+      <div class="flex border-b border-slate-700/50">
+        <button id="tabLogin" type="button" class="flex-1 pb-3 text-center border-b-2 border-emerald-500 font-bold text-white text-sm focus:outline-none transition-all">เข้าสู่ระบบ</button>
+        <button id="tabRegister" type="button" class="flex-1 pb-3 text-center border-b-2 border-transparent font-bold text-slate-400 hover:text-white text-sm focus:outline-none transition-all">สมัครแอดมินใหม่</button>
+      </div>
+
+      <!-- login section -->
+      <div id="loginSection">
+        <form id="authForm" class="space-y-6">
+          <div id="loginErrorMessage" class="hidden p-4 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-sm font-semibold"></div>
+
+          <div class="space-y-4">
+            <div>
+              <label for="loginPhone" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">เบอร์โทรศัพท์ผู้ดูแล</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-base">📞</span>
+                <input id="loginPhone" name="phone" type="tel" required placeholder="เช่น 0880699227" 
+                  class="block w-full pl-11 pr-4 py-3 bg-slate-800/80 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all" />
+              </div>
+            </div>
+
+            <div>
+              <label for="loginPassword" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">รหัสผ่าน</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-base">🔑</span>
+                <input id="loginPassword" name="password" type="password" required placeholder="กรอกรหัสผ่าน" 
+                  class="block w-full pl-11 pr-12 py-3 bg-slate-800/80 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all" />
+                <button type="button" id="btnToggleLoginPassword" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white transition-colors">
+                  👁️
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+              <input type="checkbox" id="loginRemember" checked class="w-4.5 h-4.5 bg-slate-800 border-slate-700 rounded text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900" />
+              <span>จดจำการเข้าระบบ</span>
+            </label>
+          </div>
+
+          <div>
+            <button type="submit" id="btnSubmitLogin" 
+              class="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-2xl text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-emerald-500 transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]">
+              เข้าสู่ระบบจัดการร้าน
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- register section (hidden by default) -->
+      <div id="registerSection" class="hidden">
+        <form id="registerForm" class="space-y-6">
+          <div id="registerErrorMessage" class="hidden p-4 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-sm font-semibold"></div>
+          <div id="registerSuccessMessage" class="hidden p-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-semibold"></div>
+
+          <div class="space-y-4">
+            <div>
+              <label for="registerPhone" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">เบอร์โทรศัพท์ผู้ดูแล</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-base">📞</span>
+                <input id="registerPhone" name="phone" type="tel" required placeholder="เช่น 0880699227" 
+                  class="block w-full pl-11 pr-4 py-3 bg-slate-800/80 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all" />
+              </div>
+            </div>
+
+            <div>
+              <label for="registerPassword" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">รหัสผ่าน</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-base">🔑</span>
+                <input id="registerPassword" name="password" type="password" required placeholder="กรอกรหัสผ่าน (อย่างน้อย 6 ตัวอักษร)" 
+                  class="block w-full pl-11 pr-12 py-3 bg-slate-800/80 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all" />
+                <button type="button" id="btnToggleRegisterPassword" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white transition-colors">
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label for="registerConfirmPassword" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">ยืนยันรหัสผ่าน</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-base">🔑</span>
+                <input id="registerConfirmPassword" name="confirmPassword" type="password" required placeholder="ยืนยันรหัสผ่านอีกครั้ง" 
+                  class="block w-full pl-11 pr-4 py-3 bg-slate-800/80 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <button type="submit" id="btnSubmitRegister" 
+              class="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-2xl text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-emerald-500 transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]">
+              สมัครสมาชิกผู้ดูแลระบบ
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Dashboard (Admin Panel) -->
   <div id="adminPanel" class="hidden min-h-screen flex flex-col">
     <!-- Header -->
@@ -68,6 +181,7 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
+          <button id="btnOpenChangePassword" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5">🔑 เปลี่ยนรหัสผ่าน</button>
           <button id="btnLogout" class="px-4 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-xl text-sm font-semibold text-slate-600 transition-colors">ออกจากระบบ</button>
         </div>
       </div>
@@ -371,6 +485,37 @@
     </div>
   </dialog>
 
+  <!-- MODAL: Change Password -->
+  <dialog id="changePasswordModal" class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 md:p-8 space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h3 class="text-lg font-bold text-slate-900">เปลี่ยนรหัสผ่านผู้ดูแลระบบ</h3>
+        <button id="btnClosePasswordModal" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+
+      <form id="changePasswordForm" class="space-y-4 text-sm">
+        <div id="changePasswordError" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 font-semibold text-xs"></div>
+        <div id="changePasswordSuccess" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 font-semibold text-xs"></div>
+
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">รหัสผ่านใหม่</label>
+          <div class="relative">
+            <input type="password" id="newPasswordInput" required placeholder="อย่างน้อย 6 ตัวอักษร" 
+              class="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+            <button type="button" id="btnToggleNewPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex gap-3">
+          <button type="button" id="btnCancelChangePassword" class="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold transition-colors">ยกเลิก</button>
+          <button type="submit" id="btnSubmitChangePassword" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md">บันทึกรหัสผ่านใหม่</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <script>
     // System Global States
     let sbClient = null;
@@ -396,28 +541,26 @@
 
       // Init Supabase Client
       if (initSupabase()) {
-        // Enforce Supabase Auth Session
         const { data } = await sbClient.auth.getSession();
         const session = data.session;
-        if (!session) {
-          // If no authenticated user session, redirect to index.html
-          window.location.href = 'index.html';
-        } else {
-          const c = AppConfig.get();
-          // Check admin authorization by phone number
-          const phone = (session.user.email || '').split('@')[0];
-          const isAdmin = (phone === c.promptpayId || phone === '0880699227');
-          if (!isAdmin) {
-            alert('คุณไม่มีสิทธิ์เข้าถึงหน้าระบบหลังบ้าน');
-            window.location.href = 'index.html';
-            return;
-          }
-          document.getElementById('adminPanel').classList.remove('hidden');
-          loadDashboardData();
-        }
+        await handleSessionState(session);
       } else {
         alert('กรุณาตั้งค่าการเชื่อมต่อในไฟล์ config.js หรือระบบ Google Apps Script ให้ถูกต้อง');
         window.location.href = 'index.html';
+      }
+    }
+
+    async function handleSessionState(session) {
+      const authScreen = document.getElementById('authScreen');
+      const adminPanel = document.getElementById('adminPanel');
+      
+      if (!session) {
+        adminPanel.classList.add('hidden');
+        authScreen.classList.remove('hidden');
+      } else {
+        authScreen.classList.add('hidden');
+        adminPanel.classList.remove('hidden');
+        loadDashboardData();
       }
     }
 
@@ -815,6 +958,243 @@
       // Filters
       document.getElementById('prodSearchInput').addEventListener('input', filterProductsTable);
       document.getElementById('prodCategoryFilter').addEventListener('change', filterProductsTable);
+
+      // --- Admin Auth Events ---
+      const authForm = document.getElementById('authForm');
+      const btnToggleLoginPassword = document.getElementById('btnToggleLoginPassword');
+      const loginPasswordInput = document.getElementById('loginPassword');
+
+      // Tabs switcher for login/register
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+      const loginSection = document.getElementById('loginSection');
+      const registerSection = document.getElementById('registerSection');
+      const authSubtitle = document.getElementById('authSubtitle');
+
+      tabLogin.addEventListener('click', () => {
+        tabLogin.className = "flex-1 pb-3 text-center border-b-2 border-emerald-500 font-bold text-white text-sm focus:outline-none transition-all";
+        tabRegister.className = "flex-1 pb-3 text-center border-b-2 border-transparent font-bold text-slate-400 hover:text-white text-sm focus:outline-none transition-all";
+        loginSection.classList.remove('hidden');
+        registerSection.classList.add('hidden');
+        authSubtitle.textContent = "กรุณาเข้าสู่ระบบด้วยเบอร์โทรศัพท์ผู้ดูแลร้าน";
+      });
+
+      tabRegister.addEventListener('click', () => {
+        tabRegister.className = "flex-1 pb-3 text-center border-b-2 border-emerald-500 font-bold text-white text-sm focus:outline-none transition-all";
+        tabLogin.className = "flex-1 pb-3 text-center border-b-2 border-transparent font-bold text-slate-400 hover:text-white text-sm focus:outline-none transition-all";
+        registerSection.classList.remove('hidden');
+        loginSection.classList.add('hidden');
+        authSubtitle.textContent = "ลงทะเบียนสิทธิ์แอดมินสำหรับเบอร์โทรศัพท์ที่กำหนด";
+      });
+
+      btnToggleLoginPassword.addEventListener('click', () => {
+        if (loginPasswordInput.type === 'password') {
+          loginPasswordInput.type = 'text';
+          btnToggleLoginPassword.textContent = '🔒';
+        } else {
+          loginPasswordInput.type = 'password';
+          btnToggleLoginPassword.textContent = '👁️';
+        }
+      });
+
+      authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const phoneInput = document.getElementById('loginPhone');
+        const rememberCheckbox = document.getElementById('loginRemember');
+        const errBox = document.getElementById('loginErrorMessage');
+        const btnSubmit = document.getElementById('btnSubmitLogin');
+
+        const phone = phoneInput.value.trim();
+        const password = loginPasswordInput.value;
+
+        errBox.classList.add('hidden');
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'กำลังเข้าสู่ระบบ...';
+
+        try {
+          localStorage.setItem('MN_AUTH_REMEMBER', rememberCheckbox.checked ? 'true' : 'false');
+          initSupabase();
+
+          const email = `${phone}@maenoi.store`;
+          const { data, error } = await sbClient.auth.signInWithPassword({
+            email: email,
+            password: password
+          });
+
+          if (error) throw error;
+
+          phoneInput.value = '';
+          loginPasswordInput.value = '';
+          await handleSessionState(data.session);
+
+        } catch (err) {
+          console.error(err);
+          let msg = err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+          if (msg.includes('Invalid login credentials')) {
+            msg = 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง';
+          }
+          errBox.textContent = msg;
+          errBox.classList.remove('hidden');
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'เข้าสู่ระบบจัดการร้าน';
+        }
+      });
+
+      // --- Admin Register Events ---
+      const registerForm = document.getElementById('registerForm');
+      const registerPasswordInput = document.getElementById('registerPassword');
+      const registerConfirmPasswordInput = document.getElementById('registerConfirmPassword');
+      const btnToggleRegisterPassword = document.getElementById('btnToggleRegisterPassword');
+
+      btnToggleRegisterPassword.addEventListener('click', () => {
+        if (registerPasswordInput.type === 'password') {
+          registerPasswordInput.type = 'text';
+          btnToggleRegisterPassword.textContent = '🔒';
+        } else {
+          registerPasswordInput.type = 'password';
+          btnToggleRegisterPassword.textContent = '👁️';
+        }
+      });
+
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const phoneInput = document.getElementById('registerPhone');
+        const errBox = document.getElementById('registerErrorMessage');
+        const successBox = document.getElementById('registerSuccessMessage');
+        const btnSubmit = document.getElementById('btnSubmitRegister');
+
+        const phone = phoneInput.value.trim();
+        const password = registerPasswordInput.value;
+        const confirmPassword = registerConfirmPasswordInput.value;
+
+        errBox.classList.add('hidden');
+        successBox.classList.add('hidden');
+
+        if (password.length < 6) {
+          errBox.textContent = 'รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          errBox.textContent = 'รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        // No restriction on which phone number can register as admin - anyone registered through here is admin
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'กำลังสมัครสมาชิก...';
+
+        try {
+          const email = `${phone}@maenoi.store`;
+          const { data, error } = await sbClient.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+              data: {
+                phone: phone
+              }
+            }
+          });
+
+          if (error) throw error;
+
+          successBox.textContent = 'สมัครสมาชิกผู้ดูแลระบบสำเร็จ! กำลังสลับไปยังหน้าเข้าสู่ระบบ...';
+          successBox.classList.remove('hidden');
+
+          phoneInput.value = '';
+          registerPasswordInput.value = '';
+          registerConfirmPasswordInput.value = '';
+
+          setTimeout(() => {
+            tabLogin.click();
+            document.getElementById('loginPhone').value = phone;
+            document.getElementById('loginPassword').value = password;
+          }, 2000);
+
+        } catch (err) {
+          console.error(err);
+          let msg = err.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+          if (msg.includes('User already registered') || msg.includes('email_exists')) {
+            msg = 'เบอร์โทรศัพท์นี้ถูกใช้สมัครสมาชิกไปแล้ว';
+          }
+          errBox.textContent = msg;
+          errBox.classList.remove('hidden');
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'สมัครสมาชิกผู้ดูแลระบบ';
+        }
+      });
+
+      // --- Change Password Events ---
+      const changePasswordModal = document.getElementById('changePasswordModal');
+      const changePasswordForm = document.getElementById('changePasswordForm');
+      const changePasswordError = document.getElementById('changePasswordError');
+      const changePasswordSuccess = document.getElementById('changePasswordSuccess');
+      const btnSubmitChangePassword = document.getElementById('btnSubmitChangePassword');
+      const newPasswordInput = document.getElementById('newPasswordInput');
+      const btnToggleNewPassword = document.getElementById('btnToggleNewPassword');
+
+      document.getElementById('btnOpenChangePassword').addEventListener('click', () => {
+        changePasswordForm.reset();
+        changePasswordError.classList.add('hidden');
+        changePasswordSuccess.classList.add('hidden');
+        changePasswordModal.showModal();
+      });
+
+      const closePasswordModal = () => {
+        changePasswordModal.close();
+      };
+
+      document.getElementById('btnClosePasswordModal').addEventListener('click', closePasswordModal);
+      document.getElementById('btnCancelChangePassword').addEventListener('click', closePasswordModal);
+
+      btnToggleNewPassword.addEventListener('click', () => {
+        if (newPasswordInput.type === 'password') {
+          newPasswordInput.type = 'text';
+          btnToggleNewPassword.textContent = '🔒';
+        } else {
+          newPasswordInput.type = 'password';
+          btnToggleNewPassword.textContent = '👁️';
+        }
+      });
+
+      changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        changePasswordError.classList.add('hidden');
+        changePasswordSuccess.classList.add('hidden');
+
+        const newPassword = newPasswordInput.value;
+        if (newPassword.length < 6) {
+          changePasswordError.textContent = 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+          changePasswordError.classList.remove('hidden');
+          return;
+        }
+
+        btnSubmitChangePassword.disabled = true;
+        btnSubmitChangePassword.textContent = 'กำลังบันทึก...';
+
+        try {
+          const { error } = await sbClient.auth.updateUser({ password: newPassword });
+          if (error) throw error;
+
+          changePasswordSuccess.textContent = 'เปลี่ยนรหัสผ่านสำเร็จเรียบร้อยแล้ว!';
+          changePasswordSuccess.classList.remove('hidden');
+          setTimeout(() => {
+            changePasswordModal.close();
+          }, 1500);
+        } catch (err) {
+          console.error(err);
+          changePasswordError.textContent = 'ข้อผิดพลาด: ' + (err.message || 'ไม่สามารถตั้งรหัสผ่านใหม่ได้');
+          changePasswordError.classList.remove('hidden');
+        } finally {
+          btnSubmitChangePassword.disabled = false;
+          btnSubmitChangePassword.textContent = 'บันทึกรหัสผ่านใหม่';
+        }
+      });
     }
 
     // Load All Data from Supabase
