@@ -899,6 +899,33 @@
         }
       });
 
+      posSearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const query = posSearch.value.trim();
+          if (!query) return;
+
+          // Find exact match by barcode or name
+          const found = productsList.find(p => p.barcode === query || p.name === query);
+          if (found) {
+            addToPosCart(found);
+            posSearch.value = '';
+            posResults.classList.add('hidden');
+          } else {
+            const items = posResults.querySelectorAll('.pos-search-item');
+            if (items.length === 1) {
+              const id = items[0].getAttribute('data-id');
+              const p = productsList.find(x => x.id == id);
+              if (p) {
+                addToPosCart(p);
+                posSearch.value = '';
+                posResults.classList.add('hidden');
+              }
+            }
+          }
+        }
+      });
+
       // Click Search Item in POS Search Results
       posResults.addEventListener('click', (e) => {
         const item = e.target.closest('.pos-search-item');
