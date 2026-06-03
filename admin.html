@@ -285,8 +285,15 @@
                     <span class="text-xs font-bold text-slate-600">👤 สมาชิก / ลูกค้าค้างจ่ายเครดิต</span>
                     <button type="button" id="btnRegisterCustomerPOS" class="text-[11px] text-emerald-600 hover:underline font-semibold">+ ลงทะเบียนลูกค้าด่วน</button>
                   </div>
-                  <div class="grid grid-cols-12 gap-2">
-                    <select id="posCustomerSelect" class="col-span-12 px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white outline-none focus:ring-2 focus:ring-emerald-500">
+                  <div class="flex flex-col gap-2">
+                    <div class="relative flex items-center gap-2">
+                      <input type="text" id="posCustomerPhoneInput" placeholder="พิมพ์เบอร์โทรศัพท์สมาชิก..." 
+                        class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white outline-none focus:ring-2 focus:ring-emerald-500" />
+                      <span id="posCustomerCreditAlert" class="hidden text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100 whitespace-nowrap animate-pulse">
+                        ⚠️ ยอดค้างชำระ: ฿0
+                      </span>
+                    </div>
+                    <select id="posCustomerSelect" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white outline-none focus:ring-2 focus:ring-emerald-500">
                       <option value="">-- ลูกค้าทั่วไป (ไม่ลงชื่อ/จ่ายสด) --</option>
                     </select>
                   </div>
@@ -848,11 +855,17 @@
         <button id="btnCloseQuickPrice" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
       </div>
       <input type="hidden" id="quickPriceProdId" />
+      <input type="hidden" id="quickPriceProdImageUrl" />
+      <input type="hidden" id="quickPriceProdImagePublicId" />
       
       <!-- Image Display and Name Edit Box -->
-      <div class="flex gap-4 items-start bg-slate-50 border border-slate-100 p-3.5 rounded-2xl">
-        <div class="w-20 h-20 bg-slate-200 border rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
-          <img id="quickPriceProdImg" src="https://picsum.photos/seed/placeholder/80/80" class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/seed/placeholder/80/80'" />
+      <div class="flex gap-4 items-center bg-slate-50 border border-slate-100 p-3.5 rounded-2xl">
+        <div class="flex flex-col items-center gap-1.5 flex-shrink-0">
+          <div class="w-20 h-20 bg-slate-200 border rounded-xl overflow-hidden flex items-center justify-center relative shadow-sm">
+            <img id="quickPriceProdImg" src="https://picsum.photos/seed/placeholder/80/80" class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/seed/placeholder/80/80'" />
+          </div>
+          <input type="file" id="quickPriceImageFile" accept="image/*" class="hidden" />
+          <button type="button" id="btnTriggerQuickPriceUpload" class="px-2 py-0.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-md font-bold text-[9px] transition-colors border border-violet-150">📷 เปลี่ยนรูป</button>
         </div>
         <div class="flex-1 space-y-1 text-sm w-full">
           <label for="quickPriceProdNameInput" class="block font-bold text-slate-600 text-xs">ชื่อสินค้า</label>
@@ -939,6 +952,55 @@
     </div>
   </dialog>
 
+  <!-- MODAL: POS Quantity Prompt -->
+  <dialog id="posQtyPromptModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-900">🔢 ระบุจำนวนสินค้า</h3>
+        <button id="btnCancelPosQty" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+      
+      <!-- Product Preview in Modal -->
+      <div class="flex gap-4 items-center bg-slate-50 border border-slate-100 p-3 rounded-2xl">
+        <div class="w-16 h-16 bg-slate-200 border rounded-xl overflow-hidden flex items-center justify-center relative shadow-sm flex-shrink-0">
+          <img id="posQtyProdImg" src="https://picsum.photos/seed/placeholder/64/64" class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/seed/placeholder/64/64'" />
+        </div>
+        <div class="flex-1 space-y-0.5 text-xs min-w-0">
+          <p id="posQtyProdName" class="font-bold text-slate-800 truncate text-sm">ชื่อสินค้า</p>
+          <p id="posQtyProdBarcode" class="text-slate-400 font-mono text-[10px]">บาร์โค้ด</p>
+          <p class="font-semibold text-emerald-600 text-xs">ราคาชิ้นละ: <span id="posQtyProdPrice">฿0</span></p>
+        </div>
+      </div>
+
+      <!-- Quantity Selector -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-center gap-3">
+          <button type="button" id="btnPosQtyMinus" class="w-12 h-12 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-xl transition-colors flex items-center justify-center">-</button>
+          <input type="number" id="posQtyInput" min="1" value="1" class="w-24 text-center py-2 rounded-xl border border-slate-200 text-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none" />
+          <button type="button" id="btnPosQtyPlus" class="w-12 h-12 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-xl transition-colors flex items-center justify-center">+</button>
+        </div>
+
+        <!-- Quick selection buttons -->
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" class="btn-quick-qty py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200" data-qty="1">1</button>
+          <button type="button" class="btn-quick-qty py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200" data-qty="2">2</button>
+          <button type="button" class="btn-quick-qty py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200" data-qty="3">3</button>
+          <button type="button" class="btn-quick-qty py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200" data-qty="4">4</button>
+          <button type="button" class="btn-quick-qty py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200" data-qty="5">5</button>
+          <button type="button" class="btn-quick-qty py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200" data-qty="10">10</button>
+          <button type="button" class="btn-quick-qty py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200" data-qty="20">20</button>
+          <button type="button" class="btn-quick-qty py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200" data-qty="50">50</button>
+        </div>
+      </div>
+
+      <div class="pt-2 flex gap-3">
+        <button type="button" id="btnConfirmPosQty" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md flex items-center justify-center gap-1.5">
+          <span>ตกลง (Enter)</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- MODAL: POS Transaction Success -->
   <dialog id="posSuccessModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
     <div class="bg-white p-6 text-center space-y-4">
@@ -983,6 +1045,12 @@
     let editingProduct = null;
     let syncChannel = null;
     let isMobileSyncEnabled = false;
+    
+    // POS Quantity Modal and Keyboard Interceptor States
+    let pendingCartProduct = null;
+    let posQtyScanBuffer = '';
+    let posQtyLastKeyTime = 0;
+    let posQtyIsScanning = false;
 
     // Helper: Format Currency
     const fmt = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(n);
@@ -1399,13 +1467,20 @@
         if (e.key === 'Enter') {
           e.preventDefault();
           const query = posSearch.value.trim();
-          if (!query) return;
+          if (!query) {
+            const phoneInput = document.getElementById('posCustomerPhoneInput');
+            if (phoneInput) {
+              phoneInput.focus();
+              phoneInput.select();
+            }
+            return;
+          }
           broadcastBarcode(query);
 
           // Find exact match by barcode or name
           const found = productsList.find(p => p.barcode === query || p.name === query);
           if (found) {
-            addToPosCart(found);
+            openPosQtyPromptModal(found);
             posSearch.value = '';
             posResults.classList.add('hidden');
           } else {
@@ -1414,7 +1489,7 @@
               const id = items[0].getAttribute('data-id');
               const p = productsList.find(x => x.id == id);
               if (p) {
-                addToPosCart(p);
+                openPosQtyPromptModal(p);
                 posSearch.value = '';
                 posResults.classList.add('hidden');
               }
@@ -1430,7 +1505,7 @@
         const id = item.getAttribute('data-id');
         const p = productsList.find(x => x.id == id);
         if (p) {
-          addToPosCart(p);
+          openPosQtyPromptModal(p);
           posSearch.value = '';
           posResults.classList.add('hidden');
         }
@@ -1906,6 +1981,41 @@
       document.getElementById('prodSearchInput').addEventListener('input', filterProductsTable);
       document.getElementById('prodCategoryFilter').addEventListener('change', filterProductsTable);
 
+      // Scanner Focus Wedge for Product Management Search
+      window.addEventListener('keydown', (e) => {
+        // Only run if the active tab is 'products' and no dialog modal is open
+        const tabProducts = document.getElementById('tab-products');
+        if (!tabProducts || tabProducts.classList.contains('hidden')) return;
+
+        const openDialog = document.querySelector('dialog[open]');
+        if (openDialog) return;
+
+        // Ignore if focus is already in an input/textarea/select
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+        // If it's a single alphanumeric key, focus search input and let characters flow
+        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+          const searchInput = document.getElementById('prodSearchInput');
+          if (searchInput) {
+            searchInput.focus();
+          }
+        }
+      });
+
+      // Exact barcode match on Enter in Product Management Search
+      document.getElementById('prodSearchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const val = e.target.value.trim();
+          if (val) {
+            const exactProduct = productsList.find(p => p.barcode === val);
+            if (exactProduct) {
+              fillProductForm(exactProduct);
+            }
+          }
+        }
+      });
+
       // --- Profit Preview in Product Form ---
       function updateProfitPreview() {
         const cost = parseFloat(document.getElementById('prodCostPrice').value) || 0;
@@ -1936,6 +2046,9 @@
         document.getElementById('quickPriceProdNameInput').value = p.name;
         document.getElementById('quickCostPrice').value = p.cost_price || '';
         document.getElementById('quickSellPrice').value = p.price || '';
+        document.getElementById('quickPriceProdImageUrl').value = p.image_url || '';
+        document.getElementById('quickPriceProdImagePublicId').value = p.image_public_id || '';
+        
         const imgEl = document.getElementById('quickPriceProdImg');
         if (p.image_url) {
           imgEl.src = p.image_url;
@@ -1946,6 +2059,45 @@
         document.getElementById('quickPriceModal').showModal();
       }
       window.openQuickPriceModal = openQuickPriceModal;
+
+      // Quick Price Modal Image Upload events
+      document.getElementById('btnTriggerQuickPriceUpload').addEventListener('click', () => {
+        document.getElementById('quickPriceImageFile').click();
+      });
+
+      document.getElementById('quickPriceImageFile').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const imgEl = document.getElementById('quickPriceProdImg');
+        const originalSrc = imgEl.src;
+        imgEl.src = 'https://picsum.photos/seed/placeholder/80/80'; // placeholder as loading spinner indication
+
+        const c = AppConfig.get();
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', c.cloudinaryUploadPreset);
+
+        try {
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (data.secure_url) {
+            imgEl.src = data.secure_url;
+            document.getElementById('quickPriceProdImageUrl').value = data.secure_url;
+            document.getElementById('quickPriceProdImagePublicId').value = data.public_id;
+          } else {
+            alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + (data.error?.message || 'Unknown error'));
+            imgEl.src = originalSrc;
+          }
+        } catch (err) {
+          console.error(err);
+          alert('อัปโหลดรูปภาพผิดพลาด');
+          imgEl.src = originalSrc;
+        }
+      });
 
       function updateQuickProfitPreview() {
         const cost = parseFloat(document.getElementById('quickCostPrice').value) || 0;
@@ -1969,6 +2121,9 @@
         const name = document.getElementById('quickPriceProdNameInput').value.trim();
         const costPrice = parseFloat(document.getElementById('quickCostPrice').value) || 0;
         const sellPrice = parseFloat(document.getElementById('quickSellPrice').value);
+        const imageUrl = document.getElementById('quickPriceProdImageUrl').value.trim() || null;
+        const imagePublicId = document.getElementById('quickPriceProdImagePublicId').value.trim() || null;
+
         if (!name) { alert('กรุณากรอกชื่อสินค้า'); return; }
         if (!sellPrice || isNaN(sellPrice)) { alert('กรุณากรอกราคาขาย'); return; }
         const btn = document.getElementById('btnSaveQuickPrice');
@@ -1977,7 +2132,9 @@
           const { error } = await sbClient.from('products').update({ 
             name: name,
             cost_price: costPrice, 
-            price: sellPrice 
+            price: sellPrice,
+            image_url: imageUrl,
+            image_public_id: imagePublicId
           }).eq('id', id);
           if (error) throw error;
           document.getElementById('quickPriceModal').close();
@@ -2357,9 +2514,222 @@
         }
       });
 
-      // POS Customer Selection change update customer display
-      document.getElementById('posCustomerSelect').addEventListener('change', () => {
-        syncCustomerDisplay('idle');
+      // POS Customer Selection change update customer display and phone/credit alert
+      const posPhoneInput = document.getElementById('posCustomerPhoneInput');
+      const posCustSelect = document.getElementById('posCustomerSelect');
+      const posCreditAlert = document.getElementById('posCustomerCreditAlert');
+
+      if (posCustSelect) {
+        posCustSelect.addEventListener('change', () => {
+          const selectedId = posCustSelect.value;
+          if (!selectedId) {
+            if (posPhoneInput) posPhoneInput.value = '';
+            if (posCreditAlert) posCreditAlert.classList.add('hidden');
+            syncCustomerDisplay('idle');
+            return;
+          }
+
+          const found = customersList.find(c => c.id === selectedId);
+          if (found) {
+            if (posPhoneInput) posPhoneInput.value = found.phone || '';
+            const credit = parseFloat(found.total_credit) || 0;
+            if (credit > 0) {
+              if (posCreditAlert) {
+                posCreditAlert.textContent = `⚠️ ยอดค้างชำระ: ฿${credit.toLocaleString('th-TH')}`;
+                posCreditAlert.classList.remove('hidden');
+              }
+            } else {
+              if (posCreditAlert) posCreditAlert.classList.add('hidden');
+            }
+          } else {
+            if (posPhoneInput) posPhoneInput.value = '';
+            if (posCreditAlert) posCreditAlert.classList.add('hidden');
+          }
+          syncCustomerDisplay('idle');
+        });
+      }
+
+      // POS Customer Phone Input Events
+      if (posPhoneInput) {
+        posPhoneInput.addEventListener('input', () => {
+          const val = posPhoneInput.value.trim();
+          if (!val) {
+            posCustSelect.value = '';
+            if (posCreditAlert) posCreditAlert.classList.add('hidden');
+            syncCustomerDisplay('idle');
+            return;
+          }
+
+          // Search in customersList for matching phone number
+          const found = customersList.find(c => c.phone === val || c.phone.replace(/[^0-9]/g, '') === val.replace(/[^0-9]/g, ''));
+          if (found) {
+            posCustSelect.value = found.id;
+            const credit = parseFloat(found.total_credit) || 0;
+            if (credit > 0) {
+              if (posCreditAlert) {
+                posCreditAlert.textContent = `⚠️ ยอดค้างชำระ: ฿${credit.toLocaleString('th-TH')}`;
+                posCreditAlert.classList.remove('hidden');
+              }
+            } else {
+              if (posCreditAlert) posCreditAlert.classList.add('hidden');
+            }
+          } else {
+            posCustSelect.value = '';
+            if (posCreditAlert) posCreditAlert.classList.add('hidden');
+          }
+          syncCustomerDisplay('idle');
+        });
+
+        posPhoneInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = posPhoneInput.value.trim();
+            
+            if (!val) {
+              const btnPayPP = document.getElementById('btnPosPayPP');
+              if (btnPayPP && !btnPayPP.disabled) {
+                btnPayPP.click();
+              }
+              return;
+            }
+
+            const found = customersList.find(c => c.phone === val || c.phone.replace(/[^0-9]/g, '') === val.replace(/[^0-9]/g, ''));
+            if (found) {
+              const btnPayPP = document.getElementById('btnPosPayPP');
+              if (btnPayPP && !btnPayPP.disabled) {
+                btnPayPP.click();
+              }
+            } else {
+              document.getElementById('posCustError').classList.add('hidden');
+              document.getElementById('posCustName').value = '';
+              document.getElementById('posCustPhone').value = val;
+              document.getElementById('posRegisterCustomerModal').showModal();
+            }
+          }
+        });
+      }
+
+      // Quantity Selector Modal Events
+      const qtyInput = document.getElementById('posQtyInput');
+      if (qtyInput) {
+        qtyInput.addEventListener('keydown', (e) => {
+          const now = Date.now();
+          const diff = now - posQtyLastKeyTime;
+          posQtyLastKeyTime = now;
+
+          const isDigit = /^[0-9]$/.test(e.key);
+
+          if (isDigit) {
+            if (posQtyIsScanning) {
+              e.preventDefault();
+              posQtyScanBuffer += e.key;
+              return;
+            }
+
+            if (diff < 40) {
+              posQtyIsScanning = true;
+              e.preventDefault();
+              
+              const inputVal = e.target.value;
+              const firstDigit = inputVal.slice(-1);
+              e.target.value = inputVal.slice(0, -1);
+              
+              posQtyScanBuffer = firstDigit + e.key;
+              return;
+            }
+          } else if (e.key === 'Enter') {
+            if (posQtyIsScanning || posQtyScanBuffer.length >= 6) {
+              e.preventDefault();
+              const barcode = posQtyScanBuffer;
+              
+              posQtyScanBuffer = '';
+              posQtyIsScanning = false;
+              
+              const currentQty = parseInt(e.target.value) || 1;
+              if (pendingCartProduct) {
+                const existing = posCart.find(item => item.product.id === pendingCartProduct.id);
+                if (existing) {
+                  existing.qty += currentQty;
+                } else {
+                  posCart.push({ product: pendingCartProduct, qty: currentQty });
+                }
+                renderPosCart();
+              }
+              
+              pendingCartProduct = null;
+              document.getElementById('posQtyPromptModal').close();
+              
+              handlePosBarcodeScanned(barcode);
+              return;
+            } else {
+              e.preventDefault();
+              commitPendingQtyToCart();
+            }
+          } else {
+            if (e.key !== 'Backspace' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+              posQtyScanBuffer = '';
+              posQtyIsScanning = false;
+            }
+          }
+        });
+      }
+
+      document.getElementById('btnPosQtyMinus').addEventListener('click', () => {
+        const input = document.getElementById('posQtyInput');
+        let val = parseInt(input.value) || 1;
+        if (val > 1) {
+          input.value = val - 1;
+        }
+        input.focus();
+        input.select();
+      });
+
+      document.getElementById('btnPosQtyPlus').addEventListener('click', () => {
+        const input = document.getElementById('posQtyInput');
+        let val = parseInt(input.value) || 1;
+        input.value = val + 1;
+        input.focus();
+        input.select();
+      });
+
+      document.querySelectorAll('.btn-quick-qty').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const qty = e.target.getAttribute('data-qty');
+          const input = document.getElementById('posQtyInput');
+          input.value = qty;
+          input.focus();
+          input.select();
+        });
+      });
+
+      document.getElementById('btnConfirmPosQty').addEventListener('click', () => {
+        commitPendingQtyToCart();
+      });
+
+      document.getElementById('btnCancelPosQty').addEventListener('click', () => {
+        pendingCartProduct = null;
+        document.getElementById('posQtyPromptModal').close();
+        const posSearch = document.getElementById('posSearchInput');
+        if (posSearch) posSearch.focus();
+      });
+
+      // Scanner Focus Wedge for POS tab
+      window.addEventListener('keydown', (e) => {
+        const tabPos = document.getElementById('tab-pos');
+        if (!tabPos || tabPos.classList.contains('hidden')) return;
+
+        const openDialog = document.querySelector('dialog[open]');
+        if (openDialog) return;
+
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+          const posSearch = document.getElementById('posSearchInput');
+          if (posSearch) {
+            posSearch.focus();
+          }
+        }
       });
 
       // POS Quick Register Customer Modal Events
@@ -3265,14 +3635,14 @@
               const { error } = await sbClient.from('products').update({ is_active: true }).eq('id', found.id);
               if (error) throw error;
               found.is_active = true;
-              addToPosCart(found);
+              openPosQtyPromptModal(found);
               loadDashboardData(); // reload in background
             } catch (err) {
               alert('เกิดข้อผิดพลาดในการดึงสินค้าคืนร้าน: ' + err.message);
             }
           }
         } else {
-          addToPosCart(found);
+          openPosQtyPromptModal(found);
         }
       } else {
         // If not found, prompt to add new product
@@ -3288,15 +3658,77 @@
       }
     }
 
-    function addToPosCart(product) {
+    function addToPosCart(product, qty = 1) {
       const existing = posCart.find(item => item.product.id === product.id);
       if (existing) {
-        existing.qty++;
+        existing.qty += qty;
       } else {
-        posCart.push({ product, qty: 1 });
+        posCart.push({ product, qty: qty });
       }
       renderPosCart();
       playScanSound();
+    }
+
+    function openPosQtyPromptModal(product) {
+      const modal = document.getElementById('posQtyPromptModal');
+      const nameEl = document.getElementById('posQtyProdName');
+      const barcodeEl = document.getElementById('posQtyProdBarcode');
+      const priceEl = document.getElementById('posQtyProdPrice');
+      const imgEl = document.getElementById('posQtyProdImg');
+      const qtyInput = document.getElementById('posQtyInput');
+
+      // If there is already a pending product in the modal
+      if (pendingCartProduct) {
+        if (pendingCartProduct.id === product.id) {
+          // Scanning the same product: increment quantity in the modal
+          let currentQty = parseInt(qtyInput.value) || 1;
+          qtyInput.value = currentQty + 1;
+          playScanSound();
+          qtyInput.focus();
+          qtyInput.select();
+          return;
+        } else {
+          // Scanning a different product: commit the previous one first
+          const prevQty = parseInt(qtyInput.value) || 1;
+          addToPosCart(pendingCartProduct, prevQty);
+        }
+      }
+
+      // Set new pending product
+      pendingCartProduct = product;
+      qtyInput.value = '1';
+
+      if (nameEl) nameEl.textContent = product.name;
+      if (barcodeEl) barcodeEl.textContent = product.barcode || 'ไม่มีบาร์โค้ด';
+      if (priceEl) priceEl.textContent = fmt(product.price);
+      if (imgEl) {
+        imgEl.src = product.image_url || 'https://picsum.photos/seed/placeholder/64/64';
+      }
+
+      modal.showModal();
+      playScanSound();
+      
+      // Reset scanning state
+      posQtyScanBuffer = '';
+      posQtyIsScanning = false;
+      
+      qtyInput.focus();
+      qtyInput.select();
+    }
+
+    function commitPendingQtyToCart() {
+      if (!pendingCartProduct) return;
+      const qtyInput = document.getElementById('posQtyInput');
+      const qty = parseInt(qtyInput.value) || 1;
+      addToPosCart(pendingCartProduct, qty);
+      pendingCartProduct = null;
+      document.getElementById('posQtyPromptModal').close();
+      
+      // Focus back on POS search input for keyboard-only speed
+      const posSearch = document.getElementById('posSearchInput');
+      if (posSearch) {
+        posSearch.focus();
+      }
     }
 
     function renderPosCart() {
