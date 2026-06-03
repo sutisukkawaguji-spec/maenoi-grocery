@@ -51,66 +51,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
 
-  <!-- Setup Screen (Overlay if not configured) -->
-  <div id="setupOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 text-2xl">⚙️</div>
-        <div>
-          <h2 class="text-xl font-bold text-slate-900">ตั้งค่าระบบเชื่อมต่อ (ครั้งแรก)</h2>
-          <p class="text-xs text-slate-500">กรอกข้อมูลการเชื่อมต่อฐานข้อมูลและรูปภาพเพื่อเริ่มใช้งาน</p>
-        </div>
-      </div>
-      <form id="setupForm" class="space-y-4 text-sm">
-        <div class="bg-emerald-50 rounded-2xl p-4 border border-emerald-200/50 mb-3 space-y-2">
-          <label class="block font-bold text-emerald-800">🔗 เชื่อมต่อผ่าน Google Apps Script (ปลอดภัย - แนะนำ)</label>
-          <input type="url" id="setupGasUrl" placeholder="https://script.google.com/macros/s/xxxx/exec" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-xs" />
-          <p class="text-[10px] text-emerald-700 leading-normal">กรอก Web App URL ที่ได้จากการดีพลอย GAS ระบบจะดึงค่าคอนฟิก Supabase และ Cloudinary ทั้งหมดมาใช้โดยไม่ต้องเซ็ตในเครื่อง</p>
-        </div>
-        <div class="text-xs text-slate-400 font-bold border-b pb-1">หรือ ตั้งค่าแบบระบุคีย์โดยตรง (แมนวล):</div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Supabase URL</label>
-          <input type="url" id="setupSupabaseUrl" placeholder="https://xxxx.supabase.co" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Supabase Anon Key</label>
-          <input type="password" id="setupSupabaseAnonKey" placeholder="eyJhbGciOi..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
-        </div>
-        <div class="border-t border-slate-100 pt-4">
-          <label class="block font-semibold text-slate-700 mb-1">Cloudinary Cloud Name</label>
-          <input type="text" id="setupCloudinaryCloudName" placeholder="เช่น maenoi-grocery" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">Cloudinary Upload Preset (Unsigned)</label>
-          <input type="text" id="setupCloudinaryPreset" placeholder="เช่น ml_default" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
-          <p class="text-slate-400 text-[11px] mt-0.5">ต้องตั้งค่าใน Cloudinary -> Settings -> Upload -> Enable Unsigned Uploads</p>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Cloudinary API Key</label>
-            <input type="text" id="setupCloudinaryApiKey" placeholder="ระบุเพื่อรองรับการลบรูป" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
-          </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Cloudinary API Secret</label>
-            <input type="password" id="setupCloudinaryApiSecret" placeholder="ระบุเพื่อรองรับการลบรูป" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
-          </div>
-        </div>
-        <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">เบอร์ PromptPay รับเงิน</label>
-            <input type="text" id="setupPromptPay" required placeholder="เช่น 0880699227" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
-          </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">รหัส PIN เข้าหลังบ้าน (4 หลัก)</label>
-            <input type="password" maxlength="4" pattern="[0-9]{4}" id="setupPin" required placeholder="1234" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-center text-lg font-bold tracking-widest focus:ring-2 focus:ring-emerald-500 outline-none" />
-          </div>
-        </div>
-        <div class="pt-3">
-          <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base transition-colors shadow-lg shadow-emerald-600/20">บันทึกและเริ่มใช้งาน</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <!-- Note: setupOverlay config form removed as settings are managed permanently on Apps Script backend (code.gs) -->
 
   <!-- Note: old loginOverlay (PIN login) removed to use secure Supabase Auth (login.html) -->
 
@@ -127,7 +68,6 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button id="btnOpenSettings" class="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors" title="ตั้งค่าระบบ">⚙️</button>
           <button id="btnLogout" class="px-4 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-xl text-sm font-semibold text-slate-600 transition-colors">ออกจากระบบ</button>
         </div>
       </div>
@@ -454,24 +394,8 @@
         await window.AppConfig.loadFromGas();
       }
 
-      // 1. Check Configuration
-      if (!AppConfig.isConfigured()) {
-        document.getElementById('setupOverlay').classList.remove('hidden');
-        document.getElementById('adminPanel').classList.add('hidden');
-        const c = AppConfig.get();
-        document.getElementById('setupGasUrl').value = c.gasUrl;
-        document.getElementById('setupSupabaseUrl').value = c.supabaseUrl;
-        document.getElementById('setupSupabaseAnonKey').value = c.supabaseAnonKey;
-        document.getElementById('setupCloudinaryCloudName').value = c.cloudinaryCloudName;
-        document.getElementById('setupCloudinaryPreset').value = c.cloudinaryUploadPreset;
-        document.getElementById('setupCloudinaryApiKey').value = c.cloudinaryApiKey;
-        document.getElementById('setupCloudinaryApiSecret').value = c.cloudinaryApiSecret;
-        document.getElementById('setupPromptPay').value = c.promptpayId;
-        document.getElementById('setupPin').value = c.adminPin;
-      } else {
-        // Init Supabase Client
-        initSupabase();
-        
+      // Init Supabase Client
+      if (initSupabase()) {
         // Enforce Supabase Auth Session
         const { data } = await sbClient.auth.getSession();
         const session = data.session;
@@ -479,6 +403,7 @@
           // If no authenticated user session, redirect to index.html
           window.location.href = 'index.html';
         } else {
+          const c = AppConfig.get();
           // Check admin authorization by phone number
           const phone = (session.user.email || '').split('@')[0];
           const isAdmin = (phone === c.promptpayId || phone === '0880699227');
@@ -490,6 +415,9 @@
           document.getElementById('adminPanel').classList.remove('hidden');
           loadDashboardData();
         }
+      } else {
+        alert('กรุณาตั้งค่าการเชื่อมต่อในไฟล์ config.js หรือระบบ Google Apps Script ให้ถูกต้อง');
+        window.location.href = 'index.html';
       }
     }
 
@@ -503,39 +431,6 @@
 
     // Setup UI Action Listeners
     function setupEventListeners() {
-      // Setup Form
-      document.getElementById('setupForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        AppConfig.save({
-          gasUrl: document.getElementById('setupGasUrl').value,
-          supabaseUrl: document.getElementById('setupSupabaseUrl').value,
-          supabaseAnonKey: document.getElementById('setupSupabaseAnonKey').value,
-          cloudinaryCloudName: document.getElementById('setupCloudinaryCloudName').value,
-          cloudinaryUploadPreset: document.getElementById('setupCloudinaryPreset').value,
-          cloudinaryApiKey: document.getElementById('setupCloudinaryApiKey').value,
-          cloudinaryApiSecret: document.getElementById('setupCloudinaryApiSecret').value,
-          promptpayId: document.getElementById('setupPromptPay').value,
-          adminPin: document.getElementById('setupPin').value
-        });
-        alert('บันทึกการตั้งค่าแล้ว');
-        document.getElementById('setupOverlay').classList.add('hidden');
-        window.location.reload();
-      });
-
-      document.getElementById('btnOpenSettings').addEventListener('click', () => {
-        const c = AppConfig.get();
-        document.getElementById('setupGasUrl').value = c.gasUrl;
-        document.getElementById('setupSupabaseUrl').value = c.supabaseUrl;
-        document.getElementById('setupSupabaseAnonKey').value = c.supabaseAnonKey;
-        document.getElementById('setupCloudinaryCloudName').value = c.cloudinaryCloudName;
-        document.getElementById('setupCloudinaryPreset').value = c.cloudinaryUploadPreset;
-        document.getElementById('setupCloudinaryApiKey').value = c.cloudinaryApiKey;
-        document.getElementById('setupCloudinaryApiSecret').value = c.cloudinaryApiSecret;
-        document.getElementById('setupPromptPay').value = c.promptpayId;
-        document.getElementById('setupPin').value = c.adminPin;
-        document.getElementById('setupOverlay').classList.remove('hidden');
-      });
-
       // Logout (Supabase Auth Session terminate)
       document.getElementById('btnLogout').addEventListener('click', async () => {
         if (sbClient) {
