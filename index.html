@@ -29,7 +29,7 @@
   <script src="js/config.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
-  <div id="storefrontApp" class="hidden">
+  <div id="storefrontApp">
     <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
       <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
         <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://picsum.photos/seed/logo/96/96'">
@@ -48,6 +48,7 @@
           <button id="userPhoneButton" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100 transition-colors">
             👤 <span id="userPhoneText"></span>
           </button>
+          <button id="loginButton" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-slate-600 hover:bg-slate-50 text-sm transition-colors">🔑 หลังบ้าน</button>
           <button id="btnLogoutStorefront" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-colors">ออกระบบ</button>
       </div>
     </div>
@@ -164,11 +165,12 @@
     </div>
 
     <!-- Auth Card -->
-    <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 md:p-8 border border-slate-100 space-y-6">
+    <div class="bg-white rounded-3xl shadow-xl max-w-md w-full p-6 md:p-8 border border-slate-100 space-y-6 relative">
+      <button id="btnCloseAuth" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-1">✕</button>
       <div class="text-center space-y-2">
         <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 text-3xl mx-auto shadow-inner">🔐</div>
         <h2 id="authTitle" class="text-2xl font-bold text-slate-900">เข้าสู่ระบบร้านแม่น้อย</h2>
-        <p id="authSubtitle" class="text-sm text-slate-500">กรอกเบอร์โทรศัพท์และรหัสผ่านเพื่อเข้าใช้งานและดูสินค้า</p>
+        <p id="authSubtitle" class="text-sm text-slate-500">กรอกเบอร์โทรศัพท์และรหัสผ่านเพื่อเข้าจัดการร้านแม่น้อย</p>
       </div>
 
       <!-- Login/Signup Forms -->
@@ -584,81 +586,87 @@
         await window.AppConfig.loadFromGas();
       }
 
-      // 2. Check Configuration
-      if (!AppConfig.isConfigured()) {
-        document.getElementById('authScreen').classList.remove('hidden');
-        document.getElementById('unconfiguredAlert').classList.remove('hidden');
-        document.getElementById('btnSubmit').disabled = true;
-        document.getElementById('btnSubmit').classList.add('opacity-50', 'cursor-not-allowed');
-        return;
-      }
-
-      // 3. Initialize Supabase
+      // 2. Initialize Supabase if configured
       const c = AppConfig.get();
       const remember = localStorage.getItem('MN_AUTH_REMEMBER') !== 'false';
-      sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey, {
-        auth: {
-          persistSession: remember,
-          storage: remember ? localStorage : sessionStorage
-        }
-      });
-
-      // 4. Session Validation
-      let session = null;
-      try {
-        const { data } = await sbClient.auth.getSession();
-        session = data.session;
-      } catch (err) {
-        console.error("ตรวจสอบเซสชันผิดพลาด:", err);
+      if (c.supabaseUrl && c.supabaseAnonKey) {
+        sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey, {
+          auth: {
+            persistSession: remember,
+            storage: remember ? localStorage : sessionStorage
+          }
+        });
       }
 
-      if (!session) {
-        // Show login screen, hide main storefront
-        document.getElementById('authScreen').classList.remove('hidden');
-        document.getElementById('storefrontApp').classList.add('hidden');
-      } else {
-        // Logged in: Show storefront, hide login screen
-        document.getElementById('authScreen').classList.add('hidden');
-        document.getElementById('storefrontApp').classList.remove('hidden');
+      // 3. Session Validation
+      let session = null;
+      if (sbClient) {
+        try {
+          const { data } = await sbClient.auth.getSession();
+          session = data.session;
+        } catch (err) {
+          console.error("ตรวจสอบเซสชันผิดพลาด:", err);
+        }
+      }
 
-        // Extract user's phone number
+      if (session) {
+        // Logged in: update header indicators
         const userEmail = session.user.email || '';
         const phone = userEmail.split('@')[0];
         
-        // Update user phone indicator in header
         const userPhoneText = document.getElementById('userPhoneText');
         if (userPhoneText) {
-          // Format phone number e.g. 088-069-9227
           const formattedPhone = phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
           userPhoneText.textContent = formattedPhone;
         }
         document.getElementById('userPhoneButton')?.classList.remove('hidden');
         document.getElementById('btnLogoutStorefront')?.classList.remove('hidden');
+        document.getElementById('loginButton')?.classList.add('hidden');
 
-        // Admin privilege check: show/hide admin button
+        // Admin privilege check
         const isAdmin = (phone === c.promptpayId || phone === '0880699227');
         const adminBtn = document.getElementById('adminButton');
         if (adminBtn) {
           if (isAdmin) adminBtn.classList.remove('hidden');
           else adminBtn.classList.add('hidden');
         }
-
-        // Load catalog data
-        try {
-          await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]);
-        } catch (e) {
-          console.error(e);
-          showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
-        }
-
-        for (const id of Object.keys(cart)) {
-          if (!findProduct(id)) {
-            delete cart[id];
-          }
-        }
-        localStorage.setItem('cart', JSON.stringify(cart));
-        refreshUI();
+      } else {
+        // Not logged in: show login button, hide profile/logout/admin options
+        document.getElementById('userPhoneButton')?.classList.add('hidden');
+        document.getElementById('btnLogoutStorefront')?.classList.add('hidden');
+        document.getElementById('adminButton')?.classList.add('hidden');
+        document.getElementById('loginButton')?.classList.remove('hidden');
       }
+
+      // 4. Toggle Login Screen Overlay Listeners
+      document.getElementById('loginButton')?.addEventListener('click', () => {
+        if (!AppConfig.isConfigured()) {
+          document.getElementById('unconfiguredAlert').classList.remove('hidden');
+          document.getElementById('btnSubmit').disabled = true;
+          document.getElementById('btnSubmit').classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        document.getElementById('authScreen').classList.remove('hidden');
+      });
+
+      document.getElementById('btnCloseAuth')?.addEventListener('click', () => {
+        document.getElementById('authScreen').classList.add('hidden');
+      });
+
+      // 5. Load catalog data immediately and unconditionally
+      try {
+        await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]);
+      } catch (e) {
+        console.error(e);
+        showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
+      }
+
+      for (const id of Object.keys(cart)) {
+        if (!findProduct(id)) {
+          delete cart[id];
+        }
+      }
+      localStorage.setItem('cart', JSON.stringify(cart));
+      refreshUI();
 
       // 5. Auth Mode Switching & Form Handlers
       let isSignUpMode = false;
