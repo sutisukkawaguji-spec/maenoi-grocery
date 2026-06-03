@@ -2024,19 +2024,6 @@
       });
 
       // --- Profit Preview in Product Form ---
-      function updateProfitPreview() {
-        const cost = parseFloat(document.getElementById('prodCostPrice').value) || 0;
-        const sell = parseFloat(document.getElementById('prodPrice').value) || 0;
-        const preview = document.getElementById('profitPreview');
-        if (sell > 0 && cost > 0) {
-          const profit = sell - cost;
-          preview.textContent = fmt(profit);
-          preview.className = 'text-lg font-bold ' + (profit >= 0 ? 'text-emerald-600' : 'text-rose-600');
-        } else {
-          preview.textContent = '\u2014';
-          preview.className = 'text-lg font-bold text-slate-400';
-        }
-      }
       document.getElementById('prodCostPrice').addEventListener('input', updateProfitPreview);
       document.getElementById('prodPrice').addEventListener('input', updateProfitPreview);
 
@@ -3560,6 +3547,20 @@
         filter.innerHTML += `<option value="${cat}">${cat}</option>`;
       });
       filter.value = currentVal;
+    }
+
+    function updateProfitPreview() {
+      const cost = parseFloat(document.getElementById('prodCostPrice').value) || 0;
+      const sell = parseFloat(document.getElementById('prodPrice').value) || 0;
+      const preview = document.getElementById('profitPreview');
+      if (sell > 0 && cost > 0) {
+        const profit = sell - cost;
+        preview.textContent = fmt(profit);
+        preview.className = 'text-lg font-bold ' + (profit >= 0 ? 'text-emerald-600' : 'text-rose-600');
+      } else {
+        preview.textContent = '—';
+        preview.className = 'text-lg font-bold text-slate-400';
+      }
     }
 
     // Fill Product Form when Editing
