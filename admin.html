@@ -521,7 +521,10 @@
     let sbClient = null;
     let productsList = [];
     let posCart = [];
-    let currentHtml5Qrcode = null;
+    let posScanner = null;
+    let formScanner = null;
+    let posScannerRunning = false;
+    let formScannerRunning = false;
     let editingProduct = null;
 
     // Helper: Format Currency
@@ -601,9 +604,10 @@
           });
           document.getElementById('tab-' + target).classList.remove('hidden');
           
-          if (currentHtml5Qrcode) {
-            currentHtml5Qrcode.stop().then(() => {
-              const laser = document.querySelector(`#${currentHtml5Qrcode.elementId} .scanner-laser`);
+          if (posScannerRunning && posScanner) {
+            posScanner.stop().then(() => {
+              posScannerRunning = false;
+              const laser = document.querySelector('#pos-scanner .scanner-laser');
               if (laser) laser.classList.add('hidden');
               document.getElementById('pos-scanner').classList.add('hidden');
               document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
@@ -630,8 +634,9 @@
 
       function closeModal() {
         document.getElementById('productModal').close();
-        if (currentHtml5Qrcode) {
-          currentHtml5Qrcode.stop().then(() => {
+        if (formScannerRunning && formScanner) {
+          formScanner.stop().then(() => {
+            formScannerRunning = false;
             document.getElementById('form-scanner-container').classList.add('hidden');
           }).catch(e => {});
         }
@@ -676,30 +681,84 @@
       });
 
       // Product Scan in Form
-      document.getElementById('btnScanInForm').addEventListener('click', () => {
+      document.getElementById('btnScanInForm').addEventListener('click', async () => {
         document.getElementById('form-scanner-container').classList.remove('hidden');
-        startBarcodeScanner('form-scanner', (code) => {
-          document.getElementById('prodBarcode').value = code;
-          // Look up if code exists to auto-fill or suggest
-          const found = productsList.find(p => p.barcode === code);
-          if (found) {
-            if (confirm(`พบสินค้าบาร์โค้ดนี้อยู่แล้ว: ${found.name} ต้องการดึงข้อมูลขึ้นมาแก้ไขหรือไม่?`)) {
-              fillProductForm(found);
-            }
-          }
-          // Stop scanning
-          currentHtml5Qrcode.stop().then(() => {
-            document.getElementById('form-scanner-container').classList.add('hidden');
-          }).catch(e => {});
-        });
+
+        if (posScannerRunning && posScanner) {
+          try {
+            await posScanner.stop();
+            posScannerRunning = false;
+          } catch (e) {}
+        }
+
+        if (formScannerRunning) return;
+
+        if (!formScanner) {
+          formScanner = new Html5Qrcode('form-scanner');
+        }
+
+        const laser = document.querySelector('#form-scanner .scanner-laser');
+        if (laser) laser.classList.remove('hidden');
+
+        try {
+          await formScanner.start(
+            { facingMode: "environment" },
+            {
+              fps: 30,
+              qrbox: (width, height) => {
+                const w = Math.min(width, height) * 0.85;
+                const h = w * 0.45;
+                return { width: w, height: h };
+              },
+              formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.QR_CODE
+              ],
+              rememberLastUsedCamera: true,
+              aspectRatio: 1.777778
+            },
+            async (code) => {
+              playScanSound();
+              if (laser) laser.classList.add('hidden');
+              document.getElementById('prodBarcode').value = code;
+
+              // Stop scanning
+              if (formScannerRunning && formScanner) {
+                try {
+                  await formScanner.stop();
+                  formScannerRunning = false;
+                  document.getElementById('form-scanner-container').classList.add('hidden');
+                } catch (e) {}
+              }
+
+              // Look up if code exists to auto-fill or suggest
+              const found = productsList.find(p => p.barcode === code);
+              if (found) {
+                if (confirm(`พบสินค้าบาร์โค้ดนี้อยู่แล้ว: ${found.name} ต้องการดึงข้อมูลขึ้นมาแก้ไขหรือไม่?`)) {
+                  fillProductForm(found);
+                }
+              }
+            },
+            (errorMessage) => {}
+          );
+          formScannerRunning = true;
+        } catch (err) {
+          console.error("Camera start error: ", err);
+          alert("ไม่สามารถเปิดกล้องได้: " + err);
+          if (laser) laser.classList.add('hidden');
+        }
       });
 
-      document.getElementById('btnStopFormScan').addEventListener('click', () => {
-        if (currentHtml5Qrcode) {
-          currentHtml5Qrcode.stop().then(() => {
-            document.getElementById('form-scanner-container').classList.add('hidden');
-          }).catch(e => {});
+      document.getElementById('btnStopFormScan').addEventListener('click', async () => {
+        if (formScannerRunning && formScanner) {
+          try {
+            await formScanner.stop();
+            formScannerRunning = false;
+          } catch (e) {}
         }
+        document.getElementById('form-scanner-container').classList.add('hidden');
       });
 
       // Save/Submit Product CRUD Form
@@ -739,23 +798,70 @@
       });
 
       // POS Scanning Buttons
-      document.getElementById('btnStartPosScan').addEventListener('click', () => {
+      document.getElementById('btnStartPosScan').addEventListener('click', async () => {
         document.getElementById('pos-scanner').classList.remove('hidden');
         document.getElementById('pos-scanner-placeholder').classList.add('hidden');
         document.getElementById('btnStopPosScan').classList.remove('hidden');
-        startBarcodeScanner('pos-scanner', (code) => {
-          handlePosBarcodeScanned(code);
-        });
+
+        if (formScannerRunning && formScanner) {
+          try {
+            await formScanner.stop();
+            formScannerRunning = false;
+          } catch (e) {}
+        }
+
+        if (posScannerRunning) return;
+
+        if (!posScanner) {
+          posScanner = new Html5Qrcode('pos-scanner');
+        }
+
+        const laser = document.querySelector('#pos-scanner .scanner-laser');
+        if (laser) laser.classList.remove('hidden');
+
+        try {
+          await posScanner.start(
+            { facingMode: "environment" },
+            {
+              fps: 30,
+              qrbox: (width, height) => {
+                const w = Math.min(width, height) * 0.85;
+                const h = w * 0.45;
+                return { width: w, height: h };
+              },
+              formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.QR_CODE
+              ],
+              rememberLastUsedCamera: true,
+              aspectRatio: 1.777778
+            },
+            (code) => {
+              playScanSound();
+              handlePosBarcodeScanned(code);
+            },
+            (errorMessage) => {}
+          );
+          posScannerRunning = true;
+        } catch (err) {
+          console.error("Camera start error: ", err);
+          alert("ไม่สามารถเปิดกล้องได้: " + err);
+          if (laser) laser.classList.add('hidden');
+        }
       });
 
-      document.getElementById('btnStopPosScan').addEventListener('click', () => {
-        if (currentHtml5Qrcode) {
-          currentHtml5Qrcode.stop().then(() => {
-            document.getElementById('pos-scanner').classList.add('hidden');
-            document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
-            document.getElementById('btnStopPosScan').classList.add('hidden');
-          }).catch(e => {});
+      document.getElementById('btnStopPosScan').addEventListener('click', async () => {
+        if (posScannerRunning && posScanner) {
+          try {
+            await posScanner.stop();
+            posScannerRunning = false;
+          } catch (e) {}
         }
+        document.getElementById('pos-scanner').classList.add('hidden');
+        document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
+        document.getElementById('btnStopPosScan').classList.add('hidden');
       });
 
       // POS Manual Search Input
@@ -1370,52 +1476,7 @@
       renderProductsTable(filtered);
     }
 
-    // Scanner Logic (HTML5 QR Code) - OPTIMIZED FOR FAST PERFORMANCE
-    function startBarcodeScanner(elementId, onScanSuccess) {
-      if (currentHtml5Qrcode) {
-        currentHtml5Qrcode.stop().catch(() => {});
-      }
-
-      // Show laser overlay
-      const container = document.getElementById(elementId);
-      const laser = container ? container.querySelector('.scanner-laser') : null;
-      if (laser) laser.classList.remove('hidden');
-
-      currentHtml5Qrcode = new Html5Qrcode(elementId);
-      currentHtml5Qrcode.start(
-        { facingMode: "environment" },
-        {
-          fps: 30, // Higher fps (30 instead of 15) for much faster frames processing
-          qrbox: (width, height) => {
-            const w = Math.min(width, height) * 0.85;
-            const h = w * 0.45; // wide box ideal for grocery barcodes
-            return { width: w, height: h };
-          },
-          // Speed up scanning by specifying exactly which formats to search for
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.QR_CODE
-          ],
-          rememberLastUsedCamera: true,
-          aspectRatio: 1.777778
-        },
-        (decodedText) => {
-          // Play a small beep sound to notify scan
-          playScanSound();
-          if (laser) laser.classList.add('hidden');
-          onScanSuccess(decodedText);
-        },
-        (errorMessage) => {
-          // just debug / skip frame
-        }
-      ).catch(err => {
-        console.error("Camera start error: ", err);
-        alert("ไม่สามารถเปิดกล้องได้: " + err);
-        if (laser) laser.classList.add('hidden');
-      });
-    }
+    // startBarcodeScanner removed (replaced by dedicated posScanner and formScanner instance handlers to avoid async stop collisions)
 
     // Simple beep sound using Web Audio API
     function playScanSound() {
@@ -1443,6 +1504,14 @@
       } else {
         // If not found, prompt to add new product
         if (confirm(`ไม่พบสินค้าบาร์โค้ด: ${code} ในฐานข้อมูล ต้องการเพิ่มสินค้าใหม่หรือไม่?`)) {
+          if (posScannerRunning && posScanner) {
+            posScanner.stop().then(() => {
+              posScannerRunning = false;
+              document.getElementById('pos-scanner').classList.add('hidden');
+              document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
+              document.getElementById('btnStopPosScan').classList.add('hidden');
+            }).catch(e => {});
+          }
           editingProduct = null;
           document.getElementById('modalTitle').textContent = 'เพิ่มสินค้าใหม่';
           document.getElementById('productForm').reset();
