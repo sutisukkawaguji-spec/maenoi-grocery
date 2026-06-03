@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ระบบหลังบ้าน — ร้านแม่น้อย บ้านดอนขี</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- HTML5 QR Code Scanner -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Crypto JS for Cloudinary signatures -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="js/config.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans Thai', 'Outfit', system-ui, -apple-system, sans-serif;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .tab-btn.active {
+      background-color: #10b981;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- Setup Screen (Overlay if not configured) -->
+  <div id="setupOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 text-2xl">⚙️</div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">ตั้งค่าระบบเชื่อมต่อ (ครั้งแรก)</h2>
+          <p class="text-xs text-slate-500">กรอกข้อมูลการเชื่อมต่อฐานข้อมูลและรูปภาพเพื่อเริ่มใช้งาน</p>
+        </div>
+      </div>
+      <form id="setupForm" class="space-y-4 text-sm">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Supabase URL</label>
+          <input type="url" id="setupSupabaseUrl" required placeholder="https://xxxx.supabase.co" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Supabase Anon Key</label>
+          <input type="password" id="setupSupabaseAnonKey" required placeholder="eyJhbGciOi..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <div class="border-t border-slate-100 pt-4">
+          <label class="block font-semibold text-slate-700 mb-1">Cloudinary Cloud Name</label>
+          <input type="text" id="setupCloudinaryCloudName" required placeholder="เช่น maenoi-grocery" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Cloudinary Upload Preset (Unsigned)</label>
+          <input type="text" id="setupCloudinaryPreset" required placeholder="เช่น ml_default" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          <p class="text-slate-400 text-[11px] mt-0.5">ต้องตั้งค่าใน Cloudinary -> Settings -> Upload -> Enable Unsigned Uploads</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Cloudinary API Key</label>
+            <input type="text" id="setupCloudinaryApiKey" placeholder="ระบุเพื่อรองรับการลบรูป" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Cloudinary API Secret</label>
+            <input type="password" id="setupCloudinaryApiSecret" placeholder="ระบุเพื่อรองรับการลบรูป" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+        </div>
+        <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">เบอร์ PromptPay รับเงิน</label>
+            <input type="text" id="setupPromptPay" required placeholder="เช่น 0880699227" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">รหัส PIN เข้าหลังบ้าน (4 หลัก)</label>
+            <input type="password" maxlength="4" pattern="[0-9]{4}" id="setupPin" required placeholder="1234" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-center text-lg font-bold tracking-widest focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+        </div>
+        <div class="pt-3">
+          <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base transition-colors shadow-lg shadow-emerald-600/20">บันทึกและเริ่มใช้งาน</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Login Screen -->
+  <div id="loginOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 text-center border border-slate-100">
+      <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 text-3xl mx-auto mb-4">🔐</div>
+      <h2 class="text-xl font-bold text-slate-900 mb-1">เข้าสู่ระบบร้านแม่น้อย</h2>
+      <p class="text-sm text-slate-500 mb-6">กรอกรหัส PIN 4 หลักเพื่อความปลอดภัย</p>
+      
+      <div class="flex justify-center gap-3 mb-6">
+        <input type="password" maxlength="1" class="pin-box w-12 h-14 text-2xl font-bold text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" autofocus />
+        <input type="password" maxlength="1" class="pin-box w-12 h-14 text-2xl font-bold text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" disabled />
+        <input type="password" maxlength="1" class="pin-box w-12 h-14 text-2xl font-bold text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" disabled />
+        <input type="password" maxlength="1" class="pin-box w-12 h-14 text-2xl font-bold text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" disabled />
+      </div>
+      <p id="loginError" class="text-rose-500 text-sm hidden mb-4">รหัส PIN ไม่ถูกต้อง ลองอีกครั้ง</p>
+      
+      <button id="btnOpenSetupFromLogin" class="text-xs text-slate-400 hover:text-emerald-600 underline">ตั้งค่าระบบเชื่อมต่อใหม่</button>
+    </div>
+  </div>
+
+  <!-- Main Dashboard (Admin Panel) -->
+  <div id="adminPanel" class="hidden min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">M</div>
+          <div>
+            <h1 class="text-lg font-bold leading-tight">ระบบหลังบ้านร้านแม่น้อย</h1>
+            <p class="text-xs text-slate-500">จัดการร้านค้า • สต็อกบาร์โค้ด • ระบบสแกนคิดเงิน POS</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnOpenSettings" class="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors" title="ตั้งค่าระบบ">⚙️</button>
+          <button id="btnLogout" class="px-4 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-xl text-sm font-semibold text-slate-600 transition-colors">ออกจากระบบ</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Tabs Navigation -->
+      <aside class="lg:col-span-3 flex flex-col gap-2">
+        <button data-tab="pos" class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all active">
+          <span class="text-lg">🛒</span> ระบบคิดเงิน POS
+        </button>
+        <button data-tab="products" class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
+          <span class="text-lg">📦</span> จัดการสินค้า
+        </button>
+        <button data-tab="stock" class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all relative">
+          <span class="text-lg">🚨</span> สินค้าเหลือน้อย 
+          <span id="lowStockBadge" class="hidden absolute right-4 px-2 py-0.5 rounded-full bg-rose-500 text-white text-xxs font-bold">0</span>
+        </button>
+        <button data-tab="subscribers" class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
+          <span class="text-lg">✉️</span> รายชื่อสมัครข่าวสาร
+        </button>
+
+        <div class="mt-auto p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-800 text-xs">
+          <strong>💡 คำแนะนำสแกนบาร์โค้ด</strong>
+          <p class="mt-1">สามารถใช้กล้องมือถือสแกนบาร์โค้ดของสินค้าเพื่อค้นหาหรือเพิ่มเข้าคลังได้อย่างรวดเร็วผ่านเมนู POS และระบบคลังสินค้า</p>
+        </div>
+      </aside>
+
+      <!-- Main Dashboard Content Area -->
+      <main class="lg:col-span-9">
+
+        <!-- TAB: POS (Point of Sale) -->
+        <section id="tab-pos" class="tab-content space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <!-- Left Side: POS Scan & Product Search -->
+            <div class="md:col-span-7 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+              <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">🛒 คิดเงินลูกค้าหน้าร้าน</h2>
+              
+              <!-- Scan Barcode Box -->
+              <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 flex flex-col items-center justify-center min-h-[200px] relative overflow-hidden">
+                <div id="pos-scanner" class="w-full max-w-[280px] aspect-square rounded-xl overflow-hidden bg-black hidden"></div>
+                <div id="pos-scanner-placeholder" class="text-center py-6">
+                  <div class="text-5xl mb-3">📷</div>
+                  <button id="btnStartPosScan" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-md shadow-emerald-600/10">เปิดกล้องสแกนบาร์โค้ด / QR</button>
+                </div>
+                <button id="btnStopPosScan" class="absolute top-2 right-2 px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg text-xs hidden transition-colors">ปิดกล้อง</button>
+              </div>
+
+              <!-- Manual Product Selection -->
+              <div>
+                <label class="block text-sm font-semibold text-slate-600 mb-1">ค้นหาด่วน/เลือกสินค้า</label>
+                <div class="relative">
+                  <input type="text" id="posSearchInput" placeholder="พิมพ์ชื่อสินค้า หรือ สแกนบาร์โค้ด" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" />
+                  <span class="absolute left-3.5 top-3.5 text-slate-400">🔍</span>
+                </div>
+                <!-- Search Result Dropdown -->
+                <div id="posSearchResults" class="mt-2 max-h-48 overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-100 bg-white hidden custom-scrollbar"></div>
+              </div>
+            </div>
+
+            <!-- Right Side: POS Bill & Cart -->
+            <div class="md:col-span-5 flex flex-col bg-white rounded-3xl p-6 border border-slate-100 shadow-sm max-h-[600px] justify-between">
+              <div>
+                <h3 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3 mb-3 flex items-center justify-between">
+                  <span>รายการสั่งซื้อ</span>
+                  <button id="btnClearPosCart" class="text-xs text-rose-500 hover:underline">ล้างทั้งหมด</button>
+                </h3>
+                <!-- POS Cart List -->
+                <div id="posCartList" class="space-y-3 overflow-y-auto max-h-[300px] pr-1 custom-scrollbar">
+                  <div class="text-center py-10 text-slate-400 text-sm">ยังไม่มีสินค้าในบิล</div>
+                </div>
+              </div>
+
+              <!-- POS Total & Checkout -->
+              <div class="border-t border-slate-100 pt-4 mt-4 space-y-4">
+                <div class="flex items-center justify-between font-bold text-slate-900">
+                  <span class="text-sm text-slate-500">ยอดรวมทั้งสิ้น</span>
+                  <span id="posTotal" class="text-2xl text-emerald-600">฿0</span>
+                </div>
+                <button id="btnPosCheckout" disabled class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-base transition-colors shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed">สร้าง Dynamic QR Code ชำระเงิน</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: Product Management -->
+        <section id="tab-products" class="tab-content space-y-6 hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold text-slate-900">📦 จัดการสินค้าทั้งหมด</h2>
+              <p class="text-sm text-slate-500">เพิ่ม ลบ แก้ไข ข้อมูลสต็อก บาร์โค้ด และรูปภาพสินค้า</p>
+            </div>
+            <button id="btnOpenAddProduct" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-600/15">➕ เพิ่มสินค้าใหม่</button>
+          </div>
+
+          <!-- Product Table & Search Filters -->
+          <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <input type="text" id="prodSearchInput" placeholder="ค้นหาตามชื่อสินค้า หรือ บาร์โค้ด..." class="sm:col-span-8 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+              <select id="prodCategoryFilter" class="sm:col-span-4 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                <option value="">ทุกหมวดหมู่</option>
+              </select>
+            </div>
+
+            <!-- Product Table -->
+            <div class="overflow-x-auto rounded-2xl border border-slate-100">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                    <th class="py-3.5 px-4">รูปภาพ / รายละเอียด</th>
+                    <th class="py-3.5 px-4">บาร์โค้ด</th>
+                    <th class="py-3.5 px-4 text-center">หมวดหมู่</th>
+                    <th class="py-3.5 px-4 text-right">ราคา</th>
+                    <th class="py-3.5 px-4 text-center">สต็อก (ชิ้น)</th>
+                    <th class="py-3.5 px-4 text-center">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="prodTableBody" class="divide-y divide-slate-100">
+                  <tr>
+                    <td colspan="6" class="text-center py-10 text-slate-400">กำลังโหลดรายการสินค้า...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: Stock Alerts -->
+        <section id="tab-stock" class="tab-content space-y-6 hidden">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900">🚨 รายการสินค้าเหลือน้อย</h2>
+            <p class="text-sm text-slate-500">ระบบคัดกรองเฉพาะสินค้าที่มีจำนวนสต็อกน้อยกว่าหรือเท่ากับจุดแจ้งเตือนของหมด</p>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+            <div class="overflow-x-auto rounded-2xl border border-slate-100">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                    <th class="py-3.5 px-4">รูปภาพ / ชื่อสินค้า</th>
+                    <th class="py-3.5 px-4 text-center">สต็อกปัจจุบัน</th>
+                    <th class="py-3.5 px-4 text-center">จุดแจ้งเตือน</th>
+                    <th class="py-3.5 px-4 text-center">เพิ่มสต็อกทันที</th>
+                  </tr>
+                </thead>
+                <tbody id="lowStockTableBody" class="divide-y divide-slate-100">
+                  <tr>
+                    <td colspan="4" class="text-center py-10 text-slate-400">ไม่มีรายการสินค้าที่ต้องเติมสต็อก</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: Subscribers -->
+        <section id="tab-subscribers" class="tab-content space-y-6 hidden">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900">✉️ ลูกค้าที่สมัครรับข่าวสาร / โปรโมชั่น</h2>
+            <p class="text-sm text-slate-500">รายชื่อเบอร์โทรศัพท์หรือช่องทางติดต่อที่ลูกค้ากรอกหน้าเว็บเพื่อสมัครรับข้อมูล</p>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-500 font-medium">ทั้งหมด <span id="subscriberCount" class="font-bold text-slate-700">0</span> รายการ</span>
+              <button id="btnExportSubscribers" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors">📥 ดาวน์โหลดเป็น CSV</button>
+            </div>
+            
+            <div class="overflow-x-auto rounded-2xl border border-slate-100">
+              <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                    <th class="py-3.5 px-4">ช่องทางติดต่อ</th>
+                    <th class="py-3.5 px-4 text-center">วันที่ลงทะเบียน</th>
+                    <th class="py-3.5 px-4 text-center">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="subscriberTableBody" class="divide-y divide-slate-100">
+                  <tr>
+                    <td colspan="3" class="text-center py-10 text-slate-400">กำลังโหลดรายชื่อผู้รับข้อมูล...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: Add / Edit Product -->
+  <dialog id="productModal" class="p-0 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 md:p-8 space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h3 id="modalTitle" class="text-lg font-bold text-slate-900">เพิ่มสินค้าใหม่</h3>
+        <button id="btnCloseModal" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+
+      <form id="productForm" class="space-y-4 text-sm">
+        <input type="hidden" id="prodId" />
+        
+        <!-- Product Barcode Scanning Inside Form -->
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">รหัสบาร์โค้ดสินค้า (สแกนจากกล้องได้)</label>
+          <div class="flex gap-2">
+            <input type="text" id="prodBarcode" placeholder="เช่น 8850999..." class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+            <button type="button" id="btnScanInForm" class="px-4 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-colors">📷 สแกน</button>
+          </div>
+          <!-- Scanning Area in Form -->
+          <div id="form-scanner-container" class="mt-2 rounded-xl border overflow-hidden hidden relative">
+            <div id="form-scanner" class="w-full aspect-[4/3] bg-black"></div>
+            <button type="button" id="btnStopFormScan" class="absolute top-2 right-2 px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg text-xs">ปิด</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block font-semibold text-slate-600 mb-1">ชื่อสินค้า</label>
+            <input type="text" id="prodName" required placeholder="เช่น นมถั่วเหลือง ดีน่า 230 มล." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">ราคา (บาท)</label>
+            <input type="number" step="any" id="prodPrice" required placeholder="12" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">หน่วยขาย</label>
+            <input type="text" id="prodUnit" required placeholder="เช่น ขวด, กล่อง, แพ็ก" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">หมวดหมู่</label>
+            <input type="text" id="prodCategory" required placeholder="เช่น เครื่องดื่ม, ของแห้ง" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">สต็อกแรกเริ่ม (ชิ้น)</label>
+            <input type="number" id="prodStock" required placeholder="24" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div class="col-span-2">
+            <label class="block font-semibold text-slate-600 mb-1">จำนวนที่ต้องเริ่มแจ้งเตือนของหมด (ชิ้น)</label>
+            <input type="number" id="prodThreshold" required placeholder="5" value="5" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+        </div>
+
+        <!-- Cloudinary Upload Container -->
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">รูปภาพสินค้า</label>
+          <div class="flex items-center gap-4">
+            <div id="imagePreview" class="w-20 h-20 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center text-slate-400">
+              🖼️
+            </div>
+            <div class="flex-1">
+              <input type="file" id="prodImageFile" accept="image/*" class="hidden" />
+              <button type="button" id="btnTriggerUpload" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-colors text-xs">📷 อัปโหลดรูปภาพ</button>
+              <p class="text-[11px] text-slate-400 mt-1">รูปภาพจะถูกอัปโหลดเก็บเข้า Cloudinary อัตโนมัติ</p>
+              <input type="hidden" id="prodImageUrl" />
+              <input type="hidden" id="prodImagePublicId" />
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex gap-3">
+          <button type="button" id="btnCancelProduct" class="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold transition-colors">ยกเลิก</button>
+          <button type="submit" id="btnSaveProduct" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- MODAL: Dynamic PromptPay QR Checkout -->
+  <dialog id="posCheckoutModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 text-center space-y-4">
+      <div class="flex justify-between items-center border-b pb-3 mb-2">
+        <h3 class="font-bold text-slate-900 text-base">ชำระเงินผ่าน PromptPay</h3>
+        <button id="btnCloseCheckoutModal" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      
+      <!-- Dynamic QR Image -->
+      <div class="border rounded-2xl p-4 bg-white inline-block">
+        <img id="checkoutQrImg" src="" alt="Dynamic PromptPay QR" class="w-56 h-56 mx-auto object-contain" />
+      </div>
+      
+      <div>
+        <span class="text-xs text-slate-400 block">ยอดรวมทั้งสิ้น</span>
+        <strong id="checkoutAmountText" class="text-3xl text-emerald-600 font-bold font-mono">฿0.00</strong>
+      </div>
+      
+      <div class="bg-emerald-50 rounded-xl p-3 text-emerald-800 text-xs flex items-center justify-center gap-2">
+        <span>✨</span>
+        <span>สแกนแล้ว ยอดชำระจะขึ้นให้บนแอปพลิเคชันธนาคารทันที</span>
+      </div>
+
+      <div class="pt-2 flex gap-2">
+        <button id="btnConfirmPaySuccess" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors">ชำระเงินสำเร็จ (บันทึกและตัดสต็อก)</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    // System Global States
+    let sbClient = null;
+    let productsList = [];
+    let posCart = [];
+    let currentHtml5Qrcode = null;
+    let editingProduct = null;
+
+    // Helper: Format Currency
+    const fmt = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(n);
+
+    // Initial check and routing
+    document.addEventListener('DOMContentLoaded', () => {
+      initApp();
+      setupEventListeners();
+    });
+
+    function initApp() {
+      // 1. Check Configuration
+      if (!AppConfig.isConfigured()) {
+        document.getElementById('setupOverlay').classList.remove('hidden');
+        document.getElementById('loginOverlay').classList.add('hidden');
+        const c = AppConfig.get();
+        document.getElementById('setupSupabaseUrl').value = c.supabaseUrl;
+        document.getElementById('setupSupabaseAnonKey').value = c.supabaseAnonKey;
+        document.getElementById('setupCloudinaryCloudName').value = c.cloudinaryCloudName;
+        document.getElementById('setupCloudinaryPreset').value = c.cloudinaryUploadPreset;
+        document.getElementById('setupCloudinaryApiKey').value = c.cloudinaryApiKey;
+        document.getElementById('setupCloudinaryApiSecret').value = c.cloudinaryApiSecret;
+        document.getElementById('setupPromptPay').value = c.promptpayId;
+        document.getElementById('setupPin').value = c.adminPin;
+      } else {
+        // Show PIN Login Overlay
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        document.getElementById('setupOverlay').classList.add('hidden');
+      }
+    }
+
+    // Initialize Supabase Client
+    function initSupabase() {
+      const c = AppConfig.get();
+      if (!c.supabaseUrl || !c.supabaseAnonKey) return false;
+      sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
+      return true;
+    }
+
+    // Setup UI Action Listeners
+    function setupEventListeners() {
+      // Setup Form
+      document.getElementById('setupForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        AppConfig.save({
+          supabaseUrl: document.getElementById('setupSupabaseUrl').value,
+          supabaseAnonKey: document.getElementById('setupSupabaseAnonKey').value,
+          cloudinaryCloudName: document.getElementById('setupCloudinaryCloudName').value,
+          cloudinaryUploadPreset: document.getElementById('setupCloudinaryPreset').value,
+          cloudinaryApiKey: document.getElementById('setupCloudinaryApiKey').value,
+          cloudinaryApiSecret: document.getElementById('setupCloudinaryApiSecret').value,
+          promptpayId: document.getElementById('setupPromptPay').value,
+          adminPin: document.getElementById('setupPin').value
+        });
+        alert('บันทึกการตั้งค่าแล้ว');
+        document.getElementById('setupOverlay').classList.add('hidden');
+        document.getElementById('loginOverlay').classList.remove('hidden');
+      });
+
+      document.getElementById('btnOpenSetupFromLogin').addEventListener('click', () => {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('setupOverlay').classList.remove('hidden');
+      });
+
+      document.getElementById('btnOpenSettings').addEventListener('click', () => {
+        const c = AppConfig.get();
+        document.getElementById('setupSupabaseUrl').value = c.supabaseUrl;
+        document.getElementById('setupSupabaseAnonKey').value = c.supabaseAnonKey;
+        document.getElementById('setupCloudinaryCloudName').value = c.cloudinaryCloudName;
+        document.getElementById('setupCloudinaryPreset').value = c.cloudinaryUploadPreset;
+        document.getElementById('setupCloudinaryApiKey').value = c.cloudinaryApiKey;
+        document.getElementById('setupCloudinaryApiSecret').value = c.cloudinaryApiSecret;
+        document.getElementById('setupPromptPay').value = c.promptpayId;
+        document.getElementById('setupPin').value = c.adminPin;
+        document.getElementById('setupOverlay').classList.remove('hidden');
+      });
+
+      // Login PIN functionality
+      const pinBoxes = document.querySelectorAll('.pin-box');
+      pinBoxes.forEach((box, idx) => {
+        box.addEventListener('input', (e) => {
+          if (e.target.value.length === 1 && idx < pinBoxes.length - 1) {
+            pinBoxes[idx + 1].disabled = false;
+            pinBoxes[idx + 1].focus();
+          }
+          checkPinComplete();
+        });
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && idx > 0 && e.target.value.length === 0) {
+            pinBoxes[idx].disabled = true;
+            pinBoxes[idx - 1].focus();
+            pinBoxes[idx - 1].value = '';
+          }
+        });
+      });
+
+      function checkPinComplete() {
+        let enteredPin = '';
+        pinBoxes.forEach(b => enteredPin += b.value);
+        if (enteredPin.length === 4) {
+          const c = AppConfig.get();
+          if (enteredPin === c.adminPin) {
+            // Login Success
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+            document.getElementById('loginError').classList.add('hidden');
+            if (initSupabase()) {
+              loadDashboardData();
+            }
+          } else {
+            // Error
+            document.getElementById('loginError').classList.remove('hidden');
+            pinBoxes.forEach((b, i) => {
+              b.value = '';
+              b.disabled = i !== 0;
+            });
+            pinBoxes[0].focus();
+          }
+        }
+      }
+
+      // Logout
+      document.getElementById('btnLogout').addEventListener('click', () => {
+        pinBoxes.forEach((b, i) => {
+          b.value = '';
+          b.disabled = i !== 0;
+        });
+        document.getElementById('adminPanel').classList.add('hidden');
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        if (currentHtml5Qrcode) {
+          currentHtml5Qrcode.stop().catch(err => {});
+          currentHtml5Qrcode = null;
+        }
+      });
+
+      // Tabs switcher
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          const target = tab.getAttribute('data-tab');
+          
+          document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+          });
+          document.getElementById('tab-' + target).classList.remove('hidden');
+          
+          if (currentHtml5Qrcode) {
+            currentHtml5Qrcode.stop().then(() => {
+              document.getElementById('pos-scanner').classList.add('hidden');
+              document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
+              document.getElementById('btnStopPosScan').classList.add('hidden');
+            }).catch(e => {});
+          }
+        });
+      });
+
+      // Product Management Form Actions
+      document.getElementById('btnOpenAddProduct').addEventListener('click', () => {
+        editingProduct = null;
+        document.getElementById('modalTitle').textContent = 'เพิ่มสินค้าใหม่';
+        document.getElementById('productForm').reset();
+        document.getElementById('prodId').value = '';
+        document.getElementById('imagePreview').innerHTML = '🖼️';
+        document.getElementById('prodImageUrl').value = '';
+        document.getElementById('prodImagePublicId').value = '';
+        document.getElementById('productModal').showModal();
+      });
+
+      document.getElementById('btnCloseModal').addEventListener('click', closeModal);
+      document.getElementById('btnCancelProduct').addEventListener('click', closeModal);
+
+      function closeModal() {
+        document.getElementById('productModal').close();
+        if (currentHtml5Qrcode) {
+          currentHtml5Qrcode.stop().then(() => {
+            document.getElementById('form-scanner-container').classList.add('hidden');
+          }).catch(e => {});
+        }
+      }
+
+      // Cloudinary File Upload Integration
+      document.getElementById('btnTriggerUpload').addEventListener('click', () => {
+        document.getElementById('prodImageFile').click();
+      });
+
+      document.getElementById('prodImageFile').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const previewDiv = document.getElementById('imagePreview');
+        previewDiv.innerHTML = '<span class="text-xs">กำลังอัป...</span>';
+
+        const c = AppConfig.get();
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', c.cloudinaryUploadPreset);
+
+        try {
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (data.secure_url) {
+            previewDiv.innerHTML = `<img src="${data.secure_url}" class="w-full h-full object-cover" />`;
+            document.getElementById('prodImageUrl').value = data.secure_url;
+            document.getElementById('prodImagePublicId').value = data.public_id;
+          } else {
+            alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + (data.error?.message || 'Unknown error'));
+            previewDiv.innerHTML = '🖼️';
+          }
+        } catch (err) {
+          console.error(err);
+          alert('อัปโหลดรูปภาพผิดพลาด');
+          previewDiv.innerHTML = '🖼️';
+        }
+      });
+
+      // Product Scan in Form
+      document.getElementById('btnScanInForm').addEventListener('click', () => {
+        document.getElementById('form-scanner-container').classList.remove('hidden');
+        startBarcodeScanner('form-scanner', (code) => {
+          document.getElementById('prodBarcode').value = code;
+          // Look up if code exists to auto-fill or suggest
+          const found = productsList.find(p => p.barcode === code);
+          if (found) {
+            if (confirm(`พบสินค้าบาร์โค้ดนี้อยู่แล้ว: ${found.name} ต้องการดึงข้อมูลขึ้นมาแก้ไขหรือไม่?`)) {
+              fillProductForm(found);
+            }
+          }
+          // Stop scanning
+          currentHtml5Qrcode.stop().then(() => {
+            document.getElementById('form-scanner-container').classList.add('hidden');
+          }).catch(e => {});
+        });
+      });
+
+      document.getElementById('btnStopFormScan').addEventListener('click', () => {
+        if (currentHtml5Qrcode) {
+          currentHtml5Qrcode.stop().then(() => {
+            document.getElementById('form-scanner-container').classList.add('hidden');
+          }).catch(e => {});
+        }
+      });
+
+      // Save/Submit Product CRUD Form
+      document.getElementById('productForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('prodId').value;
+        const payload = {
+          barcode: document.getElementById('prodBarcode').value.trim() || null,
+          name: document.getElementById('prodName').value.trim(),
+          price: parseFloat(document.getElementById('prodPrice').value),
+          unit: document.getElementById('prodUnit').value.trim(),
+          category: document.getElementById('prodCategory').value.trim(),
+          stock: parseInt(document.getElementById('prodStock').value),
+          low_stock_threshold: parseInt(document.getElementById('prodThreshold').value),
+          image_url: document.getElementById('prodImageUrl').value.trim() || null,
+          image_public_id: document.getElementById('prodImagePublicId').value.trim() || null
+        };
+
+        try {
+          if (id) {
+            // Update
+            const { error } = await sbClient.from('products').update(payload).eq('id', id);
+            if (error) throw error;
+            alert('อัปเดตข้อมูลสินค้าสำเร็จ');
+          } else {
+            // Insert
+            const { error } = await sbClient.from('products').insert([payload]);
+            if (error) throw error;
+            alert('เพิ่มสินค้าเรียบร้อย');
+          }
+          closeModal();
+          loadDashboardData();
+        } catch (err) {
+          console.error(err);
+          alert('บันทึกสินค้าล้มเหลว: ' + err.message);
+        }
+      });
+
+      // POS Scanning Buttons
+      document.getElementById('btnStartPosScan').addEventListener('click', () => {
+        document.getElementById('pos-scanner').classList.remove('hidden');
+        document.getElementById('pos-scanner-placeholder').classList.add('hidden');
+        document.getElementById('btnStopPosScan').classList.remove('hidden');
+        startBarcodeScanner('pos-scanner', (code) => {
+          handlePosBarcodeScanned(code);
+        });
+      });
+
+      document.getElementById('btnStopPosScan').addEventListener('click', () => {
+        if (currentHtml5Qrcode) {
+          currentHtml5Qrcode.stop().then(() => {
+            document.getElementById('pos-scanner').classList.add('hidden');
+            document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
+            document.getElementById('btnStopPosScan').classList.add('hidden');
+          }).catch(e => {});
+        }
+      });
+
+      // POS Manual Search Input
+      const posSearch = document.getElementById('posSearchInput');
+      const posResults = document.getElementById('posSearchResults');
+      posSearch.addEventListener('input', () => {
+        const query = posSearch.value.trim().toLowerCase();
+        if (!query) {
+          posResults.classList.add('hidden');
+          return;
+        }
+
+        const filtered = productsList.filter(p => 
+          p.name.toLowerCase().includes(query) || 
+          (p.barcode && p.barcode.includes(query))
+        );
+
+        if (filtered.length > 0) {
+          posResults.innerHTML = filtered.map(p => `
+            <div class="pos-search-item p-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between" data-id="${p.id}">
+              <div class="flex items-center gap-3">
+                <img src="${p.image_url || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-12 h-10 object-cover rounded" />
+                <div>
+                  <div class="font-semibold text-slate-800">${p.name}</div>
+                  <div class="text-xs text-slate-500">บาร์โค้ด: ${p.barcode || 'ไม่มี'} | สต็อก: ${p.stock} ชิ้น</div>
+                </div>
+              </div>
+              <strong class="text-emerald-600">${fmt(p.price)}</strong>
+            </div>
+          `).join('');
+          posResults.classList.remove('hidden');
+        } else {
+          posResults.innerHTML = '<div class="p-4 text-center text-slate-400 text-sm">ไม่พบสินค้า</div>';
+          posResults.classList.remove('hidden');
+        }
+      });
+
+      // Click Search Item in POS Search Results
+      posResults.addEventListener('click', (e) => {
+        const item = e.target.closest('.pos-search-item');
+        if (!item) return;
+        const id = item.getAttribute('data-id');
+        const p = productsList.find(x => x.id == id);
+        if (p) {
+          addToPosCart(p);
+          posSearch.value = '';
+          posResults.classList.add('hidden');
+        }
+      });
+
+      // Cart Qty Modifiers & Remove
+      document.getElementById('posCartList').addEventListener('click', (e) => {
+        const incBtn = e.target.closest('.pos-qty-inc');
+        const decBtn = e.target.closest('.pos-qty-dec');
+        const removeBtn = e.target.closest('.pos-item-remove');
+        if (incBtn) {
+          const idx = parseInt(incBtn.getAttribute('data-idx'));
+          posCart[idx].qty++;
+          renderPosCart();
+        }
+        if (decBtn) {
+          const idx = parseInt(decBtn.getAttribute('data-idx'));
+          if (posCart[idx].qty > 1) {
+            posCart[idx].qty--;
+            renderPosCart();
+          }
+        }
+        if (removeBtn) {
+          const idx = parseInt(removeBtn.getAttribute('data-idx'));
+          posCart.splice(idx, 1);
+          renderPosCart();
+        }
+      });
+
+      document.getElementById('btnClearPosCart').addEventListener('click', () => {
+        posCart = [];
+        renderPosCart();
+      });
+
+      // POS Checkout Modal Action
+      document.getElementById('btnPosCheckout').addEventListener('click', () => {
+        const totalAmount = calculatePosTotal();
+        if (totalAmount <= 0) return;
+
+        const c = AppConfig.get();
+        const payloadStr = generatePromptPayPayload(c.promptpayId, totalAmount);
+        
+        // Generate QR code using free QR API
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payloadStr)}`;
+        document.getElementById('checkoutQrImg').src = qrUrl;
+        document.getElementById('checkoutAmountText').textContent = fmt(totalAmount);
+        document.getElementById('posCheckoutModal').showModal();
+      });
+
+      document.getElementById('btnCloseCheckoutModal').addEventListener('click', () => {
+        document.getElementById('posCheckoutModal').close();
+      });
+
+      document.getElementById('btnConfirmPaySuccess').addEventListener('click', async () => {
+        // Complete payment: decrement stock in Supabase for each item
+        const updates = posCart.map(item => {
+          const newStock = Math.max(0, item.product.stock - item.qty);
+          return sbClient.from('products').update({ stock: newStock }).eq('id', item.product.id);
+        });
+
+        try {
+          await Promise.all(updates);
+          alert('ตัดสต็อกและบันทึกรายการขายเรียบร้อย!');
+          document.getElementById('posCheckoutModal').close();
+          posCart = [];
+          renderPosCart();
+          loadDashboardData();
+        } catch (err) {
+          console.error(err);
+          alert('เกิดข้อผิดพลาดในการตัดสต็อก: ' + err.message);
+        }
+      });
+
+      // Table events (Edit / Delete)
+      document.getElementById('prodTableBody').addEventListener('click', async (e) => {
+        const editBtn = e.target.closest('.btn-edit-prod');
+        const deleteBtn = e.target.closest('.btn-delete-prod');
+
+        if (editBtn) {
+          const id = editBtn.getAttribute('data-id');
+          const p = productsList.find(x => x.id == id);
+          if (p) fillProductForm(p);
+        }
+
+        if (deleteBtn) {
+          const id = deleteBtn.getAttribute('data-id');
+          const p = productsList.find(x => x.id == id);
+          if (!p) return;
+
+          if (confirm(`คุณแน่ใจว่าต้องการลบสินค้า "${p.name}"? การลบนี้จะทำการลบรูปภาพบน Cloudinary ด้วย`)) {
+            try {
+              // Delete Cloudinary image first if exists
+              if (p.image_public_id) {
+                await deleteCloudinaryImage(p.image_public_id);
+              }
+
+              // Delete from Supabase
+              const { error } = await sbClient.from('products').delete().eq('id', id);
+              if (error) throw error;
+
+              alert('ลบสินค้าสำเร็จ');
+              loadDashboardData();
+            } catch (err) {
+              console.error(err);
+              alert('การลบล้มเหลว: ' + err.message);
+            }
+          }
+        }
+      });
+
+      // Low Stock Fast Increment Button
+      document.getElementById('lowStockTableBody').addEventListener('click', async (e) => {
+        const refillBtn = e.target.closest('.btn-refill-stock');
+        if (refillBtn) {
+          const id = refillBtn.getAttribute('data-id');
+          const qty = parseInt(refillBtn.getAttribute('data-qty'));
+          const p = productsList.find(x => x.id == id);
+          if (!p) return;
+
+          const newStock = p.stock + qty;
+          try {
+            const { error } = await sbClient.from('products').update({ stock: newStock }).eq('id', id);
+            if (error) throw error;
+            loadDashboardData();
+          } catch (err) {
+            console.error(err);
+            alert('เติมสต็อกไม่สำเร็จ: ' + err.message);
+          }
+        }
+      });
+
+      // Subscriber Actions (Delete)
+      document.getElementById('subscriberTableBody').addEventListener('click', async (e) => {
+        const deleteBtn = e.target.closest('.btn-delete-sub');
+        if (deleteBtn) {
+          const id = deleteBtn.getAttribute('data-id');
+          if (confirm('ต้องการลบรายชื่อนี้หรือไม่?')) {
+            try {
+              const { error } = await sbClient.from('subscribers').delete().eq('id', id);
+              if (error) throw error;
+              alert('ลบรายชื่อผู้รับข่าวสารสำเร็จ');
+              loadDashboardData();
+            } catch (err) {
+              alert('ลบล้มเหลว: ' + err.message);
+            }
+          }
+        }
+      });
+
+      // Export Subscribers CSV
+      document.getElementById('btnExportSubscribers').addEventListener('click', () => {
+        exportSubscribersToCsv();
+      });
+
+      // Filters
+      document.getElementById('prodSearchInput').addEventListener('input', filterProductsTable);
+      document.getElementById('prodCategoryFilter').addEventListener('change', filterProductsTable);
+    }
+
+    // Load All Data from Supabase
+    async function loadDashboardData() {
+      if (!sbClient) return;
+
+      try {
+        // Load Products
+        const { data: prods, error: prodErr } = await sbClient
+          .from('products')
+          .select('*')
+          .order('name', { ascending: true });
+        if (prodErr) throw prodErr;
+        productsList = prods || [];
+
+        // Load Subscribers
+        const { data: subs, error: subErr } = await sbClient
+          .from('subscribers')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (subErr) throw subErr;
+
+        // Render UI
+        renderProductsTable(productsList);
+        renderLowStockTable(productsList);
+        renderSubscribersTable(subs || []);
+        populateCategoriesFilter(productsList);
+
+      } catch (err) {
+        console.error(err);
+        alert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message);
+      }
+    }
+
+    // Render Product Table
+    function renderProductsTable(list) {
+      const tbody = document.getElementById('prodTableBody');
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีสินค้าในระบบ</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-3 px-4 flex items-center gap-3">
+            <img src="${p.image_url || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-12 h-10 object-cover rounded-lg border border-slate-100" onerror="this.src='https://picsum.photos/seed/placeholder/80/60'" />
+            <div>
+              <span class="font-bold text-slate-900 block">${p.name}</span>
+              <span class="text-xs text-slate-500">${p.unit || '-'}</span>
+            </div>
+          </td>
+          <td class="py-3 px-4 font-mono text-xs text-slate-500">${p.barcode || '-'}</td>
+          <td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">${p.category || '-'}</span></td>
+          <td class="py-3 px-4 text-right font-bold text-slate-900">${fmt(p.price)}</td>
+          <td class="py-3 px-4 text-center font-bold ${p.stock <= p.low_stock_threshold ? 'text-rose-600' : 'text-slate-700'}">${p.stock}</td>
+          <td class="py-3 px-4 text-center">
+            <div class="flex items-center justify-center gap-2">
+              <button class="btn-edit-prod p-1.5 hover:bg-slate-100 rounded-lg text-emerald-600 transition-colors" data-id="${p.id}">✏️</button>
+              <button class="btn-delete-prod p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors" data-id="${p.id}">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Render Low Stock Dashboard
+    function renderLowStockTable(list) {
+      const tbody = document.getElementById('lowStockTableBody');
+      const badge = document.getElementById('lowStockBadge');
+      
+      const lowStockList = list.filter(p => p.stock <= p.low_stock_threshold);
+      
+      if (lowStockList.length > 0) {
+        badge.textContent = lowStockList.length;
+        badge.classList.remove('hidden');
+        tbody.innerHTML = lowStockList.map(p => `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="py-3 px-4 flex items-center gap-3">
+              <img src="${p.image_url || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-12 h-10 object-cover rounded-lg border border-slate-100" />
+              <div>
+                <span class="font-bold text-slate-900 block">${p.name}</span>
+                <span class="text-xs text-slate-400">บาร์โค้ด: ${p.barcode || '-'}</span>
+              </div>
+            </td>
+            <td class="py-3 px-4 text-center font-bold text-rose-600 text-lg">${p.stock} ชิ้น</td>
+            <td class="py-3 px-4 text-center text-slate-500">${p.low_stock_threshold} ชิ้น</td>
+            <td class="py-3 px-4 text-center">
+              <div class="flex items-center justify-center gap-1">
+                <button class="btn-refill-stock px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs transition-colors" data-id="${p.id}" data-qty="10">+10</button>
+                <button class="btn-refill-stock px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs transition-colors" data-id="${p.id}" data-qty="50">+50</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } else {
+        badge.classList.add('hidden');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-slate-400">ไม่มีรายการสินค้าที่ต้องเติมสต็อก</td></tr>';
+      }
+    }
+
+    // Render Subscribers Table
+    function renderSubscribersTable(list) {
+      const tbody = document.getElementById('subscriberTableBody');
+      document.getElementById('subscriberCount').textContent = list.length;
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-slate-400">ยังไม่มีใครสมัครรับข้อมูลข่าวสาร</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(s => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-3.5 px-4 font-semibold text-slate-800">${s.contact || s.email || '-'}</td>
+          <td class="py-3.5 px-4 text-center text-slate-500">${new Date(s.created_at).toLocaleString('th-TH')}</td>
+          <td class="py-3.5 px-4 text-center">
+            <button class="btn-delete-sub p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors" data-id="${s.id}">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Populate Category Dropdowns
+    function populateCategoriesFilter(list) {
+      const categories = Array.from(new Set(list.map(p => p.category).filter(Boolean))).sort();
+      const filter = document.getElementById('prodCategoryFilter');
+      
+      const currentVal = filter.value;
+      filter.innerHTML = '<option value="">ทุกหมวดหมู่</option>';
+      categories.forEach(cat => {
+        filter.innerHTML += `<option value="${cat}">${cat}</option>`;
+      });
+      filter.value = currentVal;
+    }
+
+    // Fill Product Form when Editing
+    function fillProductForm(p) {
+      editingProduct = p;
+      document.getElementById('modalTitle').textContent = 'แก้ไขรายละเอียดสินค้า';
+      document.getElementById('prodId').value = p.id;
+      document.getElementById('prodBarcode').value = p.barcode || '';
+      document.getElementById('prodName').value = p.name;
+      document.getElementById('prodPrice').value = p.price;
+      document.getElementById('prodUnit').value = p.unit || '';
+      document.getElementById('prodCategory').value = p.category || '';
+      document.getElementById('prodStock').value = p.stock;
+      document.getElementById('prodThreshold').value = p.low_stock_threshold ?? 5;
+      
+      const previewDiv = document.getElementById('imagePreview');
+      if (p.image_url) {
+        previewDiv.innerHTML = `<img src="${p.image_url}" class="w-full h-full object-cover" />`;
+        document.getElementById('prodImageUrl').value = p.image_url;
+        document.getElementById('prodImagePublicId').value = p.image_public_id || '';
+      } else {
+        previewDiv.innerHTML = '🖼️';
+        document.getElementById('prodImageUrl').value = '';
+        document.getElementById('prodImagePublicId').value = '';
+      }
+
+      document.getElementById('productModal').showModal();
+    }
+
+    // Table Filtering Logic
+    function filterProductsTable() {
+      const search = document.getElementById('prodSearchInput').value.trim().toLowerCase();
+      const cat = document.getElementById('prodCategoryFilter').value;
+
+      const filtered = productsList.filter(p => {
+        const matchSearch = p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.includes(search));
+        const matchCat = !cat || p.category === cat;
+        return matchSearch && matchCat;
+      });
+
+      renderProductsTable(filtered);
+    }
+
+    // Scanner Logic (HTML5 QR Code)
+    function startBarcodeScanner(elementId, onScanSuccess) {
+      if (currentHtml5Qrcode) {
+        currentHtml5Qrcode.stop().catch(() => {});
+      }
+
+      currentHtml5Qrcode = new Html5Qrcode(elementId);
+      currentHtml5Qrcode.start(
+        { facingMode: "environment" },
+        {
+          fps: 15,
+          qrbox: (width, height) => {
+            const size = Math.min(width, height) * 0.75;
+            return { width: size, height: size * 0.5 }; // wide box for barcode
+          }
+        },
+        (decodedText) => {
+          // Play a small beep sound to notify scan
+          playScanSound();
+          onScanSuccess(decodedText);
+        },
+        (errorMessage) => {
+          // just debug / skip frame
+        }
+      ).catch(err => {
+        console.error("Camera start error: ", err);
+        alert("ไม่สามารถเปิดกล้องได้: " + err);
+      });
+    }
+
+    // Simple beep sound using Web Audio API
+    function playScanSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 1000; // 1000Hz tone
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // volume
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1); // 100ms duration
+      } catch (e) {
+        console.log(e);
+      }
+    }
+
+    // POS Cart Logic
+    function handlePosBarcodeScanned(code) {
+      const found = productsList.find(p => p.barcode === code);
+      if (found) {
+        addToPosCart(found);
+      } else {
+        // If not found, prompt to add new product
+        if (confirm(`ไม่พบสินค้าบาร์โค้ด: ${code} ในฐานข้อมูล ต้องการเพิ่มสินค้าใหม่หรือไม่?`)) {
+          editingProduct = null;
+          document.getElementById('modalTitle').textContent = 'เพิ่มสินค้าใหม่';
+          document.getElementById('productForm').reset();
+          document.getElementById('prodId').value = '';
+          document.getElementById('prodBarcode').value = code; // prefill barcode
+          document.getElementById('imagePreview').innerHTML = '🖼️';
+          document.getElementById('productModal').showModal();
+        }
+      }
+    }
+
+    function addToPosCart(product) {
+      const existing = posCart.find(item => item.product.id === product.id);
+      if (existing) {
+        existing.qty++;
+      } else {
+        posCart.push({ product, qty: 1 });
+      }
+      renderPosCart();
+      playScanSound();
+    }
+
+    function renderPosCart() {
+      const list = document.getElementById('posCartList');
+      if (posCart.length === 0) {
+        list.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">ยังไม่มีสินค้าในบิล</div>';
+        document.getElementById('posTotal').textContent = fmt(0);
+        document.getElementById('btnPosCheckout').disabled = true;
+        return;
+      }
+
+      list.innerHTML = posCart.map((item, idx) => `
+        <div class="flex items-center justify-between border-b pb-2 text-sm">
+          <div class="flex-1 min-w-0 pr-2">
+            <span class="font-bold text-slate-800 block truncate">${item.product.name}</span>
+            <span class="text-xs text-emerald-600 font-semibold">${fmt(item.product.price)}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="pos-qty-dec w-6 h-6 rounded-md border flex items-center justify-center font-bold" data-idx="${idx}">-</button>
+            <span class="w-6 text-center font-mono">${item.qty}</span>
+            <button class="pos-qty-inc w-6 h-6 rounded-md border flex items-center justify-center font-bold" data-idx="${idx}">+</button>
+            <button class="pos-item-remove text-rose-500 w-8 h-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-xs ml-1" data-idx="${idx}">🗑️</button>
+          </div>
+          <div class="w-16 text-right font-bold text-slate-900 font-mono">${fmt(item.product.price * item.qty)}</div>
+        </div>
+      `).join('');
+
+      const total = calculatePosTotal();
+      document.getElementById('posTotal').textContent = fmt(total);
+      document.getElementById('btnPosCheckout').disabled = false;
+    }
+
+    function calculatePosTotal() {
+      return posCart.reduce((sum, item) => sum + (item.product.price * item.qty), 0);
+    }
+
+    // CLOUDINARY IMAGE DELETION USING CRYPTO SIGNATURE (Secure client side deletion)
+    async function deleteCloudinaryImage(publicId) {
+      const c = AppConfig.get();
+      if (!c.cloudinaryApiKey || !c.cloudinaryApiSecret) {
+        console.warn('ไม่ได้กรอก Cloudinary API Key/Secret; ไม่ลบรูปภาพต้นฉบับ');
+        return;
+      }
+
+      const timestamp = Math.round((new Date()).getTime() / 1000);
+      const signatureStr = `public_id=${publicId}&timestamp=${timestamp}${c.cloudinaryApiSecret}`;
+      const signature = CryptoJS.SHA1(signatureStr).toString();
+
+      const formData = new FormData();
+      formData.append('public_id', publicId);
+      formData.append('timestamp', timestamp);
+      formData.append('api_key', c.cloudinaryApiKey);
+      formData.append('signature', signature);
+
+      try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/destroy`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        console.log('Cloudinary Image Destroy response:', data);
+      } catch (err) {
+        console.error('ลบรูปภาพ Cloudinary ล้มเหลว:', err);
+      }
+    }
+
+    // DYNAMIC PROMPTPAY QR GENERATOR CODE (EMVCo Specification)
+    function generatePromptPayPayload(promptpayId, amount) {
+      let target = promptpayId.replace(/[^0-9]/g, '');
+      let formattedTarget = '';
+      
+      if (target.length === 10) {
+        formattedTarget = '0066' + target.substring(1);
+      } else {
+        formattedTarget = target;
+      }
+      
+      const idTag = target.length === 10 ? '01' : '02';
+      const idLength = ('00' + formattedTarget.length).slice(-2);
+      const merchantInfoSubTags = 
+        '0016A000000677010111' + 
+        idTag + idLength + formattedTarget;
+      
+      const merchantInfoTag = '29' + ('00' + merchantInfoSubTags.length).slice(-2) + merchantInfoSubTags;
+      const currencyTag = '5303764';
+      const countryTag = '5802TH';
+      
+      let amountTag = '';
+      if (amount) {
+        const amountStr = parseFloat(amount).toFixed(2);
+        amountTag = '54' + ('00' + amountStr.length).slice(-2) + amountStr;
+      }
+      
+      const rawData = '000201' + '010212' + merchantInfoTag + countryTag + currencyTag + amountTag + '6304';
+      const crc = crc16(rawData);
+      return rawData + crc.toUpperCase();
+    }
+
+    function crc16(data) {
+      let crc = 0xFFFF;
+      for (let i = 0; i < data.length; i++) {
+        let x = ((crc >> 8) ^ data.charCodeAt(i)) & 0xFF;
+        x ^= x >> 4;
+        crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ (x << 1)) & 0xFFFF;
+      }
+      return ('0000' + crc.toString(16)).slice(-4);
+    }
+
+    // Export Subscribers to CSV
+    async function exportSubscribersToCsv() {
+      if (!sbClient) return;
+      try {
+        const { data, error } = await sbClient.from('subscribers').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "ID,Contact,Created At\n";
+        data.forEach(s => {
+          csvContent += `"${s.id}","${s.contact || s.email}","${s.created_at}"\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `subscribers_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        alert('ส่งออกไฟล์ผิดพลาด: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

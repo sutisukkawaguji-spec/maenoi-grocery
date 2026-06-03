@@ -24,6 +24,9 @@
     @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     #diag.hidden{ display:none; }
   </style>
+  <!-- Supabase SDK & AppConfig -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
@@ -116,6 +119,17 @@
     <section id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></section>
   </main>
 
+  <!-- Newsletter Section -->
+  <section class="max-w-6xl mx-auto px-4 py-8 bg-emerald-50 rounded-3xl border border-emerald-100/50 mb-10 text-center space-y-4">
+    <h3 class="text-xl font-bold text-emerald-800">สมัครรับข้อมูลข่าวสาร 📢</h3>
+    <p class="text-sm text-emerald-700 max-w-md mx-auto">รับข้อมูลเกี่ยวกับสินค้าใหม่ โปรโมชันประจำเดือน และเมนูอาหารแนะนำก่อนใคร ฟรี!</p>
+    <form id="newsletterForm" class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto px-4">
+      <input type="text" id="subscriberContact" placeholder="กรอกเบอร์โทรศัพท์ หรือ LINE ID" required class="flex-grow px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white" />
+      <button type="submit" class="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all shadow-md">สมัครเลย</button>
+    </form>
+    <p id="newsletterSuccess" class="text-xs text-emerald-600 font-semibold hidden">🎉 สมัครรับข้อมูลสำเร็จเรียบร้อยแล้ว!</p>
+  </section>
+
   <footer class="border-t border-gray-200 py-10 text-center text-sm bg-white">
     <h3 class="text-lg font-semibold mb-2 text-emerald-700">ร้านแม่น้อย บ้านดอนขี</h3>
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
@@ -143,16 +157,25 @@
         <button id="copyOrder" class="flex-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">คัดลอกออเดอร์</button>
         <button id="checkout" class="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90">ส่งทาง LINE</button>
       </div>
+      <button id="payPromptPay" class="w-full px-3 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-sm font-semibold transition-all">💳 สแกนพร้อมเพย์จ่ายเงิน</button>
       <button id="clearCart" class="w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">ล้างตะกร้า</button>
     </div>
   </aside>
 
   <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
-    <div class="p-4 bg-white rounded-2xl">
-      <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
-      <img src="images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto border rounded-lg object-contain" onerror="this.src='https://picsum.photos/seed/qr/256/256'">
-      <p class="text-center text-gray-600 mt-2">สแกนเพื่อชำระเงิน</p>
-      <div class="text-center mt-3"><button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button></div>
+    <div class="p-5 bg-white rounded-2xl text-center space-y-4 max-w-xs w-full">
+      <h3 class="text-lg font-semibold text-slate-800">PromptPay</h3>
+      <div class="border rounded-2xl p-3 bg-white inline-block">
+        <img id="qrPromptPayImg" src="images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto object-contain" onerror="this.src='https://picsum.photos/seed/qr/256/256'">
+      </div>
+      <div>
+        <span class="text-xs text-slate-400 block">ยอดชำระเงิน</span>
+        <strong id="qrPromptPayAmount" class="text-2xl text-emerald-600 font-bold">฿0.00</strong>
+      </div>
+      <div class="bg-emerald-50 rounded-xl p-2.5 text-emerald-800 text-[11px] leading-relaxed">
+        สแกนแล้ว ยอดชำระจะขึ้นให้บนแอปพลิเคชันธนาคารทันทีเพื่อความปลอดภัยและสะดวกรวดเร็ว
+      </div>
+      <div class="text-center"><button type="button" id="closePromptPay" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition-all">ปิดหน้าจอ</button></div>
     </div>
   </dialog>
 
@@ -197,14 +220,12 @@
     function parseTable(text){
       const clean = stripBom(text);
       if (typeof Papa !== 'undefined'){
-        const first = (clean.split('
-')[0]||'');
-        const primary = (first.includes(',')) ? ',' : '	';
+        const first = (clean.split('\n')[0]||'');
+        const primary = (first.includes(',')) ? ',' : '\t';
         const { data } = Papa.parse(clean, { delimiter: primary, skipEmptyLines: true, transform: v => (v ?? '').toString().trim() });
         return data;
       }
-      return clean.split('
-').map(l => l.trim()).filter(Boolean).map(l => (l.includes(',') ? l.split(',') : l.split('	')).map(s => s.trim()));
+      return clean.split('\n').map(l => l.trim()).filter(Boolean).map(l => (l.includes(',') ? l.split(',') : l.split('\t')).map(s => s.trim()));
     }
     async function fetchText(url){
       try{
@@ -215,6 +236,27 @@
     }
     async function loadProducts(){
       try{
+        if (window.AppConfig && window.AppConfig.isConfigured()) {
+          const c = window.AppConfig.get();
+          const sb = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
+          const { data, error } = await sb.from('products').select('*');
+          if (!error && data) {
+            PRODUCTS = data.map(p => ({
+              id: String(p.id),
+              name: p.name,
+              price: Number(p.price) || 0,
+              unit: p.unit,
+              category: p.category,
+              img: p.image_url || 'https://picsum.photos/seed/placeholder/800/600',
+              featured: p.featured || false,
+              oos: p.stock <= 0,
+              active: true
+            }));
+            return;
+          }
+        }
+        
+        // Fallback to text file
         const text = await fetchText(FILE_PRODUCTS);
         const rows = parseTable(text);
         PRODUCTS = rows.map((r,i)=>{
@@ -384,11 +426,105 @@
       startBannerAuto();
     }
 
+    // PromptPay QR Logic
+    function generatePromptPayPayload(promptpayId, amount) {
+      let target = promptpayId.replace(/[^0-9]/g, '');
+      let formattedTarget = '';
+      if (target.length === 10) {
+        formattedTarget = '0066' + target.substring(1);
+      } else {
+        formattedTarget = target;
+      }
+      const idTag = target.length === 10 ? '01' : '02';
+      const idLength = ('00' + formattedTarget.length).slice(-2);
+      const merchantInfoSubTags = '0016A000000677010111' + idTag + idLength + formattedTarget;
+      const merchantInfoTag = '29' + ('00' + merchantInfoSubTags.length).slice(-2) + merchantInfoSubTags;
+      const currencyTag = '5303764';
+      const countryTag = '5802TH';
+      let amountTag = '';
+      if (amount) {
+        const amountStr = parseFloat(amount).toFixed(2);
+        amountTag = '54' + ('00' + amountStr.length).slice(-2) + amountStr;
+      }
+      const rawData = '000201' + '010212' + merchantInfoTag + countryTag + currencyTag + amountTag + '6304';
+      const crc = crc16(rawData);
+      return rawData + crc.toUpperCase();
+    }
+
+    function crc16(data) {
+      let crc = 0xFFFF;
+      for (let i = 0; i < data.length; i++) {
+        let x = ((crc >> 8) ^ data.charCodeAt(i)) & 0xFF;
+        x ^= x >> 4;
+        crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ (x << 1)) & 0xFFFF;
+      }
+      return ('0000' + crc.toString(16)).slice(-4);
+    }
+
+    function showPromptPayModal(amount) {
+      const c = window.AppConfig.get();
+      const promptPayId = c.promptpayId || '0880699227';
+      const payload = generatePromptPayPayload(promptPayId, amount);
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payload)}`;
+      
+      const img = document.getElementById('qrPromptPayImg');
+      const amtText = document.getElementById('qrPromptPayAmount');
+      if (img) img.src = qrUrl;
+      if (amtText) amtText.textContent = fmtBaht(amount);
+      
+      document.getElementById('qrModal')?.showModal();
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
       const msg = 'สวัสดีครับ สอบถามสินค้า'; const lineURL = lineChatUrl(msg);
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
       setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
+      
+      // Register PromptPay Dialog triggers
+      const handleOpenPp = () => {
+        const total = cartTotal();
+        showPromptPayModal(total);
+      };
+      
+      document.getElementById('openPromptPayHeader')?.addEventListener('click', handleOpenPp);
+      document.getElementById('openPromptPayFooter')?.addEventListener('click', handleOpenPp);
+      document.getElementById('payPromptPay')?.addEventListener('click', handleOpenPp);
+      document.getElementById('closePromptPay')?.addEventListener('click', () => {
+        document.getElementById('qrModal')?.close();
+      });
+
+      // Newsletter form submission
+      document.getElementById('newsletterForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const contactInput = document.getElementById('subscriberContact');
+        const contactVal = contactInput.value.trim();
+        if (!contactVal) return;
+
+        try {
+          if (window.AppConfig && window.AppConfig.isConfigured()) {
+            const c = window.AppConfig.get();
+            const sb = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
+            const { error } = await sb.from('subscribers').insert([{ contact: contactVal }]);
+            if (error) throw error;
+          } else {
+            // Simulated local storage fallback if not configured
+            let localSubs = JSON.parse(localStorage.getItem('local_subscribers') || '[]');
+            localSubs.push({ contact: contactVal, created_at: new Date().toISOString() });
+            localStorage.setItem('local_subscribers', JSON.stringify(localSubs));
+          }
+          
+          contactInput.value = '';
+          const successMsg = document.getElementById('newsletterSuccess');
+          if (successMsg) {
+            successMsg.classList.remove('hidden');
+            setTimeout(() => successMsg.classList.add('hidden'), 5000);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('สมัครรับข้อมูลผิดพลาด กรุณาลองใหม่อีกครั้ง');
+        }
+      });
 
       if(location.protocol === 'file:'){
         const warn = document.createElement('div');
