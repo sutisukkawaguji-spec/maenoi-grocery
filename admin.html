@@ -39,6 +39,14 @@
       background: #cbd5e1;
       border-radius: 3px;
     }
+    @keyframes scan-laser {
+      0% { top: 10%; }
+      50% { top: 90%; }
+      100% { top: 10%; }
+    }
+    .animate-scan {
+      animation: scan-laser 2.2s linear infinite;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
@@ -98,24 +106,7 @@
     </div>
   </div>
 
-  <!-- Login Screen -->
-  <div id="loginOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 text-center border border-slate-100">
-      <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 text-3xl mx-auto mb-4">🔐</div>
-      <h2 class="text-xl font-bold text-slate-900 mb-1">เข้าสู่ระบบร้านแม่น้อย</h2>
-      <p class="text-sm text-slate-500 mb-6">กรอกรหัส PIN 4 หลักเพื่อความปลอดภัย</p>
-      
-      <div class="flex justify-center gap-3 mb-6">
-        <input type="password" maxlength="1" class="pin-box w-12 h-14 text-2xl font-bold text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" autofocus />
-        <input type="password" maxlength="1" class="pin-box w-12 h-14 text-2xl font-bold text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" disabled />
-        <input type="password" maxlength="1" class="pin-box w-12 h-14 text-2xl font-bold text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" disabled />
-        <input type="password" maxlength="1" class="pin-box w-12 h-14 text-2xl font-bold text-center border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" disabled />
-      </div>
-      <p id="loginError" class="text-rose-500 text-sm hidden mb-4">รหัส PIN ไม่ถูกต้อง ลองอีกครั้ง</p>
-      
-      <button id="btnOpenSetupFromLogin" class="text-xs text-slate-400 hover:text-emerald-600 underline">ตั้งค่าระบบเชื่อมต่อใหม่</button>
-    </div>
-  </div>
+  <!-- Note: old loginOverlay (PIN login) removed to use secure Supabase Auth (login.html) -->
 
   <!-- Main Dashboard (Admin Panel) -->
   <div id="adminPanel" class="hidden min-h-screen flex flex-col">
@@ -171,7 +162,10 @@
               
               <!-- Scan Barcode Box -->
               <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 flex flex-col items-center justify-center min-h-[200px] relative overflow-hidden">
-                <div id="pos-scanner" class="w-full max-w-[280px] aspect-square rounded-xl overflow-hidden bg-black hidden"></div>
+                <div id="pos-scanner" class="w-full max-w-[280px] aspect-square rounded-xl overflow-hidden bg-black hidden relative">
+                  <!-- Active Laser Red Scanner Line Overlay -->
+                  <div class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden"></div>
+                </div>
                 <div id="pos-scanner-placeholder" class="text-center py-6">
                   <div class="text-5xl mb-3">📷</div>
                   <button id="btnStartPosScan" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-md shadow-emerald-600/10">เปิดกล้องสแกนบาร์โค้ด / QR</button>
@@ -342,7 +336,10 @@
           </div>
           <!-- Scanning Area in Form -->
           <div id="form-scanner-container" class="mt-2 rounded-xl border overflow-hidden hidden relative">
-            <div id="form-scanner" class="w-full aspect-[4/3] bg-black"></div>
+            <div id="form-scanner" class="w-full aspect-[4/3] bg-black relative">
+              <!-- Active Laser Red Scanner Line Overlay -->
+              <div class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden"></div>
+            </div>
             <button type="button" id="btnStopFormScan" class="absolute top-2 right-2 px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg text-xs">ปิด</button>
           </div>
         </div>
@@ -439,17 +436,17 @@
     // Helper: Format Currency
     const fmt = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(n);
 
-    // Initial check and routing
+    // Initial check and routing (checks for Supabase config & active auth session)
     document.addEventListener('DOMContentLoaded', () => {
       initApp();
       setupEventListeners();
     });
 
-    function initApp() {
+    async function initApp() {
       // 1. Check Configuration
       if (!AppConfig.isConfigured()) {
         document.getElementById('setupOverlay').classList.remove('hidden');
-        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('adminPanel').classList.add('hidden');
         const c = AppConfig.get();
         document.getElementById('setupSupabaseUrl').value = c.supabaseUrl;
         document.getElementById('setupSupabaseAnonKey').value = c.supabaseAnonKey;
@@ -460,9 +457,18 @@
         document.getElementById('setupPromptPay').value = c.promptpayId;
         document.getElementById('setupPin').value = c.adminPin;
       } else {
-        // Show PIN Login Overlay
-        document.getElementById('loginOverlay').classList.remove('hidden');
-        document.getElementById('setupOverlay').classList.add('hidden');
+        // Init Supabase Client
+        initSupabase();
+        
+        // Enforce Supabase Auth Session
+        const { data } = await sbClient.auth.getSession();
+        if (!data.session) {
+          // If no authenticated user session, redirect to login.html
+          window.location.href = 'login.html';
+        } else {
+          document.getElementById('adminPanel').classList.remove('hidden');
+          loadDashboardData();
+        }
       }
     }
 
@@ -491,12 +497,7 @@
         });
         alert('บันทึกการตั้งค่าแล้ว');
         document.getElementById('setupOverlay').classList.add('hidden');
-        document.getElementById('loginOverlay').classList.remove('hidden');
-      });
-
-      document.getElementById('btnOpenSetupFromLogin').addEventListener('click', () => {
-        document.getElementById('loginOverlay').classList.add('hidden');
-        document.getElementById('setupOverlay').classList.remove('hidden');
+        window.location.reload();
       });
 
       document.getElementById('btnOpenSettings').addEventListener('click', () => {
@@ -512,62 +513,12 @@
         document.getElementById('setupOverlay').classList.remove('hidden');
       });
 
-      // Login PIN functionality
-      const pinBoxes = document.querySelectorAll('.pin-box');
-      pinBoxes.forEach((box, idx) => {
-        box.addEventListener('input', (e) => {
-          if (e.target.value.length === 1 && idx < pinBoxes.length - 1) {
-            pinBoxes[idx + 1].disabled = false;
-            pinBoxes[idx + 1].focus();
-          }
-          checkPinComplete();
-        });
-        box.addEventListener('keydown', (e) => {
-          if (e.key === 'Backspace' && idx > 0 && e.target.value.length === 0) {
-            pinBoxes[idx].disabled = true;
-            pinBoxes[idx - 1].focus();
-            pinBoxes[idx - 1].value = '';
-          }
-        });
-      });
-
-      function checkPinComplete() {
-        let enteredPin = '';
-        pinBoxes.forEach(b => enteredPin += b.value);
-        if (enteredPin.length === 4) {
-          const c = AppConfig.get();
-          if (enteredPin === c.adminPin) {
-            // Login Success
-            document.getElementById('loginOverlay').classList.add('hidden');
-            document.getElementById('adminPanel').classList.remove('hidden');
-            document.getElementById('loginError').classList.add('hidden');
-            if (initSupabase()) {
-              loadDashboardData();
-            }
-          } else {
-            // Error
-            document.getElementById('loginError').classList.remove('hidden');
-            pinBoxes.forEach((b, i) => {
-              b.value = '';
-              b.disabled = i !== 0;
-            });
-            pinBoxes[0].focus();
-          }
+      // Logout (Supabase Auth Session terminate)
+      document.getElementById('btnLogout').addEventListener('click', async () => {
+        if (sbClient) {
+          await sbClient.auth.signOut();
         }
-      }
-
-      // Logout
-      document.getElementById('btnLogout').addEventListener('click', () => {
-        pinBoxes.forEach((b, i) => {
-          b.value = '';
-          b.disabled = i !== 0;
-        });
-        document.getElementById('adminPanel').classList.add('hidden');
-        document.getElementById('loginOverlay').classList.remove('hidden');
-        if (currentHtml5Qrcode) {
-          currentHtml5Qrcode.stop().catch(err => {});
-          currentHtml5Qrcode = null;
-        }
+        window.location.href = 'login.html';
       });
 
       // Tabs switcher
@@ -585,6 +536,8 @@
           
           if (currentHtml5Qrcode) {
             currentHtml5Qrcode.stop().then(() => {
+              const laser = document.querySelector(`#${currentHtml5Qrcode.elementId} .scanner-laser`);
+              if (laser) laser.classList.add('hidden');
               document.getElementById('pos-scanner').classList.add('hidden');
               document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
               document.getElementById('btnStopPosScan').classList.add('hidden');
@@ -1113,25 +1066,41 @@
       renderProductsTable(filtered);
     }
 
-    // Scanner Logic (HTML5 QR Code)
+    // Scanner Logic (HTML5 QR Code) - OPTIMIZED FOR FAST PERFORMANCE
     function startBarcodeScanner(elementId, onScanSuccess) {
       if (currentHtml5Qrcode) {
         currentHtml5Qrcode.stop().catch(() => {});
       }
 
+      // Show laser overlay
+      const container = document.getElementById(elementId);
+      const laser = container ? container.querySelector('.scanner-laser') : null;
+      if (laser) laser.classList.remove('hidden');
+
       currentHtml5Qrcode = new Html5Qrcode(elementId);
       currentHtml5Qrcode.start(
         { facingMode: "environment" },
         {
-          fps: 15,
+          fps: 30, // Higher fps (30 instead of 15) for much faster frames processing
           qrbox: (width, height) => {
-            const size = Math.min(width, height) * 0.75;
-            return { width: size, height: size * 0.5 }; // wide box for barcode
-          }
+            const w = Math.min(width, height) * 0.85;
+            const h = w * 0.45; // wide box ideal for grocery barcodes
+            return { width: w, height: h };
+          },
+          // Speed up scanning by specifying exactly which formats to search for
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.QR_CODE
+          ],
+          rememberLastUsedCamera: true,
+          aspectRatio: 1.777778
         },
         (decodedText) => {
           // Play a small beep sound to notify scan
           playScanSound();
+          if (laser) laser.classList.add('hidden');
           onScanSuccess(decodedText);
         },
         (errorMessage) => {
@@ -1140,6 +1109,7 @@
       ).catch(err => {
         console.error("Camera start error: ", err);
         alert("ไม่สามารถเปิดกล้องได้: " + err);
+        if (laser) laser.classList.add('hidden');
       });
     }
 
