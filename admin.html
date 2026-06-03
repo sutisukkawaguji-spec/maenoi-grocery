@@ -1078,9 +1078,12 @@
               posScannerRunning = false;
               const laser = document.querySelector('#pos-scanner .scanner-laser');
               if (laser) laser.classList.add('hidden');
-              document.getElementById('pos-scanner').classList.add('hidden');
-              document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
-              document.getElementById('btnStopPosScan').classList.add('hidden');
+              const posScannerEl = document.getElementById('pos-scanner');
+              if (posScannerEl) posScannerEl.classList.add('hidden');
+              const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
+              if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
+              const btnStopEl = document.getElementById('btnStopPosScan');
+              if (btnStopEl) btnStopEl.classList.add('hidden');
             }).catch(e => {});
           }
         });
@@ -1280,71 +1283,82 @@
       });
 
       // POS Scanning Buttons
-      document.getElementById('btnStartPosScan').addEventListener('click', async () => {
-        document.getElementById('pos-scanner').classList.remove('hidden');
-        document.getElementById('pos-scanner-placeholder').classList.add('hidden');
-        document.getElementById('btnStopPosScan').classList.remove('hidden');
+      const btnStartPosScan = document.getElementById('btnStartPosScan');
+      if (btnStartPosScan) {
+        btnStartPosScan.addEventListener('click', async () => {
+          const posScannerEl = document.getElementById('pos-scanner');
+          if (posScannerEl) posScannerEl.classList.remove('hidden');
+          const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
+          if (posPlaceholderEl) posPlaceholderEl.classList.add('hidden');
+          const btnStopEl = document.getElementById('btnStopPosScan');
+          if (btnStopEl) btnStopEl.classList.remove('hidden');
 
-        if (formScannerRunning && formScanner) {
+          if (formScannerRunning && formScanner) {
+            try {
+              await formScanner.stop();
+              formScannerRunning = false;
+            } catch (e) {}
+          }
+
+          if (posScannerRunning) return;
+
+          if (!posScanner) {
+            posScanner = new Html5Qrcode('pos-scanner');
+          }
+
+          const laser = document.querySelector('#pos-scanner .scanner-laser');
+          if (laser) laser.classList.remove('hidden');
+
           try {
-            await formScanner.stop();
-            formScannerRunning = false;
-          } catch (e) {}
-        }
-
-        if (posScannerRunning) return;
-
-        if (!posScanner) {
-          posScanner = new Html5Qrcode('pos-scanner');
-        }
-
-        const laser = document.querySelector('#pos-scanner .scanner-laser');
-        if (laser) laser.classList.remove('hidden');
-
-        try {
-          await posScanner.start(
-            { facingMode: "environment" },
-            {
-              fps: 30,
-              qrbox: (width, height) => {
-                const w = Math.min(width, height) * 0.85;
-                const h = w * 0.45;
-                return { width: w, height: h };
+            await posScanner.start(
+              { facingMode: "environment" },
+              {
+                fps: 30,
+                qrbox: (width, height) => {
+                  const w = Math.min(width, height) * 0.85;
+                  const h = w * 0.45;
+                  return { width: w, height: h };
+                },
+                formatsToSupport: [
+                  Html5QrcodeSupportedFormats.EAN_13,
+                  Html5QrcodeSupportedFormats.EAN_8,
+                  Html5QrcodeSupportedFormats.CODE_128,
+                  Html5QrcodeSupportedFormats.QR_CODE
+                ],
+                rememberLastUsedCamera: true,
+                aspectRatio: 1.777778
               },
-              formatsToSupport: [
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.QR_CODE
-              ],
-              rememberLastUsedCamera: true,
-              aspectRatio: 1.777778
-            },
-            (code) => {
-              playScanSound();
-              handlePosBarcodeScanned(code);
-            },
-            (errorMessage) => {}
-          );
-          posScannerRunning = true;
-        } catch (err) {
-          console.error("Camera start error: ", err);
-          alert("ไม่สามารถเปิดกล้องได้: " + err);
-          if (laser) laser.classList.add('hidden');
-        }
-      });
+              (code) => {
+                playScanSound();
+                handlePosBarcodeScanned(code);
+              },
+              (errorMessage) => {}
+            );
+            posScannerRunning = true;
+          } catch (err) {
+            console.error("Camera start error: ", err);
+            alert("ไม่สามารถเปิดกล้องได้: " + err);
+            if (laser) laser.classList.add('hidden');
+          }
+        });
+      }
 
-      document.getElementById('btnStopPosScan').addEventListener('click', async () => {
-        if (posScannerRunning && posScanner) {
-          try {
-            await posScanner.stop();
-            posScannerRunning = false;
-          } catch (e) {}
-        }
-        document.getElementById('pos-scanner').classList.add('hidden');
-        document.getElementById('pos-scanner-placeholder').classList.remove('hidden');
-        document.getElementById('btnStopPosScan').classList.add('hidden');
-      });
+      const btnStopPosScan = document.getElementById('btnStopPosScan');
+      if (btnStopPosScan) {
+        btnStopPosScan.addEventListener('click', async () => {
+          if (posScannerRunning && posScanner) {
+            try {
+              await posScanner.stop();
+              posScannerRunning = false;
+            } catch (e) {}
+          }
+          const posScannerEl = document.getElementById('pos-scanner');
+          if (posScannerEl) posScannerEl.classList.add('hidden');
+          const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
+          if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
+          btnStopPosScan.classList.add('hidden');
+        });
+      }
 
       // POS Manual Search Input
       const posSearch = document.getElementById('posSearchInput');
@@ -1659,6 +1673,9 @@
       async function completeSale(method, received = 0, change = 0, customerId = null) {
         if (!sbClient) throw new Error('Supabase client not initialized');
 
+        // Normalize customerId: empty string/spaces should be null
+        const cleanCustomerId = (customerId && customerId.trim()) ? customerId.trim() : null;
+
         // 1. Decrement Stock
         const updates = posCart.map(item => {
           const newStock = Math.max(0, item.product.stock - item.qty);
@@ -1676,23 +1693,23 @@
           payment_method: method,
           cash_received: received,
           change_amount: change,
-          customer_id: customerId
+          customer_id: cleanCustomerId
         };
         const { data: saleData, error: saleErr } = await sbClient.from('sales').insert([saleRecord]).select();
         if (saleErr) throw saleErr;
 
         // 3. Handle Credit transaction
         let customerName = '';
-        if (customerId) {
-          const customer = customersList.find(c => c.id === customerId);
+        if (cleanCustomerId) {
+          const customer = customersList.find(c => c.id === cleanCustomerId);
           if (customer) {
             customerName = customer.name;
           }
         }
 
-        if (method === 'credit' && customerId && saleData && saleData.length > 0) {
+        if (method === 'credit' && cleanCustomerId && saleData && saleData.length > 0) {
           const creditRecord = {
-            customer_id: customerId,
+            customer_id: cleanCustomerId,
             sale_id: saleData[0].id,
             amount: saleRecord.total,
             note: 'ค้างชำระค่าสินค้า POS',
@@ -1702,11 +1719,11 @@
           if (credErr) throw credErr;
 
           // Update customer balance
-          const customer = customersList.find(c => c.id === customerId);
+          const customer = customersList.find(c => c.id === cleanCustomerId);
           if (customer) {
             const currentBal = parseFloat(customer.total_credit) || 0;
             const newBal = currentBal + saleRecord.total;
-            const { error: custUpdErr } = await sbClient.from('customers').update({ total_credit: newBal }).eq('id', customerId);
+            const { error: custUpdErr } = await sbClient.from('customers').update({ total_credit: newBal }).eq('id', cleanCustomerId);
             if (custUpdErr) throw custUpdErr;
             // update local list value as well
             customer.total_credit = newBal;
