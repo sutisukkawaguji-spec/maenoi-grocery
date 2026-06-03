@@ -48,7 +48,6 @@
           <button id="userPhoneButton" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-800 text-sm font-semibold hover:bg-emerald-100 transition-colors">
             👤 <span id="userPhoneText"></span>
           </button>
-          <button id="loginButton" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-slate-600 hover:bg-slate-50 text-sm transition-colors">🔑 หลังบ้าน</button>
           <button id="btnLogoutStorefront" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-colors">ออกระบบ</button>
       </div>
     </div>
@@ -631,25 +630,41 @@
           else adminBtn.classList.add('hidden');
         }
       } else {
-        // Not logged in: show login button, hide profile/logout/admin options
+        // Not logged in: hide profile/logout/admin options
         document.getElementById('userPhoneButton')?.classList.add('hidden');
         document.getElementById('btnLogoutStorefront')?.classList.add('hidden');
         document.getElementById('adminButton')?.classList.add('hidden');
-        document.getElementById('loginButton')?.classList.remove('hidden');
       }
 
       // 4. Toggle Login Screen Overlay Listeners
-      document.getElementById('loginButton')?.addEventListener('click', () => {
+      const showLoginOverlay = () => {
         if (!AppConfig.isConfigured()) {
           document.getElementById('unconfiguredAlert').classList.remove('hidden');
           document.getElementById('btnSubmit').disabled = true;
           document.getElementById('btnSubmit').classList.add('opacity-50', 'cursor-not-allowed');
         }
         document.getElementById('authScreen').classList.remove('hidden');
+      };
+
+      // Check URL parameters or hash to open login overlay automatically
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('login') === 'true' || window.location.hash === '#login') {
+        showLoginOverlay();
+      }
+
+      // Allow triggering via custom hash change
+      window.addEventListener('hashchange', () => {
+        if (window.location.hash === '#login') {
+          showLoginOverlay();
+        }
       });
 
       document.getElementById('btnCloseAuth')?.addEventListener('click', () => {
         document.getElementById('authScreen').classList.add('hidden');
+        // Clear hash if it was #login
+        if (window.location.hash === '#login') {
+          history.replaceState(null, null, ' ');
+        }
       });
 
       // 5. Load catalog data immediately and unconditionally
