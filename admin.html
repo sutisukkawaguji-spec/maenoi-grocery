@@ -723,6 +723,7 @@
               playScanSound();
               if (laser) laser.classList.add('hidden');
               document.getElementById('prodBarcode').value = code;
+              autoFillProductDetails(); // Trigger auto-fill from Open Food Facts
 
               // Stop scanning
               if (formScannerRunning && formScanner) {
@@ -759,6 +760,14 @@
           } catch (e) {}
         }
         document.getElementById('form-scanner-container').classList.add('hidden');
+      });
+
+      const prodBarcode = document.getElementById('prodBarcode');
+      prodBarcode.addEventListener('change', autoFillProductDetails);
+      prodBarcode.addEventListener('input', () => {
+        if (prodBarcode.value.trim().length >= 8) {
+          autoFillProductDetails();
+        }
       });
 
       // Save/Submit Product CRUD Form
@@ -1487,6 +1496,71 @@
       }
 
       document.getElementById('productModal').showModal();
+    }
+
+    // Auto-fill product details from Open Food Facts API
+    async function autoFillProductDetails() {
+      const barcode = document.getElementById('prodBarcode').value.trim();
+      if (!barcode || barcode.length < 8) return;
+
+      const prodNameInput = document.getElementById('prodName');
+      const prodImageUrlInput = document.getElementById('prodImageUrl');
+      const previewDiv = document.getElementById('imagePreview');
+      const prodCategoryInput = document.getElementById('prodCategory');
+
+      // Only fetch if name is currently empty (don't overwrite user's typing)
+      if (prodNameInput && prodNameInput.value.trim() !== '') return;
+
+      try {
+        const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`, {
+          headers: {
+            'User-Agent': 'MaenoiGroceryPOS - Web - Version 1.0 (maenoigrocery@gmail.com)'
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 1 && data.product) {
+            const p = data.product;
+            // Get product name in Thai, fall back to generic English product name
+            const name = p.product_name_th || p.product_name || '';
+            if (name && prodNameInput) {
+              prodNameInput.value = name;
+            }
+
+            // Get product image if none uploaded yet
+            const img = p.image_url || p.image_front_url || '';
+            if (img && prodImageUrlInput && (!prodImageUrlInput.value || prodImageUrlInput.value.startsWith('http') || prodImageUrlInput.value === '')) {
+              prodImageUrlInput.value = img;
+              if (previewDiv) {
+                previewDiv.innerHTML = `<img src="${img}" class="w-full h-full object-cover rounded-2xl" />`;
+              }
+            }
+
+            // Get generic category
+            const category = p.categories_tags ? p.categories_tags[0] : '';
+            if (category && prodCategoryInput && !prodCategoryInput.value) {
+              // Convert en:beverages -> beverages, and localize a bit
+              let cleanCat = category.replace(/^[a-z]{2}:/, '').replace(/-/g, ' ');
+              // Translation maps for common grocery items
+              const translations = {
+                'beverages': 'เครื่องดื่ม',
+                'snacks': 'ขนมขบเคี้ยว',
+                'groceries': 'ของแห้ง',
+                'sauces': 'ซอส/เครื่องปรุง',
+                'canned foods': 'อาหารกระป๋อง',
+                'dairy': 'ผลิตภัณฑ์นม',
+                'sweet snacks': 'ของหวาน',
+                'desserts': 'ของหวาน',
+                'biscuits': 'ขนมปังกรอบ',
+                'chocolates': 'ช็อกโกแลต'
+              };
+              prodCategoryInput.value = translations[cleanCat.toLowerCase()] || cleanCat;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch product details from Open Food Facts API:", e);
+      }
     }
 
     // Table Filtering Logic
