@@ -1,646 +1,445 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Survey App (Google Hybrid)</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:300,400,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Sarabun', sans-serif; overflow: hidden; background: #eee; }
-        #map { height: 100%; width: 100%; position: absolute; top: 0; left: 0; z-index: 1; background: #ddd; }
-
-        #top-bar {
-            position: absolute; top: 10px; left: 10px; right: 10px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 10px; border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            z-index: 1000; display: flex; flex-direction: column; gap: 8px;
-        }
-        .row-control { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        
-        .stats-info { font-size: 13px; color: #555; }
-        .stats-today { color: #27ae60; font-weight: bold; margin-left: 5px; }
-
-        select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd; font-family: 'Sarabun'; font-size: 14px; background: white; }
-
-        .fab-container {
-            position: absolute; bottom: 200px; right: 15px;
-            display: flex; flex-direction: column; gap: 15px; z-index: 900;
-        }
-        .fab-btn {
-            width: 55px; height: 55px; border-radius: 50%; background: white; color: #333;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center;
-            font-size: 24px; cursor: pointer;
-        }
-        .fab-btn:active { transform: scale(0.95); }
-        
-        #fab-download { background: #8e44ad; color: white; }
-        #fab-calendar { background: #e67e22; color: white; }
-        #fab-refresh { background: #27ae60; color: white; }
-        #fab-find { background: #ffc107; }
-        #fab-location.active-follow { background: #3498db; color: white; border: 2px solid white; }
-        #fab-layer { background: white; color: #333; }
-        #fab-gps-fix { background: #e74c3c; color: white; display: none; }
-
-        .event-dot {
-            width: 6px; height: 6px; background-color: #27ae60;
-            border-radius: 50%; position: absolute; bottom: 2px; left: calc(50% - 3px);
-        }
-
-        #bottom-sheet {
-            position: absolute; bottom: 0; left: 0; width: 100%; background: white;
-            border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
-            z-index: 1001; transform: translateY(100%); transition: transform 0.3s ease-out;
-            max-height: 75vh; overflow-y: auto;
-        }
-        #bottom-sheet.active { transform: translateY(0); }
-        .sheet-content { padding: 20px; }
-        
-        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; color: white; }
-        .bg-red { background: #e74c3c; } .bg-orange { background: #e67e22; } .bg-green { background: #27ae60; } .bg-gray { background: #95a5a6; }
-        
-        textarea { width: 100%; height: 60px; border: 1px solid #ddd; border-radius: 8px; padding: 10px; font-family: 'Sarabun'; margin: 5px 0 10px 0; box-sizing: border-box; font-size: 16px; }
-        
-        .reason-select {
-            width: 100%; padding: 10px; margin-bottom: 5px;
-            border: 2px solid #3498db; border-radius: 8px;
-            font-family: 'Sarabun'; font-size: 16px; color: #333;
-            background-color: #f0f8ff;
-        }
-
-        .btn-full { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: white; margin-top: 5px; cursor: pointer; }
-        .btn-blue { background: #3498db; } .btn-green { background: #27ae60; } .btn-orange { background: #f39c12; } .btn-gray { background: #7f8c8d; } .btn-red { background: #e74c3c; }
-        .btn-google { background: white; color: #4285F4; border: 2px solid #4285F4; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .action-row { display: flex; gap: 10px; margin-top: 5px; } .action-row button { flex: 1; }
-        
-        .leaflet-routing-container { display: none !important; }
-        .parcel-label { background: transparent; border: none; box-shadow: none; font-weight: bold; text-shadow: 1px 1px 0 #fff; font-size: 12px; color: #333; }
-        .parcel-label-gray { color: #999 !important; text-shadow: none; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำ</title>
+  <meta name="description" content="สินค้า สินค้าแนะนำ เมนูวันนี้ (หัวเว็บ), แบนเนอร์สับภาพเอง, ข้อความประกาศวิ่ง, ตะกร้า, พร้อมเพย์">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    body { font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; }
+    .card:hover { transform: translateY(-2px); }
+    button, a { touch-action: manipulation; }
+    .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%; background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.1); transition: right .28s ease; z-index: 60; display: flex; flex-direction: column; }
+    .drawer.open { right: 0; }
+    .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .backdrop.show { opacity: 1; pointer-events: all; }
+    .marquee-viewport { overflow: hidden; }
+    .marquee-track { display: inline-flex; align-items: center; gap: 16px; width: max-content; animation: marquee-linear 20s linear infinite; will-change: transform; }
+    .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
+    @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    #diag.hidden{ display:none; }
+  </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-900">
+  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://picsum.photos/seed/logo/96/96'">
+      <div>
+        <h1 class="text-lg font-semibold leading-tight">ร้านขายของชำ</h1>
+        <p class="text-xs text-gray-500">เมนูวันนี้ • ประกาศวิ่ง • แบนเนอร์สับเอง • สินค้า • ตะกร้า • LINE</p>
+      </div>
+      <div class="ms-auto flex items-center gap-2">
+        <a id="lineLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💬 แชต LINE</a>
+        <button id="openPromptPayHeader" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
+        <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+          🧺 ตะกร้า <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
+        </button>
+      </div>
+    </div>
 
-    <div id="top-bar">
-        <div class="row-control">
-            <div><i class="fas fa-draw-polygon"></i> ระบบสำรวจ</div>
-            <div class="stats-info">
-                เหลือ: <span id="txt-remain" style="color:red; font-weight:bold;">0</span> 
-                <span style="color:#ccc">|</span>
-                วันนี้: <span id="txt-today" class="stats-today">0</span>
-            </div>
+    <div class="bg-white">
+      <div class="max-w-6xl mx-auto px-0 md:px-4 py-2">
+        <h3 class="font-semibold mb-2 px-4 md:px-0">🍽️ เมนูวันนี้</h3>
+        <div class="marquee-viewport rounded-xl border overflow-hidden">
+          <div id="bannerTrack" class="marquee-track"></div>
         </div>
-        <select id="filter-amphoe" onchange="applyFilter()">
-            <option value="all">กำลังโหลดข้อมูล...</option>
+      </div>
+    </div>
+  </header>
+
+  <div id="diag" class="max-w-6xl mx-auto px-4 mt-3 hidden">
+    <div class="rounded-xl border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">
+      <strong class="block mb-1">แจ้งเตือน/คำแนะนำ:</strong>
+      <ul id="diagList" class="list-disc ps-5 space-y-1"></ul>
+    </div>
+  </div>
+
+  <section id="banner-manual" class="relative bg-white">
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      <h3 class="font-semibold mb-2">🎁 โปรโมชัน</h3>
+      <div class="overflow-hidden rounded-xl border relative">
+        <div id="manualBanner" class="w-full h-56 md:h-72 flex items-center justify-center bg-gray-100"></div>
+        <button id="bannerPrev" class="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">‹</button>
+        <button id="bannerNext" class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">›</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="announce" class="bg-white border-y border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 py-3">
+      <div class="marquee-viewport rounded-xl">
+        <div id="announceTrack" class="marquee-track text-sm md:text-base"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="featured" class="bg-white border-y border-gray-200 hidden">
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      <div class="flex items-center gap-2 mb-2"><span class="text-lg">⭐</span><h3 class="font-semibold">สินค้าแนะนำ</h3></div>
+      <div id="featuredGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </div>
+  </section>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+    <section class="mb-5 grid grid-cols-1 md:grid-cols-12 gap-3">
+      <div class="md:col-span-5">
+        <label class="text-sm text-gray-600">ค้นหาสินค้า</label>
+        <input id="searchInput" type="search" placeholder="พิมพ์ชื่อสินค้า เช่น มาม่า นม UHT..." class="mt-1 w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      </div>
+      <div class="md:col-span-4">
+        <label class="text-sm text-gray-600">หมวดหมู่</label>
+        <select id="categorySelect" class="mt-1 w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <option value="">ทั้งหมด</option>
         </select>
+      </div>
+      <div class="md:col-span-3">
+        <label class="text-sm text-gray-600">ช่วงราคา</label>
+        <div class="mt-1 flex items-center gap-2">
+          <input id="minPrice" type="number" min="0" inputmode="numeric" placeholder="ต่ำสุด" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500" />
+          <span class="text-gray-400">-</span>
+          <input id="maxPrice" type="number" min="0" inputmode="numeric" placeholder="สูงสุด" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500" />
+        </div>
+      </div>
+    </section>
+
+    <section class="mb-4 text-sm text-gray-600 flex items-center gap-3">
+      <span id="resultCount">0</span> รายการ
+      <span class="hidden md:inline">•</span>
+      <button id="clearFilters" class="text-emerald-700 hover:underline">ล้างตัวกรอง</button>
+    </section>
+
+    <section id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></section>
+  </main>
+
+  <footer class="border-t border-gray-200 py-10 text-center text-sm bg-white">
+    <h3 class="text-lg font-semibold mb-2 text-emerald-700">ร้านแม่น้อย บ้านดอนขี</h3>
+    <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
+    <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
+    <div class="flex items-center justify-center gap-3 mt-3">
+      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
+      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">LINE</a>
+      <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
     </div>
+    <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี </p>
+  </footer>
 
-    <div class="fab-container">
-        <div id="fab-gps-fix" class="fab-btn" onclick="requestGPS()">
-            <i class="fas fa-satellite-dish"></i>
-        </div>
-
-        <div id="fab-download" class="fab-btn" onclick="downloadExcel()">
-            <i class="fas fa-file-download"></i>
-        </div>
-        <div id="fab-calendar" class="fab-btn">
-            <i class="fas fa-calendar-alt"></i>
-        </div>
-        <div id="fab-layer" class="fab-btn" onclick="toggleMapLayer()">
-            <i class="fas fa-layer-group"></i>
-        </div>
-        <div id="fab-refresh" class="fab-btn" onclick="fetchDataFromSheet()">
-            <i class="fas fa-sync-alt"></i>
-        </div>
-        <div id="fab-location" class="fab-btn" onclick="toggleFollowMode()">
-            <i class="fas fa-location-arrow"></i>
-        </div>
-        <div id="fab-find" class="fab-btn" onclick="findNextJob()">
-            <i class="fas fa-search-location"></i>
-        </div>
+  <aside id="cartDrawer" class="drawer" aria-hidden="true">
+    <div class="px-4 py-3 border-b flex items-center justify-between">
+      <h3 class="font-semibold">ตะกร้าสินค้า</h3>
+      <button id="closeCart" class="text-gray-500 hover:text-gray-800">✕</button>
     </div>
-
-    <div id="map"></div>
-
-    <div id="bottom-sheet">
-        <div class="sheet-content">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <div>
-                    <div id="sheet-name" style="font-size:18px; font-weight:bold;">...</div>
-                    <div id="sheet-loc" style="font-size:12px; color:#666;">...</div>
-                </div>
-                <div onclick="closeSheet()" style="font-size:20px; color:#999; cursor:pointer;"><i class="fas fa-times"></i></div>
-            </div>
-            <span id="sheet-status" class="status-badge bg-gray">...</span>
-            <div id="sheet-body" style="margin-top:15px;">...</div>
-        </div>
+    <div id="cartList" class="flex-1 overflow-auto divide-y"></div>
+    <div class="border-t p-4 space-y-2">
+      <div class="flex items-center justify-between text-sm">
+        <span class="text-gray-600">ยอดรวม</span>
+        <strong id="cartTotal" class="text-lg">฿0</strong>
+      </div>
+      <div class="flex gap-2">
+        <button id="copyOrder" class="flex-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">คัดลอกออเดอร์</button>
+        <button id="checkout" class="flex-1 px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90">ส่งทาง LINE</button>
+      </div>
+      <button id="clearCart" class="w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">ล้างตะกร้า</button>
     </div>
+  </aside>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+  <dialog id="qrModal" class="p-0 rounded-2xl shadow-2xl">
+    <div class="p-4 bg-white rounded-2xl">
+      <h3 class="text-center text-lg font-semibold mb-2">PromptPay</h3>
+      <img src="images/promptpay.png" alt="QR PromptPay" class="w-48 h-48 mx-auto border rounded-lg object-contain" onerror="this.src='https://picsum.photos/seed/qr/256/256'">
+      <p class="text-center text-gray-600 mt-2">สแกนเพื่อชำระเงิน</p>
+      <div class="text-center mt-3"><button type="button" id="closePromptPay" class="text-emerald-700 hover:underline text-sm">ปิด</button></div>
+    </div>
+  </dialog>
 
-    <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIT8RhB1Ea9HRjVAmjy46amGTjWt5rZVDpmqiGbZkjitiWS5UDHwxyZMiOzR-cNvfV/exec'; 
-
-        function toLocalISOString(date) {
-            const offset = date.getTimezoneOffset();
-            const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-            return localDate.toISOString().split('T')[0];
+  <script>
+    const STORE_NAME = 'ร้านแม่น้อย บ้านดอนขี';
+    const LINE_ID = '@906dooke';
+    const OA_ID_ENC = encodeURIComponent(LINE_ID);
+    const lineChatUrl = (text='') => `https://line.me/R/oaMessage/${OA_ID_ENC}/?text=${encodeURIComponent(text)}`;
+    const FILE_PRODUCTS = './data/products.txt';
+    const FILE_MENU     = './data/menu.txt';
+    const FILE_ANN      = './data/announce.txt';
+    let PRODUCTS = [];
+    let state = { q:'', category:'', min:'', max:'' };
+    let cart = JSON.parse(localStorage.getItem('cart') || '{}');
+    const $ = sel => document.querySelector(sel);
+    const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
+    function normalizeId(x){ return String(x ?? '').trim(); }
+    function showError(msg){ const box = document.getElementById('diag'); const ul = document.getElementById('diagList'); if(box && ul){ box.classList.remove('hidden'); const li = document.createElement('li'); li.textContent = msg; ul.appendChild(li); } console.warn('[DIAG]', msg); }
+    function toCdnGit(input) {
+      if (!input) return '';
+      const u = String(input).trim();
+      let urlObj;
+      try { urlObj = new URL(u); }
+      catch { return u; }
+      if (urlObj.hostname === 'github.com') {
+        const parts = urlObj.pathname.split('/').filter(Boolean);
+        if (parts.length >= 4 && parts[2] === 'blob') {
+          const [owner, repo, , branch, ...rest] = parts;
+          return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}`;
         }
-
-        var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 10);
-
-        // 1. แผนที่ถนน (OSM)
-        var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
-        
-        // 2. แผนที่ Google Hybrid (ดาวเทียม + ถนน) ✅ เปลี่ยนใหม่
-        var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            subdomains: ['mt0','mt1','mt2','mt3'],
-            attribution: '&copy; Google Maps'
+      }
+      if (urlObj.hostname === 'raw.githubusercontent.com') {
+        const parts = urlObj.pathname.split('/').filter(Boolean);
+        if (parts.length >= 4) {
+          const [owner, repo, branch, ...rest] = parts;
+          return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${rest.join('/')}`;
+        }
+      }
+      return u;
+    }
+    function stripBom(t){ if(!t) return ''; return (t.charCodeAt(0) === 0xFEFF) ? t.slice(1) : t; }
+    function parseTable(text){
+      const clean = stripBom(text);
+      if (typeof Papa !== 'undefined'){
+        const first = (clean.split('
+')[0]||'');
+        const primary = (first.includes(',')) ? ',' : '	';
+        const { data } = Papa.parse(clean, { delimiter: primary, skipEmptyLines: true, transform: v => (v ?? '').toString().trim() });
+        return data;
+      }
+      return clean.split('
+').map(l => l.trim()).filter(Boolean).map(l => (l.includes(',') ? l.split(',') : l.split('	')).map(s => s.trim()));
+    }
+    async function fetchText(url){
+      try{
+        const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' });
+        if(!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`);
+        return await res.text();
+      }catch(e){ throw new Error(`อ่านไฟล์ไม่ได้: ${url} :: ${e.message}`); }
+    }
+    async function loadProducts(){
+      try{
+        const text = await fetchText(FILE_PRODUCTS);
+        const rows = parseTable(text);
+        PRODUCTS = rows.map((r,i)=>{
+          const [idRaw, name, priceRaw, unit, category, img, flagRaw] = r;
+          const id = idRaw || String(i+1);
+          const price = Number((String(priceRaw||'').replace(/[^\d.]/g,''))) || 0;
+          const flags = String(flagRaw||'').toUpperCase();
+          const featured = flags.includes('A');
+          const oos = flags.includes('OOS') || flags.includes('OUT');
+          return { id:String(id), name, price, unit, category, img: toCdnGit(img||'https://picsum.photos/seed/placeholder/800/600'), featured, oos, active:true };
         });
-
-        var currentMapType = 'street';
-        osmLayer.addTo(map);
-
-        function toggleMapLayer() {
-            if (currentMapType === 'street') {
-                map.removeLayer(osmLayer);
-                map.addLayer(satelliteLayer);
-                currentMapType = 'satellite';
-            } else {
-                map.removeLayer(satelliteLayer);
-                map.addLayer(osmLayer);
-                currentMapType = 'street';
-            }
-        }
-        
-        var markerLayer = L.layerGroup().addTo(map);
-        var polygonLayer = L.layerGroup().addTo(map);
-
-        var markers = [];
-        var parcelsData = [];
-        var routingControl = null;
-        var userMarker = null;
-        var myJobId = null;
-        var isMapFollowing = false;
-        var currentFilter = 'all';
-        var hasAlerted = false; 
-        var ALERT_DISTANCE = 50; 
-        var workDates = new Set(); 
-
-        var icons = {
-            waiting: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            booked: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            done: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            gray: new L.Icon({ iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            user: L.divIcon({ className: 'user', html: '<div style="background:#2980b9;width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>', iconSize: [26,26] })
+      }catch(e){ showError(e.message); PRODUCTS = []; }
+    }
+    async function loadDailyMenu(){
+      try{
+        const text = await fetchText(FILE_MENU);
+        const cleaned = text
+          .split('\n')
+          .filter(line => !line.trim().startsWith('#'))
+          .join('\n');
+        const rows = parseTable(cleaned);
+        window.DAILY_MENU = rows.map(r=>{
+          const title = r[0]||'';
+          const img   = toCdnGit(r[1]||'');
+          const status = String(r[2]||'ON').trim().toUpperCase();
+          return { title, img, status };
+        }).filter(m => m.title && m.img && m.status !== 'OFF' && m.status !== '0');
+      }catch(e){ showError(e.message); window.DAILY_MENU = []; }
+    }
+    async function loadAnnounces(){
+      try{
+        const text = await fetchText(FILE_ANN);
+        const cleaned = text
+          .split('\n')
+          .filter(line => !line.trim().startsWith('#'))
+          .join('\n');
+        const rows = parseTable(cleaned);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const toDate = (s)=>{
+          if(!s) return null;
+          const [y,m,d] = String(s).trim().split('-').map(Number);
+          if(!y||!m||!d) return null;
+          const dt = new Date(y, m-1, d); dt.setHours(0,0,0,0);
+          return dt;
         };
+        window.ANNOUNCES = rows.map(r=>{
+          const text = r[0]||'';
+          const href = r[1]||'';
+          const status = String(r[2]||'ON').trim().toUpperCase();
+          const start = toDate(r[3]||'');
+          let end = toDate(r[4]||'');
+          if(!end) end = new Date(today.getTime());
+          return { text, href, status, start, end };
+        }).filter(a=>{
+          if(!a.text) return false;
+          if(a.status === 'OFF' || a.status === '0') return false;
+          if(a.start && today < a.start) return false;
+          if(a.end && today > a.end) return false;
+          return true;
+        });
+        if(!window.ANNOUNCES.length){ showError('ไม่มีประกาศที่เปิดใช้งาน/อยู่ในช่วงวันที่'); }
+      }catch(e){ showError(e.message); window.ANNOUNCES = []; }
+    }
+    function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
+    function filterItems(items){
+      const q = state.q.trim().toLowerCase();
+      const c = state.category;
+      const min = state.min === '' ? -Infinity : Number(state.min);
+      const max = state.max === '' ? Infinity : Number(state.max);
+      return items.filter(it => (!q || String(it.name).toLowerCase().includes(q)) && (!c || String(it.category) === c) && (Number(it.price) >= min && Number(it.price) <= max));
+    }
+    function renderCategories(){
+      const sel = document.getElementById('categorySelect'); if(!sel) return;
+      sel.innerHTML = '<option value=\"\">ทั้งหมด</option>';
+      uniqueCategories(PRODUCTS).forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt); });
+    }
+    function productCard(it){
+      const imgSrc = it.img || 'https://picsum.photos/seed/placeholder/800/600';
+      return `<article class="card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all">
+        <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
+          <img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" onerror="this.src='https://picsum.photos/seed/placeholder/800/600'" />
+        </div>
+        <div class="p-3"><h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
+          <div class="mt-1 flex items-center justify-between"><span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit || '-'}</span>
+            <span class="text-xs text-gray-500">${it.category || '-'}</span></div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
+            <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตรายการนี้</button>
+          </div></div></article>`;
+    }
+    function renderGrid(items){
+      const wrap = document.getElementById('productGrid'); if(!wrap) return;
+      document.getElementById('resultCount').textContent = items.length;
+      wrap.innerHTML = items.length ? items.map(productCard).join('') : '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า</div>';
+    }
+    function renderFeatured(){
+      const list = PRODUCTS.filter(p=>p.active!==false && p.featured);
+      const sec = document.getElementById('featured'); const grid = document.getElementById('featuredGrid'); if(!sec || !grid) return;
+      if(list.length === 0){ sec.classList.add('hidden'); grid.innerHTML=''; return; }
+      sec.classList.remove('hidden'); grid.innerHTML = list.map(productCard).join('');
+    }
+    function renderHeaderMenuBanner(){
+      const track = document.getElementById('bannerTrack'); if(!track) return;
+      const data = (window.DAILY_MENU || []);
+      if(!data.length){ track.innerHTML = '<div class="px-4 py-4 text-gray-500">ยังไม่มีเมนูวันนี้ — เพิ่มใน data/menu.txt</div>'; return; }
+      const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-40 md:h-56 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/menu/800/560'"><figcaption class="text-center text-xs md:text-sm mt-1">${m.title}</figcaption></figure>`).join('');
+      track.innerHTML = items + items;
+    }
+    const BANNERS = ['images/banner1.jpg','images/banner2.jpg','images/banner3.jpg'];
+    let bannerIdx = 0;
+    const AUTO_SLIDE_MS = 4000;
+    let bannerTimer = null;
+    function renderManualBanner(){
+      const wrap = document.getElementById('manualBanner'); if(!wrap) return;
+      if(!BANNERS.length){ wrap.innerHTML = '<div class="text-gray-500">ยังไม่มีแบนเนอร์</div>'; return; }
+      const src = BANNERS[bannerIdx % BANNERS.length];
+      wrap.innerHTML = `<img src="${src}" class="w-full h-full object-cover" alt="banner" onerror="this.src='https://picsum.photos/seed/banner/1200/400'">`;
+    }
+    function startBannerAuto(){
+      stopBannerAuto();
+      if(BANNERS.length <= 1) return;
+      bannerTimer = setInterval(()=>{
+        bannerIdx = (bannerIdx + 1) % BANNERS.length;
+        renderManualBanner();
+      }, AUTO_SLIDE_MS);
+    }
+    function stopBannerAuto(){ if(bannerTimer){ clearInterval(bannerTimer); bannerTimer = null; } }
+    function renderAnnounce(){
+      const track = document.getElementById('announceTrack'); if(!track) return;
+      const arr = window.ANNOUNCES || [];
+      if(!arr.length){ track.innerHTML = '<span class="px-3 py-2 text-gray-500">ยังไม่มีประกาศ — เพิ่มใน data/announce.txt</span>'; return; }
+      const html = arr.map(a => { const href = a.href ? a.href : '#'; const safeText = a.text.replace(/</g,'&lt;').replace(/>/g,'&gt;'); return `<a href="${href}" ${a.href?'target="_blank" rel="noopener"':''} class="shrink-0 underline decoration-dotted">${safeText}</a>`; }).join('<span class="opacity-50">•</span>');
+      track.innerHTML = html + '<span class="opacity-50">•</span>' + html;
+    }
 
-        var polyColors = { waiting: '#e74c3c', booked: '#e67e22', done: '#27ae60', gray: '#95a5a6' };
+    function persistCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
+    function cartCount(){ return Object.values(cart).reduce((a,b)=>a+(Number(b)||0),0); }
+    function updateBadge(){ const el = document.getElementById('cartBadge'); if(el) el.textContent = cartCount(); }
+    function findProduct(id){ return PRODUCTS.find(p => normalizeId(p.id) === normalizeId(id)); }
+    function cartTotal(){ return Object.entries(cart).reduce((sum,[id,qty]) => { const p = findProduct(id); if(!p) return sum; const price = Number(p.price)||0; const q = Number(qty)||0; return sum + (price * q); }, 0); }
+    function renderCart(){
+      const list = document.getElementById('cartList'); if(!list) return; list.innerHTML = '';
+      const entries = Object.entries(cart);
+      if(entries.length === 0){ list.innerHTML = '<div class="p-4 text-center text-gray-500">ตะกร้าว่าง</div>'; }
+      else { entries.forEach(([id, qty]) => { let p = findProduct(id); if(!p) { p = { name:`สินค้า ID ${id}`, price:0, unit:'', img:'https://picsum.photos/seed/placeholder/160/120' }; }
+        const row = document.createElement('div'); row.className = 'p-3 flex items-center gap-3';
+        row.innerHTML = `<img src="${p.img}" alt="${p.name}" class="w-16 h-12 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/placeholder/160/120'">
+          <div class="flex-1"><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">${fmtBaht(p.price||0)} / ${p.unit || '-'}</div></div>
+          <div class="flex items-center gap-2"><button class="btn-dec px-2 py-1 rounded-lg border" data-id="${id}">-</button><span class="w-8 text-center">${qty}</span><button class="btn-inc px-2 py-1 rounded-lg border" data-id="${id}">+</button></div>
+          <div class="w-20 text-right font-medium">${fmtBaht((p.price||0) * qty)}</div>`; list.appendChild(row); }); }
+      document.getElementById('cartTotal').textContent = fmtBaht(cartTotal());
+    }
+    function buildOrderText(){
+      const lines = ['ออเดอร์จากหน้าเว็บ: ' + STORE_NAME, '']; Object.entries(cart).forEach(([id, qty]) => { const p = findProduct(id); if(!p) return;
+        lines.push(`- ${p.name} x ${qty} (${fmtBaht(p.price)} / ${p.unit || '-'}) = ${fmtBaht(p.price*qty)}`); });
+      lines.push(''); lines.push('ยอดรวม: ' + fmtBaht(cartTotal())); lines.push('ขอที่อยู่จัดส่ง/นัดรับด้วยครับ'); return lines.join('\n');
+    }
 
-        function speakAlert(text) {
-            if ('speechSynthesis' in window) {
-                var utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'th-TH'; utterance.rate = 1;
-                window.speechSynthesis.speak(utterance);
-                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
-            }
-        }
+    function refreshUI(){
+      renderCategories();
+      renderFeatured();
+      renderGrid(filterItems(PRODUCTS));
+      updateBadge();
+      renderHeaderMenuBanner();
+      renderAnnounce();
+      renderManualBanner();
+      startBannerAuto();
+    }
 
-        function initCalendar() {
-            workDates.clear();
-            parcelsData.forEach(p => {
-                if (p.timestamp && p.status === 'done') {
-                    var d = new Date(p.timestamp);
-                    if (!isNaN(d.getTime())) {
-                        var dateStr = toLocalISOString(d);
-                        workDates.add(dateStr);
-                    }
-                }
-            });
+    document.addEventListener('DOMContentLoaded', async () => {
+      const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
+      const msg = 'สวัสดีครับ สอบถามสินค้า'; const lineURL = lineChatUrl(msg);
+      const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
+      setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
 
-            flatpickr("#fab-calendar", {
-                disableMobile: "true",
-                dateFormat: "Y-m-d",
-                onChange: function(selectedDates, dateStr, instance) {
-                    downloadExcel(dateStr);
-                },
-                onDayCreate: function(dObj, dStr, fp, dayElem) {
-                    var dateKey = toLocalISOString(dayElem.dateObj);
-                    if (workDates.has(dateKey)) {
-                        dayElem.innerHTML += "<span class='event-dot'></span>";
-                    }
-                }
-            });
-        }
+      if(location.protocol === 'file:'){
+        const warn = document.createElement('div');
+        warn.className = 'bg-yellow-100 text-yellow-900 text-sm px-4 py-2 text-center';
+        warn.textContent = 'คำเตือน: กรุณาเปิดผ่าน http(s):// ไม่ใช่ file:// เพื่อให้โหลดข้อมูลจาก ./data/*.txt ได้';
+        document.body.prepend(warn);
+        showError('ตอนนี้กำลังเปิดแบบ file:// — fetch() จะถูกบล็อก ให้รันผ่าน Live Server หรือโฮสต์ http(s)');
+      }
 
-        function fetchDataFromSheet() {
-            var btnIcon = document.querySelector('#fab-refresh i');
-            btnIcon.className = 'fas fa-sync-alt fa-spin';
-            var noCacheUrl = APPS_SCRIPT_URL + '?t=' + new Date().getTime();
+      try{ await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]); } catch(e){ console.error(e); showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message); }
 
-            fetch(noCacheUrl)
-            .then(response => response.json())
-            .then(data => {
-                parcelsData = data.map(item => {
-                    if (!item.status) item.status = 'waiting';
-                    else item.status = item.status.toString().toLowerCase();
-                    return item;
-                });
-                updateFilterDropdown();
-                renderMarkers();
-                updateStats();
-                startGPS(); 
-                initCalendar(); 
-                btnIcon.className = 'fas fa-sync-alt';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                btnIcon.className = 'fas fa-sync-alt';
-                alert("โหลดข้อมูลไม่ได้: " + error);
-            });
-        }
-        window.onload = fetchDataFromSheet;
+      for (const id of Object.keys(cart)) { if (!findProduct(id)) { delete cart[id]; } }
+      localStorage.setItem('cart', JSON.stringify(cart));
+      refreshUI();
 
-        function updateFilterDropdown() {
-            var select = document.getElementById('filter-amphoe');
-            var oldVal = select.value;
-            var amphoes = [...new Set(parcelsData.map(item => item.amphoe))].filter(Boolean).sort();
-            select.innerHTML = '<option value="all">แสดงทุกอำเภอ</option>';
-            amphoes.forEach(amphoe => {
-                var option = document.createElement('option');
-                option.value = amphoe; option.text = "อ." + amphoe;
-                select.appendChild(option);
-            });
-            if(amphoes.includes(oldVal)) select.value = oldVal;
-        }
+      document.getElementById('searchInput').addEventListener('input', e => { state.q = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+      document.getElementById('categorySelect').addEventListener('change', e => { state.category = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+      document.getElementById('minPrice').addEventListener('input', e => { state.min = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+      document.getElementById('maxPrice').addEventListener('input', e => { state.max = e.target.value; renderGrid(filterItems(PRODUCTS)); });
+      document.getElementById('clearFilters').addEventListener('click', () => { state = { q:'', category:'', min:'', max:'' }; document.getElementById('searchInput').value=''; document.getElementById('categorySelect').value=''; document.getElementById('minPrice').value=''; document.getElementById('maxPrice').value=''; renderGrid(filterItems(PRODUCTS)); });
 
-        function applyFilter() {
-            currentFilter = document.getElementById('filter-amphoe').value;
-            renderMarkers();
-            var activeParcels = parcelsData.filter(p => currentFilter === 'all' || p.amphoe === currentFilter);
-            if(activeParcels.length > 0) {
-                var latlngs = activeParcels.map(p => [p.lat, p.lng]);
-                var bounds = L.latLngBounds(latlngs);
-                map.fitBounds(bounds, {padding: [50, 50]});
-            }
-        }
+      const openCart = () => { document.getElementById('cartDrawer').classList.add('open'); document.getElementById('backdrop').classList.add('show'); renderCart(); };
+      const closeCart = () => { document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); };
+      document.getElementById('openCart')?.addEventListener('click', openCart);
+      document.getElementById('closeCart')?.addEventListener('click', closeCart);
+      document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
-        function renderMarkers() {
-            markerLayer.clearLayers();
-            polygonLayer.clearLayers(); 
-            markers = [];
-            
-            parcelsData.forEach(parcel => {
-                var isInFilter = (currentFilter === 'all' || parcel.amphoe == currentFilter);
-                var currentStatus = parcel.status || 'waiting'; 
-                var iconType = isInFilter ? (icons[currentStatus] || icons.waiting) : icons.gray;
-                
-                var marker = L.marker([parcel.lat, parcel.lng], {icon: iconType, opacity: isInFilter ? 1 : 0.6 });
-                var labelClass = isInFilter ? 'parcel-label' : 'parcel-label parcel-label-gray';
-                marker.bindTooltip(String(parcel.name), { permanent: true, direction: 'top', className: labelClass });
-                
-                var clickAction = () => { 
-                    if (!isInFilter) alert(`⚠️ พื้นที่นี้อยู่นอกเขตที่คุณเลือก (อ.${parcel.amphoe})`);
-                    openBottomSheet(parcel.id); 
-                };
+      document.addEventListener('click', (e) => {
+        const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
+        if (addBtn) { if (addBtn.hasAttribute('disabled')) return; const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (Number(cart[id]) || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); if (document.getElementById('cartDrawer').classList.contains('open')) { renderCart(); } }
+        if (chatBtn) { if (chatBtn.hasAttribute('disabled')) return; const id = normalizeId(chatBtn.getAttribute('data-id')); const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return; const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`; window.open(lineChatUrl(text), '_blank'); }
+      });
 
-                marker.on('click', clickAction);
-                marker.parcelId = parcel.id;
-                markerLayer.addLayer(marker);
-                markers.push(marker);
+      document.getElementById('cartList').addEventListener('click', (e) => {
+        const dec = e.target.closest('.btn-dec'); const inc = e.target.closest('.btn-inc');
+        if (dec) { const id = normalizeId(dec.getAttribute('data-id')); cart[id] = Math.max(0, (cart[id]||0) - 1); if(cart[id] === 0) delete cart[id]; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
+        if (inc) { const id = normalizeId(inc.getAttribute('data-id')); cart[id] = (cart[id]||0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); }
+      });
 
-                if (parcel.geojson && parcel.geojson.toString().trim() !== "") {
-                    try {
-                        var rawJson = parcel.geojson.toString();
-                        if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
-                        rawJson = rawJson.replace(/\\"/g, '"');
-                        var geoData = JSON.parse(rawJson);
-                        var polyColor = isInFilter ? (polyColors[currentStatus] || polyColors.waiting) : polyColors.gray;
-                        var poly = L.geoJSON(geoData, {
-                            style: { color: polyColor, weight: 2, opacity: isInFilter ? 0.8 : 0.3, fillOpacity: isInFilter ? 0.2 : 0.1 }
-                        });
-                        poly.on('click', clickAction);
-                        polygonLayer.addLayer(poly);
-                    } catch(e) {}
-                }
-            });
-        }
+      document.getElementById('clearCart')?.addEventListener('click', () => { cart = {}; localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); updateBadge(); });
+      document.getElementById('copyOrder')?.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(buildOrderText()); alert('คัดลอกออเดอร์แล้ว'); } catch{ alert('คัดลอกไม่สำเร็จ'); } });
+      document.getElementById('checkout')?.addEventListener('click', ()=> window.open(lineChatUrl(buildOrderText()), '_blank'));
 
-        function requestBooking(id) {
-            var body = document.getElementById('sheet-body');
-            body.innerHTML = `
-                <div style="text-align:center; padding:10px;">
-                    <p style="font-size:16px;">ยืนยันการเดินทางไปยังแปลงนี้?</p>
-                    <div class="action-row">
-                        <button class="btn-full btn-gray" onclick="closeSheet()">ยกเลิก</button>
-                        <button class="btn-full btn-blue" onclick="confirmBooking(${id})">ยืนยัน</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function confirmBooking(id) {
-            if (myJobId !== null && myJobId !== id) { alert("มีงานอื่นค้างอยู่"); return; }
-            myJobId = id;
-            var p = parcelsData.find(d => d.id == id);
-            p.status = 'booked'; 
-            hasAlerted = false;
-            renderMarkers();
-            calculateRoute(p.lat, p.lng);
-            isMapFollowing = true;
-            updateFollowButton();
-            saveToSheet(id, p.note, 'booked'); 
-            closeSheet();
-            speakAlert("เริ่มการเดินทางค่ะ");
-        }
-
-        window.findNextJob = function() {
-            if(!userMarker) { alert("กำลังหา GPS..."); requestGPS(); return; }
-            if (myJobId) {
-                if(confirm("⚠️ คุณมีเส้นทางค้างอยู่ ต้องการยกเลิกและหาแปลงใหม่ใช่ไหม?")) {
-                    var oldJob = parcelsData.find(d => d.id == myJobId);
-                    oldJob.status = 'waiting';
-                    if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-                    saveToSheet(myJobId, oldJob.note, 'waiting');
-                    myJobId = null; hasAlerted = false;
-                    setTimeout(() => { searchNearest(); }, 500); 
-                } else {
-                    openBottomSheet(myJobId); return;
-                }
-            } else {
-                searchNearest();
-            }
-        }
-
-        function searchNearest() {
-            var waiting = parcelsData.filter(p => {
-                var matchFilter = (currentFilter === 'all' || p.amphoe == currentFilter);
-                return p.status === 'waiting' && matchFilter;
-            });
-            if(waiting.length === 0) { alert(currentFilter === 'all' ? "สำรวจครบแล้ว!" : "ไม่พบแปลงว่างในอำเภอนี้"); return; }
-            var nearest = waiting.reduce((prev, curr) => {
-                var pD = userMarker.getLatLng().distanceTo([prev.lat, prev.lng]);
-                var cD = userMarker.getLatLng().distanceTo([curr.lat, curr.lng]);
-                return cD < pD ? curr : prev;
-            });
-            openBottomSheet(nearest.id);
-        }
-
-        window.pickReason = function(val) {
-            if(val) document.getElementById('inp-note').value = val;
-        }
-
-        function getReasonSelectorHTML() {
-            return `
-            <select class="reason-select" onchange="pickReason(this.value)">
-                <option value="">-- เลือกสภาพการใช้ประโยชน์ --</option>
-                <option value="ใช้ผิดวัตถุประสงค์">ใช้ผิดวัตถุประสงค์</option>
-                <option value="นำไปจัดหาประโยชน์">นำไปจัดหาประโยชน์</option>
-                <option value="เลิกใช้ประโยชน์">เลิกใช้ประโยชน์</option>
-                <option value="รกร้าง/ที่ว่าง">รกร้าง/ที่ว่าง</option>
-                <option value="อื่นๆ">อื่นๆ</option>
-            </select>`;
-        }
-
-        window.confirmSave = function(id) {
-            var note = document.getElementById('inp-note').value.trim();
-            var status = 'done';
-            if (!note) {
-                if(confirm("⚠️ ยังไม่ได้ระบุรายละเอียด\nต้องการเปลี่ยนสถานะกลับเป็น 'รอสำรวจ' ใช่หรือไม่?")) status = 'waiting';
-                else return;
-            }
-            saveToSheet(id, note, status);
-        }
-
-        function saveToSheet(id, note, status) {
-            var p = parcelsData.find(d => d.id == id);
-            p.note = note; p.status = status;
-            
-            if ((status === 'waiting' || status === 'done') && routingControl) { 
-                map.removeControl(routingControl); routingControl = null; 
-            }
-            if (status !== 'booked') { myJobId = null; hasAlerted = false; }
-
-            renderMarkers();
-            updateStats();
-            closeSheet();
-
-            fetch(APPS_SCRIPT_URL, {
-                method: 'POST', mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, note: note, status: status })
-            }).then(() => {
-                if(status === 'done') alert("✅ บันทึกข้อมูลเรียบร้อย");
-            }).catch(err => { alert("บันทึกไม่สำเร็จ: " + err); });
-        }
-
-        window.cancelBooking = function(id) {
-            if(confirm("ต้องการยกเลิกการเดินทางแปลงนี้ ใช่ไหม?")) {
-                var p = parcelsData.find(d => d.id == id);
-                saveToSheet(id, p.note, 'waiting');
-                alert("ยกเลิกการเดินทางแล้ว");
-            }
-        }
-
-        function openBottomSheet(id) {
-            var p = parcelsData.find(d => d.id == id);
-            document.getElementById('sheet-name').innerText = p.name;
-            document.getElementById('sheet-loc').innerText = `อ.${p.amphoe} ต.${p.tambon}`;
-            
-            var badge = document.getElementById('sheet-status');
-            var body = document.getElementById('sheet-body');
-            var html = '';
-            var currentStatus = p.status || 'waiting';
-
-            if (currentStatus === 'waiting') {
-                badge.className = 'status-badge bg-red'; badge.innerText = 'รอสำรวจ';
-                html = `<button class="btn-full btn-blue" onclick="requestBooking(${id})">📍 จองและนำทาง</button>`;
-            } else if (currentStatus === 'booked') {
-                badge.className = 'status-badge bg-orange'; badge.innerText = 'กำลังเดินทาง';
-                html = `<button class="btn-full btn-google" onclick="openGoogle(${id})"><i class="fas fa-map-marked-alt"></i> เปิด Google Maps (นำทาง)</button>
-                        <hr style="border:1px solid #eee; margin:10px 0;">
-                        <label style="font-size:12px; color:#666; display:block; margin-bottom:5px;">📝 บันทึกผลการสำรวจ</label>
-                        ${getReasonSelectorHTML()}
-                        <textarea id="inp-note" placeholder="พิมพ์รายละเอียดเพิ่มเติม...">${p.note || ''}</textarea>
-                        <div class="action-row">
-                            <button class="btn-full btn-red" onclick="cancelBooking(${id})">❌ ยกเลิก</button>
-                            <button class="btn-full btn-green" onclick="confirmSave(${id})">💾 จบงาน</button>
-                        </div>`;
-            } else {
-                badge.className = 'status-badge bg-green'; badge.innerText = 'เสร็จแล้ว';
-                html = `<label style="font-size:12px; color:#666;">✅ รายละเอียด</label>
-                        <textarea id="inp-note" disabled>${p.note || ''}</textarea>
-                        <div id="div-edit-actions"><button class="btn-full btn-gray" onclick="enableEditMode()">✏️ แก้ไขข้อมูล</button></div>
-                        <div id="div-save-actions" style="display:none;">
-                            ${getReasonSelectorHTML()}
-                            <button class="btn-full btn-green" onclick="confirmSave(${id})">💾 บันทึกการแก้ไข</button>
-                        </div>`;
-            }
-            body.innerHTML = html;
-            document.getElementById('bottom-sheet').classList.add('active');
-            isMapFollowing = false; updateFollowButton();
-            map.panTo([p.lat, p.lng]);
-        }
-
-        function closeSheet() { document.getElementById('bottom-sheet').classList.remove('active'); }
-        window.enableEditMode = function() {
-            document.getElementById('inp-note').disabled = false;
-            document.getElementById('div-edit-actions').style.display = 'none';
-            document.getElementById('div-save-actions').style.display = 'block';
-        }
-        window.openGoogle = function(id) {
-            var p = parcelsData.find(d => d.id == id);
-            window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
-        }
-
-        window.requestGPS = function() {
-            startGPS(true);
-        }
-
-        function startGPS(force = false) {
-            if (!navigator.geolocation) {
-                alert("อุปกรณ์นี้ไม่รองรับ GPS");
-                return;
-            }
-
-            var options = {
-                enableHighAccuracy: true,
-                timeout: 10000, 
-                maximumAge: 0   
-            };
-
-            navigator.geolocation.watchPosition(
-                function(p) {
-                    var lat = p.coords.latitude, lng = p.coords.longitude;
-                    var userPos = [lat, lng];
-                    
-                    if(!userMarker) {
-                        userMarker = L.marker(userPos, {icon: icons.user}).addTo(map);
-                        map.setView(userPos, 16);
-                        isMapFollowing = true; updateFollowButton();
-                    } else { 
-                        userMarker.setLatLng(userPos); 
-                    }
-                    if(isMapFollowing) map.setView(userPos, 18);
-
-                    document.getElementById('fab-gps-fix').style.display = 'none';
-
-                    if (myJobId && !hasAlerted) {
-                         var job = parcelsData.find(d => d.id == myJobId);
-                         if (job) {
-                             var dist = map.distance(userPos, [job.lat, job.lng]);
-                             if (dist < ALERT_DISTANCE) { speakAlert("ใกล้ถึงจุดหมายแล้วค่ะ"); hasAlerted = true; }
-                         }
-                    }
-                }, 
-                function(err) {
-                    console.warn('GPS Error(' + err.code + '): ' + err.message);
-                    if (force || err.code === 1) { 
-                         alert("⚠️ ไม่ได้รับอนุญาตให้ใช้ GPS\nโปรดไปที่ Settings > Privacy > Location Services > Safari Websites > เลือก 'While Using'");
-                         document.getElementById('fab-gps-fix').style.display = 'flex';
-                    }
-                }, 
-                options
-            );
-        }
-
-        function calculateRoute(lat, lng) {
-            if(routingControl) map.removeControl(routingControl);
-            routingControl = L.Routing.control({
-                waypoints: [userMarker.getLatLng(), L.latLng(lat, lng)],
-                createMarker: function() { return null; },
-                lineOptions: { styles: [{color: '#2980b9', weight: 6}] },
-                addWaypoints: false, show: false,
-                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' })
-            }).addTo(map);
-        }
-
-        window.toggleFollowMode = function() {
-            isMapFollowing = !isMapFollowing;
-            if(isMapFollowing && userMarker) map.setView(userMarker.getLatLng(), 18);
-            updateFollowButton();
-        }
-        function updateFollowButton() {
-            var btn = document.getElementById('fab-location');
-            btn.className = isMapFollowing ? 'fab-btn active-follow' : 'fab-btn';
-        }
-        map.on('dragstart', () => { if(isMapFollowing) { isMapFollowing = false; updateFollowButton(); }});
-
-        function updateStats() {
-            var done = parcelsData.filter(d => d.status === 'done').length;
-            document.getElementById('txt-remain').innerText = parcelsData.length - done;
-            
-            var todayStr = toLocalISOString(new Date());
-            var todayCount = parcelsData.filter(d => {
-                if (d.status !== 'done') return false;
-                if (!d.timestamp) return false;
-                var dDate = toLocalISOString(new Date(d.timestamp));
-                return dDate === todayStr;
-            }).length;
-
-            document.getElementById('txt-today').innerText = todayCount;
-        }
-
-        function downloadExcel(filterDate = null) {
-            var completedParcels = parcelsData.filter(p => p.status === 'done');
-
-            if (completedParcels.length === 0) {
-                alert("ยังไม่มีแปลงที่สำรวจเสร็จสิ้นเลยครับ");
-                return;
-            }
-
-            var exportData = completedParcels;
-            var fileNamePrefix = "Report_Done_All";
-
-            if (filterDate) {
-                exportData = completedParcels.filter(p => {
-                    if (!p.timestamp) return false;
-                    var pDate = toLocalISOString(new Date(p.timestamp));
-                    return pDate === filterDate;
-                });
-                
-                if (exportData.length === 0) {
-                    alert("วันที่ " + filterDate + " ไม่มีงานที่สำรวจเสร็จครับ"); 
-                    return; 
-                }
-                fileNamePrefix = "Report_Done_" + filterDate;
-            } else {
-                var choice = confirm("พบแปลงที่สำรวจเสร็จทั้งหมด " + completedParcels.length + " แปลง\nต้องการดาวน์โหลดรายชื่อทั้งหมดใช่ไหม?\n(กด 'ตกลง' โหลดทั้งหมด / กด 'ยกเลิก' เพื่อไปเลือกวัน)");
-                if (!choice) return;
-            }
-
-            var csvContent = "ชื่อแปลง,อำเภอ,ตำบล,สถานะ,หมายเหตุ,เวลาบันทึก\n";
-            exportData.forEach(function(row) {
-                var name = row.name || "-";
-                var amphoe = row.amphoe || "-";
-                var tambon = row.tambon || "-";
-                var status = "เสร็จสิ้น"; 
-                var note = (row.note || "").replace(/,/g, " ").replace(/\n/g, " ");
-                var time = row.timestamp || "-";
-                csvContent += `${name},${amphoe},${tambon},${status},${note},${time}\n`;
-            });
-
-            var blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-            var fileName = fileNamePrefix + ".csv";
-            var link = document.createElement("a");
-            if (link.download !== undefined) { 
-                var url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", fileName);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        }
-    </script>
+      document.getElementById('bannerPrev')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx - 1 + BANNERS.length) % BANNERS.length; renderManualBanner(); });
+      document.getElementById('bannerNext')?.addEventListener('click', ()=>{ bannerIdx = (bannerIdx + 1) % BANNERS.length; renderManualBanner(); });
+      const bannerWrap = document.getElementById('manualBanner');
+      bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
+      bannerWrap?.addEventListener('mouseleave', startBannerAuto);
+      startBannerAuto();
+    });
+  </script>
+  <div id="backdrop" class="backdrop"></div>
 </body>
 </html>
