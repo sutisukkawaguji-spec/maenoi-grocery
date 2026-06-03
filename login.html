@@ -35,23 +35,36 @@
     <div class="text-center space-y-2">
       <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 text-3xl mx-auto">🔐</div>
       <h2 id="authTitle" class="text-2xl font-bold text-slate-900">เข้าสู่ระบบหลังบ้าน</h2>
-      <p id="authSubtitle" class="text-sm text-slate-500">กรอกอีเมลและรหัสผ่านเพื่อเข้าจัดการร้านแม่น้อย</p>
+      <p id="authSubtitle" class="text-sm text-slate-500">กรอกเบอร์โทรศัพท์และรหัสผ่านเพื่อเข้าจัดการร้านแม่น้อย</p>
     </div>
 
     <!-- Login/Signup Forms -->
     <form id="authForm" class="space-y-4 text-sm">
       <div>
-        <label class="block font-semibold text-slate-700 mb-1">อีเมลผู้ใช้งาน</label>
-        <input type="email" id="authEmail" required placeholder="example@email.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+        <label class="block font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์ผู้ใช้งาน</label>
+        <input type="tel" id="authPhone" required placeholder="เช่น 0880699227" pattern="[0-9]{10}" maxlength="10" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-base font-mono" />
       </div>
       <div>
         <label class="block font-semibold text-slate-700 mb-1">รหัสผ่าน</label>
-        <input type="password" id="authPassword" required placeholder="••••••••" minlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+        <div class="relative">
+          <input type="password" id="authPassword" required placeholder="••••••••" minlength="6" class="w-full pl-4 pr-12 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-base" />
+          <button type="button" id="btnTogglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-slate-400 hover:text-slate-600 focus:outline-none">
+            👁️
+          </button>
+        </div>
+      </div>
+
+      <!-- Remember Me Checkbox -->
+      <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="authRemember" checked class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500" />
+          <span>จดจำการเข้าสู่ระบบในเครื่องนี้</span>
+        </label>
       </div>
 
       <!-- Error / Success Messages -->
-      <div id="authError" class="text-rose-500 font-semibold text-xs hidden bg-rose-50 p-3 rounded-xl border border-rose-100"></div>
-      <div id="authSuccess" class="text-emerald-600 font-semibold text-xs hidden bg-emerald-50 p-3 rounded-xl border border-emerald-100"></div>
+      <div id="authError" class="text-rose-500 font-semibold text-xs hidden bg-rose-50 p-3 rounded-xl border border-rose-100 leading-relaxed"></div>
+      <div id="authSuccess" class="text-emerald-600 font-semibold text-xs hidden bg-emerald-50 p-3 rounded-xl border border-emerald-100 leading-relaxed"></div>
 
       <button type="submit" id="btnSubmit" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-lg shadow-emerald-600/20">
         เข้าสู่ระบบ
@@ -78,14 +91,13 @@
         return;
       }
 
-      // Init Supabase
+      // Init Supabase with default client first
       const c = AppConfig.get();
       sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
 
       // Check current session
       sbClient.auth.getSession().then(({ data }) => {
         if (data.session) {
-          // Already logged in, redirect to admin.html
           window.location.href = 'admin.html';
         }
       });
@@ -103,23 +115,36 @@
 
       const authError = document.getElementById('authError');
       const authSuccess = document.getElementById('authSuccess');
+      const passwordInput = document.getElementById('authPassword');
+      const togglePasswordBtn = document.getElementById('btnTogglePassword');
 
+      // Toggle Password Visibility (Eye icon)
+      togglePasswordBtn.addEventListener('click', () => {
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          togglePasswordBtn.textContent = '🔒';
+        } else {
+          passwordInput.type = 'password';
+          togglePasswordBtn.textContent = '👁️';
+        }
+      });
+
+      // Switch Login/Signup Mode
       toggleBtn.addEventListener('click', () => {
         isSignUpMode = !isSignUpMode;
         
-        // Hide alerts
         authError.classList.add('hidden');
         authSuccess.classList.add('hidden');
 
         if (isSignUpMode) {
           authTitle.textContent = 'สมัครสมาชิกผู้ดูแล';
-          authSubtitle.textContent = 'ลงทะเบียนเพื่อสร้างบัญชีสำหรับเข้าใช้งานระบบหลังบ้าน';
-          btnSubmit.textContent = 'สมัครสมาชิกและเข้าใช้งาน';
+          authSubtitle.textContent = 'ลงทะเบียนด้วยเบอร์โทรและรหัสผ่านเพื่อเข้าใช้งานหลังบ้าน';
+          btnSubmit.textContent = 'สมัครสมาชิกและเข้าใช้งานทันที';
           toggleText.textContent = 'มีบัญชีอยู่แล้ว?';
           toggleBtn.textContent = 'เข้าสู่ระบบ';
         } else {
           authTitle.textContent = 'เข้าสู่ระบบหลังบ้าน';
-          authSubtitle.textContent = 'กรอกอีเมลและรหัสผ่านเพื่อเข้าจัดการร้านแม่น้อย';
+          authSubtitle.textContent = 'กรอกเบอร์โทรศัพท์และรหัสผ่านเพื่อเข้าจัดการร้านแม่น้อย';
           btnSubmit.textContent = 'เข้าสู่ระบบ';
           toggleText.textContent = 'ยังไม่มีบัญชีผู้ดูแลระบบ?';
           toggleBtn.textContent = 'สมัครสมาชิกใหม่';
@@ -132,8 +157,27 @@
         authError.classList.add('hidden');
         authSuccess.classList.add('hidden');
         
-        const email = document.getElementById('authEmail').value.trim();
-        const password = document.getElementById('authPassword').value;
+        const phoneRaw = document.getElementById('authPhone').value.trim();
+        const password = passwordInput.value;
+        const remember = document.getElementById('authRemember').checked;
+
+        if (phoneRaw.length !== 10 || isNaN(phoneRaw)) {
+          authError.textContent = 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (10 หลัก)';
+          authError.classList.remove('hidden');
+          return;
+        }
+
+        // Format phone to virtual email under the hood for free Supabase login
+        const email = `${phoneRaw}@maenoi.store`;
+
+        // Re-initialize Supabase client to dynamically set storage preference
+        const c = AppConfig.get();
+        sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey, {
+          auth: {
+            persistSession: remember,
+            storage: remember ? localStorage : sessionStorage
+          }
+        });
 
         btnSubmit.disabled = true;
         btnSubmit.textContent = 'กำลังดำเนินการ...';
@@ -147,16 +191,25 @@
             });
             if (error) throw error;
             
-            if (data.user && data.session) {
-              authSuccess.textContent = 'สมัครสมาชิกสำเร็จ! กำลังพาท่านไปหน้าหลัก...';
+            // Auto login after sign up if not automatically logged in
+            if (!data.session) {
+              const loginRes = await sbClient.auth.signInWithPassword({
+                email,
+                password
+              });
+              if (loginRes.error) throw loginRes.error;
+              data.session = loginRes.data.session;
+            }
+
+            if (data.session) {
+              authSuccess.textContent = 'สมัครสมาชิกและเข้าสู่ระบบสำเร็จ! กำลังพาท่านไปหน้าหลัก...';
               authSuccess.classList.remove('hidden');
               setTimeout(() => { window.location.href = 'admin.html'; }, 1500);
             } else {
-              // Usually requires email confirmation depending on Supabase settings
-              authSuccess.textContent = 'สมัครสมาชิกสำเร็จ! กรุณาเช็กอีเมลเพื่อยืนยันบัญชีผู้ใช้งาน (ถ้าเปิดใช้)';
+              authSuccess.textContent = 'สมัครสมาชิกสำเร็จ! กรุณาลงชื่อเข้าใช้งาน';
               authSuccess.classList.remove('hidden');
               btnSubmit.disabled = false;
-              btnSubmit.textContent = 'สมัครสมาชิกและเข้าใช้งาน';
+              btnSubmit.textContent = 'สมัครสมาชิกและเข้าใช้งานทันที';
             }
           } else {
             // Sign In
@@ -176,10 +229,17 @@
           }
         } catch (err) {
           console.error(err);
-          authError.textContent = 'ข้อผิดพลาด: ' + (err.message || 'การยืนยันตัวตนล้มเหลว');
+          // Customize common error messages to Thai
+          let errorMsg = err.message || 'การยืนยันตัวตนล้มเหลว';
+          if (errorMsg.includes('Invalid login credentials')) {
+            errorMsg = 'เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง';
+          } else if (errorMsg.includes('User already registered')) {
+            errorMsg = 'เบอร์โทรศัพท์นี้ถูกใช้สมัครสมาชิกไปแล้ว';
+          }
+          authError.textContent = 'ข้อผิดพลาด: ' + errorMsg;
           authError.classList.remove('hidden');
           btnSubmit.disabled = false;
-          btnSubmit.textContent = isSignUpMode ? 'สมัครสมาชิกและเข้าใช้งาน' : 'เข้าสู่ระบบ';
+          btnSubmit.textContent = isSignUpMode ? 'สมัครสมาชิกและเข้าใช้งานทันที' : 'เข้าสู่ระบบ';
         }
       });
     }
