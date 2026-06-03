@@ -98,7 +98,7 @@
       // Check current session
       sbClient.auth.getSession().then(({ data }) => {
         if (data.session) {
-          window.location.href = 'admin.html';
+          window.location.href = 'index.html';
         }
       });
 
@@ -204,7 +204,7 @@
             if (data.session) {
               authSuccess.textContent = 'สมัครสมาชิกและเข้าสู่ระบบสำเร็จ! กำลังพาท่านไปหน้าหลัก...';
               authSuccess.classList.remove('hidden');
-              setTimeout(() => { window.location.href = 'admin.html'; }, 1500);
+              setTimeout(() => { window.location.href = 'index.html'; }, 1500);
             } else {
               authSuccess.textContent = 'สมัครสมาชิกสำเร็จ! กรุณาลงชื่อเข้าใช้งาน';
               authSuccess.classList.remove('hidden');
@@ -222,7 +222,7 @@
             if (data.session) {
               authSuccess.textContent = 'เข้าสู่ระบบสำเร็จ! กำลังพาท่านไปยังหน้าหลัก...';
               authSuccess.classList.remove('hidden');
-              setTimeout(() => { window.location.href = 'admin.html'; }, 1500);
+              setTimeout(() => { window.location.href = 'index.html'; }, 1500);
             } else {
               throw new Error('ไม่พบข้อมูลเซสชันหลังเข้าสู่ระบบ');
             }
