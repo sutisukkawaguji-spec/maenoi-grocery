@@ -14,6 +14,8 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <!-- Crypto JS for Cloudinary signatures -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <!-- JsBarcode for generating barcodes -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script src="js/config.js"></script>
   <style>
     body {
@@ -297,14 +299,16 @@
                     <th class="py-3.5 px-4">รูปภาพ / รายละเอียด</th>
                     <th class="py-3.5 px-4">บาร์โค้ด</th>
                     <th class="py-3.5 px-4 text-center">หมวดหมู่</th>
-                    <th class="py-3.5 px-4 text-right">ราคา</th>
+                    <th class="py-3.5 px-4 text-right">ราคาทุน</th>
+                    <th class="py-3.5 px-4 text-right">ราคาขาย</th>
+                    <th class="py-3.5 px-4 text-right text-emerald-600">กำไร/ชิ้น</th>
                     <th class="py-3.5 px-4 text-center">สต็อก (ชิ้น)</th>
                     <th class="py-3.5 px-4 text-center">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody id="prodTableBody" class="divide-y divide-slate-100">
                   <tr>
-                    <td colspan="6" class="text-center py-10 text-slate-400">กำลังโหลดรายการสินค้า...</td>
+                    <td colspan="9" class="text-center py-10 text-slate-400">กำลังโหลดรายการสินค้า...</td>
                   </tr>
                 </tbody>
               </table>
@@ -391,8 +395,9 @@
         <div>
           <label class="block font-semibold text-slate-600 mb-1">รหัสบาร์โค้ดสินค้า (สแกนจากกล้องได้)</label>
           <div class="flex gap-2">
-            <input type="text" id="prodBarcode" placeholder="เช่น 8850999..." class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+            <input type="text" id="prodBarcode" placeholder="เช่น 8850999... หรือเว้นว่างเพื่อสร้างอัตโนมัติ" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
             <button type="button" id="btnScanInForm" class="px-4 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-colors">📷 สแกน</button>
+            <button type="button" id="btnGenerateBarcode" class="px-3 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-xl font-semibold transition-colors text-xs" title="สร้างรหัสบาร์โค้ดอัตโนมัติ">🏷️ สร้าง</button>
           </div>
           <!-- Scanning Area in Form -->
           <div id="form-scanner-container" class="mt-2 rounded-xl border overflow-hidden hidden relative">
@@ -410,8 +415,16 @@
             <input type="text" id="prodName" required placeholder="เช่น นมถั่วเหลือง ดีน่า 230 มล." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
           </div>
           <div>
-            <label class="block font-semibold text-slate-600 mb-1">ราคา (บาท)</label>
+            <label class="block font-semibold text-slate-600 mb-1">ราคาทุน (บาท)</label>
+            <input type="number" step="any" id="prodCostPrice" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-400 outline-none" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">ราคาขาย (บาท) <span class="text-rose-500">*</span></label>
             <input type="number" step="any" id="prodPrice" required placeholder="12" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div class="col-span-2 bg-emerald-50 rounded-xl px-4 py-2.5 flex items-center justify-between">
+            <span class="text-sm text-slate-500 font-medium">กำไรต่อชิ้น</span>
+            <span id="profitPreview" class="text-lg font-bold text-emerald-600">—</span>
           </div>
           <div>
             <label class="block font-semibold text-slate-600 mb-1">หน่วยขาย</label>
@@ -513,6 +526,71 @@
           <button type="submit" id="btnSubmitChangePassword" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md">บันทึกรหัสผ่านใหม่</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- MODAL: Quick Price Editor (via Scan or Search) -->
+  <dialog id="quickPriceModal" class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 md:p-8 space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">✏️ แก้ไขราคาสินค้า</h3>
+          <p id="quickPriceProdName" class="text-sm text-slate-500 mt-0.5">—</p>
+        </div>
+        <button id="btnCloseQuickPrice" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+      <input type="hidden" id="quickPriceProdId" />
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">ราคาทุน (บาท)</label>
+          <input type="number" step="any" id="quickCostPrice" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-amber-300 focus:ring-2 focus:ring-amber-400 outline-none" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">ราคาขาย (บาท)</label>
+          <input type="number" step="any" id="quickSellPrice" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-emerald-300 focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <div class="col-span-2 bg-slate-50 rounded-xl px-4 py-2.5 flex items-center justify-between">
+          <span class="text-sm text-slate-500">กำไรต่อชิ้น</span>
+          <span id="quickProfitPreview" class="text-base font-bold text-emerald-600">—</span>
+        </div>
+      </div>
+      <div class="pt-2 flex gap-3">
+        <button type="button" id="btnCancelQuickPrice" class="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold transition-colors">ยกเลิก</button>
+        <button type="button" id="btnSaveQuickPrice" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md">💾 บันทึกราคา</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- MODAL: Quick Price Scan/Search Launcher -->
+  <dialog id="quickScanSearchModal" class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h3 class="text-lg font-bold text-slate-900">🔍 ค้นหาสินค้าเพื่อแก้ไขราคา</h3>
+        <button id="btnCloseQuickScanSearch" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+      <input type="text" id="quickSearchInput" placeholder="พิมพ์ชื่อ หรือยิงบาร์โค้ดเข้าช่องนี้..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-violet-400 outline-none text-sm" autofocus />
+      <ul id="quickSearchResults" class="space-y-1 max-h-64 overflow-y-auto"></ul>
+      <p class="text-xs text-slate-400 text-center">ยิงบาร์โค้ดด้วยเครื่องสแกนได้เลย ระบบจะค้นหาให้อัตโนมัติ</p>
+    </div>
+  </dialog>
+
+  <!-- MODAL: Barcode Print Preview -->
+  <dialog id="barcodePrintModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 text-center space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h3 class="text-lg font-bold text-slate-900">🏷️ บาร์โค้ดสินค้า</h3>
+        <button id="btnCloseBarcodePrint" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+      <p id="barcodePrintProdName" class="text-sm font-semibold text-slate-700">—</p>
+      <div class="border rounded-2xl p-4 bg-white flex flex-col items-center gap-2">
+        <svg id="barcodePreviewSvg"></svg>
+        <p id="barcodePrintCode" class="font-mono text-xs text-slate-500"></p>
+      </div>
+      <p class="text-xs text-slate-400">ราคาขาย: <span id="barcodePrintPrice" class="font-bold text-emerald-600"></span></p>
+      <div class="pt-2 flex gap-3">
+        <button type="button" id="btnCloseBarcodePrint2" class="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold transition-colors text-sm">ปิด</button>
+        <button type="button" id="btnPrintBarcode" class="flex-1 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold transition-colors shadow-md text-sm">🖨️ พิมพ์</button>
+      </div>
     </div>
   </dialog>
 
@@ -774,10 +852,13 @@
       document.getElementById('productForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('prodId').value;
+        const sellPrice = parseFloat(document.getElementById('prodPrice').value);
+        const costPriceVal = parseFloat(document.getElementById('prodCostPrice').value) || 0;
         const payload = {
           barcode: document.getElementById('prodBarcode').value.trim() || null,
           name: document.getElementById('prodName').value.trim(),
-          price: parseFloat(document.getElementById('prodPrice').value),
+          cost_price: costPriceVal,
+          price: sellPrice,
           unit: document.getElementById('prodUnit').value.trim(),
           category: document.getElementById('prodCategory').value.trim(),
           stock: parseInt(document.getElementById('prodStock').value),
@@ -1016,10 +1097,26 @@
         }
       });
 
-      // Table events (Edit / Delete)
+      // Table events (Edit / Delete / Quick Price / Show Barcode)
       document.getElementById('prodTableBody').addEventListener('click', async (e) => {
         const editBtn = e.target.closest('.btn-edit-prod');
         const deleteBtn = e.target.closest('.btn-delete-prod');
+        const quickPriceBtn = e.target.closest('.btn-quick-price');
+        const showBarcodeBtn = e.target.closest('.btn-show-barcode');
+
+        if (quickPriceBtn) {
+          const id = quickPriceBtn.getAttribute('data-id');
+          const p = productsList.find(x => x.id == id);
+          if (!p) return;
+          openQuickPriceModal(p);
+        }
+
+        if (showBarcodeBtn) {
+          const id = showBarcodeBtn.getAttribute('data-id');
+          const p = productsList.find(x => x.id == id);
+          if (!p) return;
+          openBarcodePrintModal(p);
+        }
 
         if (editBtn) {
           const id = editBtn.getAttribute('data-id');
@@ -1100,6 +1197,179 @@
       // Filters
       document.getElementById('prodSearchInput').addEventListener('input', filterProductsTable);
       document.getElementById('prodCategoryFilter').addEventListener('change', filterProductsTable);
+
+      // --- Profit Preview in Product Form ---
+      function updateProfitPreview() {
+        const cost = parseFloat(document.getElementById('prodCostPrice').value) || 0;
+        const sell = parseFloat(document.getElementById('prodPrice').value) || 0;
+        const preview = document.getElementById('profitPreview');
+        if (sell > 0 && cost > 0) {
+          const profit = sell - cost;
+          preview.textContent = fmt(profit);
+          preview.className = 'text-lg font-bold ' + (profit >= 0 ? 'text-emerald-600' : 'text-rose-600');
+        } else {
+          preview.textContent = '\u2014';
+          preview.className = 'text-lg font-bold text-slate-400';
+        }
+      }
+      document.getElementById('prodCostPrice').addEventListener('input', updateProfitPreview);
+      document.getElementById('prodPrice').addEventListener('input', updateProfitPreview);
+
+      // --- Generate Internal Barcode Button ---
+      document.getElementById('btnGenerateBarcode').addEventListener('click', () => {
+        const existing = document.getElementById('prodBarcode').value.trim();
+        if (existing && !confirm('ช่องบาร์โค้ดมีข้อมูลอยู่แล้ว ต้องการเขียนทับด้วยรหัสใหม่หรือไม่?')) return;
+        document.getElementById('prodBarcode').value = 'MN' + Date.now().toString().slice(-8);
+      });
+
+      // --- Quick Price Edit Modal ---
+      function openQuickPriceModal(p) {
+        document.getElementById('quickPriceProdName').textContent = p.name;
+        document.getElementById('quickPriceProdId').value = p.id;
+        document.getElementById('quickCostPrice').value = p.cost_price || '';
+        document.getElementById('quickSellPrice').value = p.price || '';
+        updateQuickProfitPreview();
+        document.getElementById('quickPriceModal').showModal();
+      }
+      window.openQuickPriceModal = openQuickPriceModal;
+
+      function updateQuickProfitPreview() {
+        const cost = parseFloat(document.getElementById('quickCostPrice').value) || 0;
+        const sell = parseFloat(document.getElementById('quickSellPrice').value) || 0;
+        const preview = document.getElementById('quickProfitPreview');
+        if (sell > 0 && cost > 0) {
+          const profit = sell - cost;
+          preview.textContent = fmt(profit);
+          preview.className = 'text-base font-bold ' + (profit >= 0 ? 'text-emerald-600' : 'text-rose-600');
+        } else {
+          preview.textContent = '\u2014';
+          preview.className = 'text-base font-bold text-slate-400';
+        }
+      }
+      document.getElementById('quickCostPrice').addEventListener('input', updateQuickProfitPreview);
+      document.getElementById('quickSellPrice').addEventListener('input', updateQuickProfitPreview);
+      document.getElementById('btnCloseQuickPrice').addEventListener('click', () => document.getElementById('quickPriceModal').close());
+      document.getElementById('btnCancelQuickPrice').addEventListener('click', () => document.getElementById('quickPriceModal').close());
+      document.getElementById('btnSaveQuickPrice').addEventListener('click', async () => {
+        const id = document.getElementById('quickPriceProdId').value;
+        const costPrice = parseFloat(document.getElementById('quickCostPrice').value) || 0;
+        const sellPrice = parseFloat(document.getElementById('quickSellPrice').value);
+        if (!sellPrice || isNaN(sellPrice)) { alert('กรุณากรอกราคาขาย'); return; }
+        const btn = document.getElementById('btnSaveQuickPrice');
+        btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+        try {
+          const { error } = await sbClient.from('products').update({ cost_price: costPrice, price: sellPrice }).eq('id', id);
+          if (error) throw error;
+          document.getElementById('quickPriceModal').close();
+          await loadDashboardData();
+        } catch (err) {
+          alert('บันทึกราคาไม่สำเร็จ: ' + err.message);
+        } finally {
+          btn.disabled = false; btn.textContent = '\ud83d\udcbe บันทึกราคา';
+        }
+      });
+
+      // --- Barcode Print Modal ---
+      function openBarcodePrintModal(p) {
+        const code = p.barcode || ('MN' + String(p.id).padStart(8, '0'));
+        document.getElementById('barcodePrintProdName').textContent = p.name;
+        document.getElementById('barcodePrintCode').textContent = code;
+        document.getElementById('barcodePrintPrice').textContent = fmt(p.price);
+        try {
+          JsBarcode('#barcodePreviewSvg', code, {
+            format: 'CODE128', width: 2, height: 80, displayValue: false, margin: 8
+          });
+        } catch (e) { console.warn('Barcode render error:', e); }
+        document.getElementById('barcodePrintModal').showModal();
+      }
+      window.openBarcodePrintModal = openBarcodePrintModal;
+
+      const closeBP = () => document.getElementById('barcodePrintModal').close();
+      document.getElementById('btnCloseBarcodePrint').addEventListener('click', closeBP);
+      document.getElementById('btnCloseBarcodePrint2').addEventListener('click', closeBP);
+      document.getElementById('btnPrintBarcode').addEventListener('click', () => {
+        const printWin = window.open('', '_blank', 'width=420,height=320');
+        const svgHtml = document.getElementById('barcodePreviewSvg').outerHTML;
+        const prodName = document.getElementById('barcodePrintProdName').textContent;
+        const price = document.getElementById('barcodePrintPrice').textContent;
+        const code = document.getElementById('barcodePrintCode').textContent;
+        printWin.document.write('<html><head><title>พิมพ์บาร์โค้ด</title>' +
+          '<style>body{font-family:sans-serif;text-align:center;margin:20px} svg{max-width:100%} @media print{body{margin:4px}}</style>' +
+          '</head><body>' +
+          '<p style="font-weight:700;font-size:13px;margin-bottom:4px">' + prodName + '</p>' +
+          svgHtml +
+          '<p style="font-family:monospace;font-size:11px;margin:4px 0">' + code + '</p>' +
+          '<p style="font-size:15px;color:#059669;font-weight:700">ราคา ' + price + '</p>' +
+          '</body></html>');
+        printWin.document.close();
+        printWin.focus();
+        setTimeout(() => { printWin.print(); printWin.close(); }, 500);
+      });
+
+      // --- Quick Search / Scan for Price Editing ---
+      (function injectQuickPriceBtn() {
+        const toolbar = document.querySelector('#tab-products > div.flex');
+        if (toolbar && !document.getElementById('btnOpenQuickSearch')) {
+          const btn = document.createElement('button');
+          btn.id = 'btnOpenQuickSearch';
+          btn.className = 'px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg';
+          btn.textContent = '\ud83d\udcb0 แก้ไขราคาด่วน';
+          btn.addEventListener('click', () => {
+            document.getElementById('quickSearchInput').value = '';
+            document.getElementById('quickSearchResults').innerHTML = '';
+            document.getElementById('quickScanSearchModal').showModal();
+            setTimeout(() => document.getElementById('quickSearchInput').focus(), 150);
+          });
+          const addBtn = toolbar.querySelector('#btnOpenAddProduct');
+          if (addBtn) toolbar.insertBefore(btn, addBtn);
+          else toolbar.appendChild(btn);
+        }
+      })();
+
+      document.getElementById('btnCloseQuickScanSearch').addEventListener('click', () => document.getElementById('quickScanSearchModal').close());
+
+      document.getElementById('quickSearchInput').addEventListener('input', () => {
+        const q = document.getElementById('quickSearchInput').value.trim().toLowerCase();
+        const ul = document.getElementById('quickSearchResults');
+        if (!q) { ul.innerHTML = ''; return; }
+        const results = productsList.filter(p =>
+          p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.toLowerCase().includes(q))
+        ).slice(0, 10);
+        if (results.length === 0) {
+          ul.innerHTML = '<li class="text-center text-sm text-slate-400 py-4">ไม่พบสินค้า</li>';
+          return;
+        }
+        ul.innerHTML = results.map(p =>
+          '<li class="quick-search-item flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 cursor-pointer border border-transparent hover:border-violet-100 transition-all" data-id="' + p.id + '">' +
+          '<img src="' + (p.image_url || 'https://picsum.photos/seed/placeholder/40/40') + '" class="w-9 h-9 rounded-lg object-cover border border-slate-100 flex-shrink-0" onerror="this.src=\'https://picsum.photos/seed/placeholder/40/40\'" />' +
+          '<div class="flex-1 min-w-0"><span class="block font-semibold text-slate-800 text-sm truncate">' + p.name + '</span>' +
+          '<span class="text-xs text-slate-400">' + (p.barcode || 'ไม่มีรหัส') + ' · ' + fmt(p.price) + '</span></div>' +
+          '<span class="text-xs text-violet-600 font-bold">แก้ราคา →</span></li>'
+        ).join('');
+      });
+
+      document.getElementById('quickSearchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const q = document.getElementById('quickSearchInput').value.trim();
+          const found = productsList.find(p => p.barcode === q);
+          if (found) {
+            document.getElementById('quickScanSearchModal').close();
+            openQuickPriceModal(found);
+          }
+        }
+      });
+
+      document.getElementById('quickSearchResults').addEventListener('click', (e) => {
+        const item = e.target.closest('.quick-search-item');
+        if (item) {
+          const id = item.getAttribute('data-id');
+          const p = productsList.find(x => x.id == id);
+          if (p) {
+            document.getElementById('quickScanSearchModal').close();
+            openQuickPriceModal(p);
+          }
+        }
+      });
 
       // --- Admin Auth Events ---
       const authForm = document.getElementById('authForm');
@@ -1375,31 +1645,49 @@
     function renderProductsTable(list) {
       const tbody = document.getElementById('prodTableBody');
       if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีสินค้าในระบบ</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-400">ยังไม่มีสินค้าในระบบ</td></tr>';
         return;
       }
 
-      tbody.innerHTML = list.map(p => `
+      tbody.innerHTML = list.map(p => {
+        const cost = p.cost_price || 0;
+        const sell = p.price || 0;
+        const profit = sell - cost;
+        const profitColor = profit > 0 ? 'text-emerald-600' : (profit < 0 ? 'text-rose-600' : 'text-slate-400');
+        const barcodeDisplay = p.barcode
+          ? `<span class="font-mono text-xs text-slate-500">${p.barcode}</span>`
+          : `<span class="text-xs text-amber-500 font-semibold">ไม่มีรหัส</span>`;
+        return `
         <tr class="hover:bg-slate-50 transition-colors">
-          <td class="py-3 px-4 flex items-center gap-3">
-            <img src="${p.image_url || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-12 h-10 object-cover rounded-lg border border-slate-100" onerror="this.src='https://picsum.photos/seed/placeholder/80/60'" />
-            <div>
-              <span class="font-bold text-slate-900 block">${p.name}</span>
-              <span class="text-xs text-slate-500">${p.unit || '-'}</span>
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-3">
+              <img src="${p.image_url || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-12 h-10 object-cover rounded-lg border border-slate-100 flex-shrink-0" onerror="this.src='https://picsum.photos/seed/placeholder/80/60'" />
+              <div>
+                <span class="font-bold text-slate-900 block">${p.name}</span>
+                <span class="text-xs text-slate-500">${p.unit || '-'}</span>
+              </div>
             </div>
           </td>
-          <td class="py-3 px-4 font-mono text-xs text-slate-500">${p.barcode || '-'}</td>
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-1">
+              ${barcodeDisplay}
+              <button class="btn-show-barcode ml-1 text-violet-400 hover:text-violet-600 transition-colors text-xs" data-id="${p.id}" title="แสดง/พิมพ์บาร์โค้ด">🏷️</button>
+            </div>
+          </td>
           <td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">${p.category || '-'}</span></td>
-          <td class="py-3 px-4 text-right font-bold text-slate-900">${fmt(p.price)}</td>
+          <td class="py-3 px-4 text-right text-sm text-amber-700 font-medium">${cost > 0 ? fmt(cost) : '—'}</td>
+          <td class="py-3 px-4 text-right font-bold text-slate-900">${fmt(sell)}</td>
+          <td class="py-3 px-4 text-right font-bold ${profitColor}">${cost > 0 ? fmt(profit) : '—'}</td>
           <td class="py-3 px-4 text-center font-bold ${p.stock <= p.low_stock_threshold ? 'text-rose-600' : 'text-slate-700'}">${p.stock}</td>
           <td class="py-3 px-4 text-center">
-            <div class="flex items-center justify-center gap-2">
+            <div class="flex items-center justify-center gap-1.5">
+              <button class="btn-quick-price px-2 py-1 hover:bg-violet-50 rounded-lg text-violet-600 transition-colors text-xs font-semibold" data-id="${p.id}" title="แก้ไขราคาด่วน">💰</button>
               <button class="btn-edit-prod p-1.5 hover:bg-slate-100 rounded-lg text-emerald-600 transition-colors" data-id="${p.id}">✏️</button>
               <button class="btn-delete-prod p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors" data-id="${p.id}">🗑️</button>
             </div>
           </td>
         </tr>
-      `).join('');
+      `}).join('');
     }
 
     // Render Low Stock Dashboard
@@ -1478,12 +1766,14 @@
       document.getElementById('prodId').value = p.id;
       document.getElementById('prodBarcode').value = p.barcode || '';
       document.getElementById('prodName').value = p.name;
+      document.getElementById('prodCostPrice').value = p.cost_price || '';
       document.getElementById('prodPrice').value = p.price;
       document.getElementById('prodUnit').value = p.unit || '';
       document.getElementById('prodCategory').value = p.category || '';
       document.getElementById('prodStock').value = p.stock;
       document.getElementById('prodThreshold').value = p.low_stock_threshold ?? 5;
-      
+      updateProfitPreview();
+
       const previewDiv = document.getElementById('imagePreview');
       if (p.image_url) {
         previewDiv.innerHTML = `<img src="${p.image_url}" class="w-full h-full object-cover" />`;
