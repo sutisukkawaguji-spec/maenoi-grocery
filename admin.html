@@ -1779,6 +1779,10 @@
       // Table events (Edit / Delete / Quick Price / Show Barcode)
       document.getElementById('prodTableBody').addEventListener('click', async (e) => {
         const toggleActiveBtn = e.target.closest('.btn-toggle-active');
+        const quickPriceBtn = e.target.closest('.btn-quick-price');
+        const showBarcodeBtn = e.target.closest('.btn-show-barcode');
+        const editBtn = e.target.closest('.btn-edit-prod');
+        const deleteBtn = e.target.closest('.btn-delete-prod');
         if (toggleActiveBtn) {
           const id = toggleActiveBtn.getAttribute('data-id');
           const p = productsList.find(x => x.id == id);
