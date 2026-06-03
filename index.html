@@ -42,6 +42,10 @@
         <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
           🧺 ตะกร้า <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
         </button>
+        <!-- Admin auth links (Toggled dynamically by JS) -->
+        <a id="adminButton" href="admin.html" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">⚙️ จัดการร้าน</a>
+        <a id="loginButton" href="login.html" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-slate-600 hover:bg-slate-50 text-sm transition-colors">🔑 หลังบ้าน</a>
+        <button id="btnLogoutStorefront" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-sm font-semibold transition-colors">ออกระบบ</button>
       </div>
     </div>
 
@@ -236,6 +240,11 @@
     }
     async function loadProducts(){
       try{
+        if (window.AppConfig) {
+          // Pull config keys from GAS server if set
+          await window.AppConfig.loadFromGas();
+        }
+
         if (window.AppConfig && window.AppConfig.isConfigured()) {
           const c = window.AppConfig.get();
           const sb = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
@@ -481,6 +490,41 @@
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
       setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
       
+      // Attempt to load from GAS web app config
+      if (window.AppConfig) {
+        await window.AppConfig.loadFromGas();
+      }
+
+      // Check active admin session for storefront header UI
+      if (window.AppConfig && window.AppConfig.isConfigured()) {
+        const c = window.AppConfig.get();
+        const sb = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
+        
+        sb.auth.getSession().then(({ data }) => {
+          const session = data.session;
+          const adminBtn = document.getElementById('adminButton');
+          const loginBtn = document.getElementById('loginButton');
+          const logoutBtn = document.getElementById('btnLogoutStorefront');
+          
+          if (session) {
+            if (adminBtn) adminBtn.classList.remove('hidden');
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
+            if (loginBtn) loginBtn.classList.add('hidden');
+          } else {
+            if (adminBtn) adminBtn.classList.add('hidden');
+            if (logoutBtn) logoutBtn.classList.add('hidden');
+            if (loginBtn) loginBtn.classList.remove('hidden');
+          }
+        });
+        
+        document.getElementById('btnLogoutStorefront')?.addEventListener('click', async () => {
+          if (confirm('คุณต้องการออกจากระบบผู้ดูแลใช่หรือไม่?')) {
+            await sb.auth.signOut();
+            window.location.reload();
+          }
+        });
+      }
+
       // Register PromptPay Dialog triggers
       const handleOpenPp = () => {
         const total = cartTotal();
