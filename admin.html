@@ -1047,8 +1047,10 @@
     let posCart = [];
     let posScanner = null;
     let formScanner = null;
+    let mobileScanner = null;
     let posScannerRunning = false;
     let formScannerRunning = false;
+    let mobileScannerRunning = false;
     let editingProduct = null;
     let syncChannel = null;
     let isMobileSyncEnabled = false;
@@ -1159,6 +1161,18 @@
               if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
               const btnStopEl = document.getElementById('btnStopPosScan');
               if (btnStopEl) btnStopEl.classList.add('hidden');
+            }).catch(e => {});
+          }
+          if (mobileScannerRunning && mobileScanner) {
+            mobileScanner.stop().then(() => {
+              mobileScannerRunning = false;
+              document.getElementById('mobile-scanner-container').classList.add('hidden');
+            }).catch(e => {});
+          }
+          if (formScannerRunning && formScanner) {
+            formScanner.stop().then(() => {
+              formScannerRunning = false;
+              document.getElementById('form-scanner-container').classList.add('hidden');
             }).catch(e => {});
           }
         });
