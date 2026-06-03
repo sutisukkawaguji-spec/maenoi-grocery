@@ -496,33 +496,43 @@
       }
 
       // Check active admin session for storefront header UI
-      if (window.AppConfig && window.AppConfig.isConfigured()) {
-        const c = window.AppConfig.get();
-        const sb = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
-        
-        sb.auth.getSession().then(({ data }) => {
-          const session = data.session;
-          const adminBtn = document.getElementById('adminButton');
-          const loginBtn = document.getElementById('loginButton');
-          const logoutBtn = document.getElementById('btnLogoutStorefront');
+      try {
+        if (window.AppConfig && window.AppConfig.isConfigured()) {
+          const c = window.AppConfig.get();
+          const sb = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
           
-          if (session) {
-            if (adminBtn) adminBtn.classList.remove('hidden');
-            if (logoutBtn) logoutBtn.classList.remove('hidden');
-            if (loginBtn) loginBtn.classList.add('hidden');
-          } else {
-            if (adminBtn) adminBtn.classList.add('hidden');
-            if (logoutBtn) logoutBtn.classList.add('hidden');
-            if (loginBtn) loginBtn.classList.remove('hidden');
-          }
-        });
-        
-        document.getElementById('btnLogoutStorefront')?.addEventListener('click', async () => {
-          if (confirm('คุณต้องการออกจากระบบผู้ดูแลใช่หรือไม่?')) {
-            await sb.auth.signOut();
-            window.location.reload();
-          }
-        });
+          sb.auth.getSession().then(({ data }) => {
+            const session = data.session;
+            const adminBtn = document.getElementById('adminButton');
+            const loginBtn = document.getElementById('loginButton');
+            const logoutBtn = document.getElementById('btnLogoutStorefront');
+            
+            if (session) {
+              if (adminBtn) adminBtn.classList.remove('hidden');
+              if (logoutBtn) logoutBtn.classList.remove('hidden');
+              if (loginBtn) loginBtn.classList.add('hidden');
+            } else {
+              if (adminBtn) adminBtn.classList.add('hidden');
+              if (logoutBtn) logoutBtn.classList.add('hidden');
+              if (loginBtn) loginBtn.classList.remove('hidden');
+            }
+          }).catch(err => {
+            console.error("Auth check failed:", err);
+            document.getElementById('loginButton')?.classList.remove('hidden');
+          });
+          
+          document.getElementById('btnLogoutStorefront')?.addEventListener('click', async () => {
+            if (confirm('คุณต้องการออกจากระบบผู้ดูแลใช่หรือไม่?')) {
+              await sb.auth.signOut();
+              window.location.reload();
+            }
+          });
+        } else {
+          document.getElementById('loginButton')?.classList.remove('hidden');
+        }
+      } catch (err) {
+        console.error("Supabase config setup error:", err);
+        document.getElementById('loginButton')?.classList.remove('hidden');
       }
 
       // Register PromptPay Dialog triggers

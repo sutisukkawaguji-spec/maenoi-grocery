@@ -1209,9 +1209,23 @@
       return posCart.reduce((sum, item) => sum + (item.product.price * item.qty), 0);
     }
 
-    // CLOUDINARY IMAGE DELETION USING CRYPTO SIGNATURE (Secure client side deletion)
+    // CLOUDINARY IMAGE DELETION (Secure server-side delegation via GAS, or fallback to client-side signing)
     async function deleteCloudinaryImage(publicId) {
       const c = AppConfig.get();
+      
+      // 1. Delegate to GAS Web App if configured (Secure - doesn't expose API Secret in frontend)
+      if (c.gasUrl) {
+        try {
+          const res = await fetch(`${c.gasUrl}?action=deleteImage&public_id=${encodeURIComponent(publicId)}`);
+          const data = await res.json();
+          console.log('Cloudinary Image delete via GAS response:', data);
+          return;
+        } catch (err) {
+          console.error('ลบรูปภาพผ่าน GAS ล้มเหลว:', err);
+        }
+      }
+
+      // 2. Fallback to client-side signature generation if no GAS URL is set
       if (!c.cloudinaryApiKey || !c.cloudinaryApiSecret) {
         console.warn('ไม่ได้กรอก Cloudinary API Key/Secret; ไม่ลบรูปภาพต้นฉบับ');
         return;

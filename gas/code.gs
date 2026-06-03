@@ -25,9 +25,54 @@ function doGet(e) {
       adminPin: properties.getProperty('ADMIN_PIN') || '1234'
     };
     
-    // Support CORS for client-side fetches
     return ContentService.createTextOutput(JSON.stringify(config))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Secure Cloudinary image deletion from server-side
+  if (action === 'deleteImage') {
+    const publicId = e.parameter.public_id;
+    if (!publicId) {
+      return ContentService.createTextOutput(JSON.stringify({ error: 'Missing public_id' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const cloudName = properties.getProperty('CLOUDINARY_CLOUD_NAME');
+    const apiKey = properties.getProperty('CLOUDINARY_API_KEY');
+    const apiSecret = properties.getProperty('CLOUDINARY_API_SECRET');
+    
+    if (!apiKey || !apiSecret || !cloudName) {
+      return ContentService.createTextOutput(JSON.stringify({ error: 'Cloudinary credentials not set in GAS properties' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const timestamp = Math.round((new Date()).getTime() / 1000);
+    const signatureStr = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+    
+    // Calculate SHA-1 digest in GAS
+    const signature = byteToHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_1, signatureStr, Utilities.Charset.UTF_8));
+    
+    const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`;
+    const payload = {
+      public_id: publicId,
+      timestamp: timestamp.toString(),
+      api_key: apiKey,
+      signature: signature
+    };
+    
+    try {
+      const options = {
+        method: 'post',
+        payload: payload,
+        muteHttpExceptions: true
+      };
+      const response = UrlFetchApp.fetch(url, options);
+      return ContentService.createTextOutput(response.getContentText())
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
   }
   
   // Return configuration UI editor for the admin
@@ -67,11 +112,11 @@ function doGet(e) {
           </div>
           <div class="border-t border-slate-100 pt-4">
             <label class="block font-semibold text-slate-700">Cloudinary Cloud Name</label>
-            <input type="text" required name="cloudinaryCloudName" value="${properties.getProperty('CLOUDINARY_CLOUD_NAME') || ''}" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1 focus:ring-2 focus:ring-emerald-500 outline-none" />
+            <input type="text" name="cloudinaryCloudName" value="${properties.getProperty('CLOUDINARY_CLOUD_NAME') || ''}" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1 focus:ring-2 focus:ring-emerald-500 outline-none" />
           </div>
           <div>
             <label class="block font-semibold text-slate-700">Cloudinary Upload Preset</label>
-            <input type="text" required name="cloudinaryUploadPreset" value="${properties.getProperty('CLOUDINARY_UPLOAD_PRESET') || ''}" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1 focus:ring-2 focus:ring-emerald-500 outline-none" />
+            <input type="text" name="cloudinaryUploadPreset" value="${properties.getProperty('CLOUDINARY_UPLOAD_PRESET') || ''}" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1 focus:ring-2 focus:ring-emerald-500 outline-none" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -86,11 +131,11 @@ function doGet(e) {
           <div class="border-t border-slate-100 pt-4 grid grid-cols-2 gap-3">
             <div>
               <label class="block font-semibold text-slate-700">PromptPay ID</label>
-              <input type="text" required name="promptpayId" value="${properties.getProperty('PROMPTPAY_ID') || ''}" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1 focus:ring-2 focus:ring-emerald-500 outline-none" />
+              <input type="text" name="promptpayId" value="${properties.getProperty('PROMPTPAY_ID') || ''}" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1 focus:ring-2 focus:ring-emerald-500 outline-none" />
             </div>
             <div>
               <label class="block font-semibold text-slate-700">PIN หลังบ้าน (สำรอง)</label>
-              <input type="text" required name="adminPin" value="${properties.getProperty('ADMIN_PIN') || '1234'}" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1 focus:ring-2 focus:ring-emerald-500 outline-none" />
+              <input type="text" name="adminPin" value="${properties.getProperty('ADMIN_PIN') || '1234'}" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1 focus:ring-2 focus:ring-emerald-500 outline-none" />
             </div>
           </div>
           
@@ -109,11 +154,11 @@ function doPost(e) {
     const properties = PropertiesService.getScriptProperties();
     properties.setProperty('SUPABASE_URL', params.supabaseUrl);
     properties.setProperty('SUPABASE_ANON_KEY', params.supabaseAnonKey);
-    properties.setProperty('CLOUDINARY_CLOUD_NAME', params.cloudinaryCloudName);
-    properties.setProperty('CLOUDINARY_UPLOAD_PRESET', params.cloudinaryUploadPreset);
+    properties.setProperty('CLOUDINARY_CLOUD_NAME', params.cloudinaryCloudName || '');
+    properties.setProperty('CLOUDINARY_UPLOAD_PRESET', params.cloudinaryUploadPreset || '');
     properties.setProperty('CLOUDINARY_API_KEY', params.cloudinaryApiKey || '');
     properties.setProperty('CLOUDINARY_API_SECRET', params.cloudinaryApiSecret || '');
-    properties.setProperty('PROMPTPAY_ID', params.promptpayId);
+    properties.setProperty('PROMPTPAY_ID', params.promptpayId || '');
     properties.setProperty('ADMIN_PIN', params.adminPin || '1234');
     
     const successHtml = `
@@ -137,4 +182,17 @@ function doPost(e) {
     `;
     return HtmlService.createHtmlOutput(successHtml);
   }
+}
+
+// Helper to convert byte array to hex string
+function byteToHex(bytes) {
+  var hex = [];
+  for (var i = 0; i < bytes.length; i++) {
+    var byteVal = bytes[i];
+    if (byteVal < 0) byteVal += 256;
+    var byteString = byteVal.toString(16);
+    if (byteString.length == 1) byteString = "0" + byteString;
+    hex.push(byteString);
+  }
+  return hex.join("");
 }
