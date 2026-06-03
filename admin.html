@@ -425,7 +425,13 @@
     function initSupabase() {
       const c = AppConfig.get();
       if (!c.supabaseUrl || !c.supabaseAnonKey) return false;
-      sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
+      const remember = localStorage.getItem('MN_AUTH_REMEMBER') !== 'false';
+      sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey, {
+        auth: {
+          persistSession: true,
+          storage: remember ? localStorage : sessionStorage
+        }
+      });
       return true;
     }
 
