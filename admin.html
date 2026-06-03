@@ -569,7 +569,7 @@
               <div class="space-y-2">
                 <label for="mobileBarcodeSearchInput" class="block text-xs font-semibold text-slate-500 uppercase">พิมพ์เลขบาร์โค้ดด่วน</label>
                 <div class="flex gap-2">
-                  <input type="number" id="mobileBarcodeSearchInput" placeholder="กรอกเฉพาะตัวเลขบาร์โค้ด..." 
+                  <input type="text" inputmode="numeric" pattern="[0-9]*" id="mobileBarcodeSearchInput" placeholder="กรอกเฉพาะตัวเลขบาร์โค้ด..." 
                     class="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-base font-semibold" />
                   <button type="button" id="btnMobileSearchBarcode" 
                     class="px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md active:scale-95">ค้นหา</button>
@@ -577,10 +577,14 @@
               </div>
 
               <!-- Big Camera Scanner Trigger Button for Phone -->
-              <div class="pt-2">
+              <div class="pt-2 flex flex-col gap-2">
                 <button type="button" id="btnMobileCameraScan" 
                   class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98">
                   <span>📷 เปิดกล้องสแกนบาร์โค้ด</span>
+                </button>
+                <button type="button" id="btnMobileAddProductDirect" 
+                  class="w-full py-3 bg-violet-600 hover:bg-violet-750 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 text-xs">
+                  <span>➕ เพิ่มสินค้าใหม่ (คีย์บอร์ด / ป้อนมือ)</span>
                 </button>
               </div>
 
@@ -607,7 +611,10 @@
                 <div class="grid grid-cols-2 gap-4">
                   <div class="col-span-2">
                     <label class="block text-xs font-semibold text-slate-500 mb-1">รหัสบาร์โค้ดสินค้า</label>
-                    <input type="text" id="mobileProdBarcode" readonly class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 font-mono focus:outline-none" />
+                    <div class="flex gap-2">
+                      <input type="text" id="mobileProdBarcode" readonly class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 font-mono focus:outline-none" />
+                      <button type="button" id="btnMobileGenerateBarcode" class="hidden px-3 bg-violet-100 hover:bg-violet-200 text-violet-700 rounded-xl font-semibold transition-colors text-xs">🏷️ สร้าง</button>
+                    </div>
                   </div>
 
                   <div class="col-span-2">
@@ -696,7 +703,7 @@
   </div>
 
   <!-- MODAL: Add / Edit Product -->
-  <dialog id="productModal" class="p-0 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden">
+  <dialog id="productModal" class="p-0 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-100 max-h-[90vh] overflow-y-auto">
     <div class="bg-white p-6 md:p-8 space-y-6">
       <div class="flex items-center justify-between border-b border-slate-100 pb-4">
         <h3 id="modalTitle" class="text-lg font-bold text-slate-900">เพิ่มสินค้าใหม่</h3>
@@ -845,7 +852,7 @@
   </dialog>
 
   <!-- MODAL: Quick Price Editor (via Scan or Search) -->
-  <dialog id="quickPriceModal" class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+  <dialog id="quickPriceModal" class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 max-h-[90vh] overflow-y-auto">
     <div class="bg-white p-6 md:p-8 space-y-5">
       <div class="flex items-center justify-between border-b border-slate-100 pb-4">
         <div>
@@ -2613,45 +2620,24 @@
       const qtyInput = document.getElementById('posQtyInput');
       if (qtyInput) {
         qtyInput.addEventListener('keydown', (e) => {
-          const now = Date.now();
-          const diff = now - posQtyLastKeyTime;
-          posQtyLastKeyTime = now;
-
-          const isDigit = /^[0-9]$/.test(e.key);
-
-          if (isDigit) {
-            if (posQtyIsScanning) {
-              e.preventDefault();
-              posQtyScanBuffer += e.key;
-              return;
-            }
-
-            if (diff < 40) {
-              posQtyIsScanning = true;
-              e.preventDefault();
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = e.target.value.trim();
+            
+            // Check if val ends with a valid barcode from productsList
+            const matched = productsList.find(p => p.barcode && p.barcode.length >= 6 && val.endsWith(p.barcode));
+            
+            if (matched) {
+              const barcode = matched.barcode;
+              const prefix = val.slice(0, -barcode.length);
+              const prevQty = parseInt(prefix) || 1;
               
-              const inputVal = e.target.value;
-              const firstDigit = inputVal.slice(-1);
-              e.target.value = inputVal.slice(0, -1);
-              
-              posQtyScanBuffer = firstDigit + e.key;
-              return;
-            }
-          } else if (e.key === 'Enter') {
-            if (posQtyIsScanning || posQtyScanBuffer.length >= 6) {
-              e.preventDefault();
-              const barcode = posQtyScanBuffer;
-              
-              posQtyScanBuffer = '';
-              posQtyIsScanning = false;
-              
-              const currentQty = parseInt(e.target.value) || 1;
               if (pendingCartProduct) {
                 const existing = posCart.find(item => item.product.id === pendingCartProduct.id);
                 if (existing) {
-                  existing.qty += currentQty;
+                  existing.qty += prevQty;
                 } else {
-                  posCart.push({ product: pendingCartProduct, qty: currentQty });
+                  posCart.push({ product: pendingCartProduct, qty: prevQty });
                 }
                 renderPosCart();
               }
@@ -2660,15 +2646,8 @@
               document.getElementById('posQtyPromptModal').close();
               
               handlePosBarcodeScanned(barcode);
-              return;
             } else {
-              e.preventDefault();
               commitPendingQtyToCart();
-            }
-          } else {
-            if (e.key !== 'Backspace' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
-              posQtyScanBuffer = '';
-              posQtyIsScanning = false;
             }
           }
         });
@@ -2918,6 +2897,74 @@
         });
       }
 
+      const btnMobileAddDirect = document.getElementById('btnMobileAddProductDirect');
+      if (btnMobileAddDirect) {
+        btnMobileAddDirect.addEventListener('click', () => {
+          const formCard = document.getElementById('mobileEditFormCard');
+          const formTitle = document.getElementById('mobileFormTitle');
+          const form = document.getElementById('mobileProductForm');
+          
+          form.reset();
+          formTitle.textContent = `➕ เพิ่มสินค้าใหม่`;
+          document.getElementById('mobileProdId').value = '';
+          document.getElementById('mobileProdBarcode').value = '';
+          document.getElementById('mobileProdName').value = '';
+          document.getElementById('mobileProdCostPrice').value = '';
+          document.getElementById('mobileProdPrice').value = '';
+          document.getElementById('mobileProdStock').value = '0';
+          document.getElementById('mobileProdUnit').value = 'ชิ้น';
+          document.getElementById('mobileProdCategory').value = 'ของแห้ง';
+          document.getElementById('mobileProdThreshold').value = '5';
+          document.getElementById('mobileProdImageUrl').value = '';
+          document.getElementById('mobileProdImagePublicId').value = '';
+          
+          document.getElementById('mobileImagePreview').innerHTML = '🖼️';
+          updateMobileProfitPreview();
+
+          // Make barcode editable
+          const barcodeInput = document.getElementById('mobileProdBarcode');
+          if (barcodeInput) {
+            barcodeInput.readOnly = false;
+            barcodeInput.classList.remove('bg-slate-50', 'text-slate-500');
+            barcodeInput.classList.add('bg-white');
+          }
+          const genBtn = document.getElementById('btnMobileGenerateBarcode');
+          if (genBtn) genBtn.classList.remove('hidden');
+
+          formCard.classList.remove('hidden');
+          formCard.scrollIntoView({ behavior: 'smooth' });
+        });
+      }
+
+      const btnMobileGen = document.getElementById('btnMobileGenerateBarcode');
+      if (btnMobileGen) {
+        btnMobileGen.addEventListener('click', () => {
+          const barcodeInput = document.getElementById('mobileProdBarcode');
+          if (barcodeInput) {
+            barcodeInput.value = 'GEN' + Date.now();
+          }
+        });
+      }
+
+      // Scanner Focus Wedge for Mobile tab
+      window.addEventListener('keydown', (e) => {
+        const tabMobile = document.getElementById('tab-mobile-manager');
+        if (!tabMobile || tabMobile.classList.contains('hidden')) return;
+
+        const openDialog = document.querySelector('dialog[open]');
+        if (openDialog) return;
+
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+          const mobileInput = document.getElementById('mobileBarcodeSearchInput');
+          if (mobileInput) {
+            mobileInput.focus();
+          }
+        }
+      });
+
       const mobileBarcodeSearchInput = document.getElementById('mobileBarcodeSearchInput');
       if (mobileBarcodeSearchInput) {
         mobileBarcodeSearchInput.addEventListener('keydown', (e) => {
@@ -3147,6 +3194,9 @@
       
       form.reset();
       
+      const barcodeInput = document.getElementById('mobileProdBarcode');
+      const genBtn = document.getElementById('btnMobileGenerateBarcode');
+
       if (p) {
         // Edit mode
         formTitle.textContent = `✏️ แก้ไขสินค้า: ${p.name}`;
@@ -3169,6 +3219,14 @@
           previewDiv.innerHTML = '🖼️';
         }
         
+        // Disable barcode editing in edit mode
+        if (barcodeInput) {
+          barcodeInput.readOnly = true;
+          barcodeInput.classList.remove('bg-white');
+          barcodeInput.classList.add('bg-slate-50', 'text-slate-500');
+        }
+        if (genBtn) genBtn.classList.add('hidden');
+
         updateMobileProfitPreview();
         formCard.classList.remove('hidden');
         formCard.scrollIntoView({ behavior: 'smooth' });
@@ -3189,6 +3247,15 @@
           document.getElementById('mobileProdImagePublicId').value = '';
           
           document.getElementById('mobileImagePreview').innerHTML = '🖼️';
+          
+          // Enable barcode editing in create mode
+          if (barcodeInput) {
+            barcodeInput.readOnly = false;
+            barcodeInput.classList.remove('bg-slate-50', 'text-slate-500');
+            barcodeInput.classList.add('bg-white');
+          }
+          if (genBtn) genBtn.classList.remove('hidden');
+
           updateMobileProfitPreview();
           formCard.classList.remove('hidden');
           formCard.scrollIntoView({ behavior: 'smooth' });
@@ -3343,7 +3410,6 @@
               <button class="btn-toggle-active p-1.5 hover:bg-slate-200 rounded-lg transition-colors ${isActive ? 'text-emerald-600' : 'text-slate-400'}" data-id="${p.id}" title="${isActive ? 'ปิดหน้าร้าน (เก็บในฐานข้อมูล)' : 'เปิดวางขายหน้าร้าน'}">
                 ${isActive ? '👁️' : '🕶️'}
               </button>
-              <button class="btn-quick-price px-2 py-1 hover:bg-violet-50 rounded-lg text-violet-600 transition-colors text-xs font-semibold" data-id="${p.id}" title="แก้ไขด่วน">💰</button>
               <button class="btn-edit-prod p-1.5 hover:bg-slate-100 rounded-lg text-emerald-600 transition-colors" data-id="${p.id}">✏️</button>
               <button class="btn-delete-prod p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors" data-id="${p.id}">🗑️</button>
             </div>
