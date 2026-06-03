@@ -211,6 +211,9 @@
         <button data-tab="subscribers" class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
           <span class="text-lg">✉️</span> รายชื่อสมัครข่าวสาร
         </button>
+        <button data-tab="mobile-manager" class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
+          <span class="text-lg">📱</span> จัดการสินค้าด้วยมือถือ
+        </button>
 
         <div class="mt-auto p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-emerald-800 text-xs">
           <strong>💡 คำแนะนำสแกนบาร์โค้ด</strong>
@@ -522,6 +525,165 @@
           </div>
         </section>
 
+        <!-- TAB: Mobile Product Manager -->
+        <section id="tab-mobile-manager" class="tab-content space-y-6 hidden">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">📱 จัดการสินค้าด้วยมือถือ (Mobile POS Helper)</h2>
+            <p class="text-sm text-slate-500">สำหรับถือเดินเช็กของหน้าร้าน ยิงบาร์โค้ด สอบถามราคา แก้ไขสต็อก หรือถ่ายรูปสินค้าอัปเดตเข้าระบบได้ทันที</p>
+          </div>
+
+          <!-- Quick Toggle for PC Scanner Sync -->
+          <div class="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-3xl p-5 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">🔗</span>
+                <div>
+                  <h4 class="text-sm font-bold text-violet-900">เชื่อมต่อเครื่องยิง PC</h4>
+                  <p class="text-xs text-violet-700">รับข้อมูลบาร์โค้ดที่สแกนจากเครื่องคิดเงินหลัก (PC) มาแสดงบนมือถือทันทีแบบเรียลไทม์</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none">
+                <input type="checkbox" id="mobileSyncSwitch" class="sr-only peer" />
+                <div class="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-violet-600"></div>
+              </label>
+            </div>
+            <div id="syncStatusBadge" class="hidden text-xs font-semibold px-3 py-1.5 rounded-xl bg-violet-100 text-violet-700 border border-violet-200/50 items-center gap-1.5 w-fit">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>กำลังรอรับข้อมูลจากเครื่องยิง PC...</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <!-- Search & Scan Input Card -->
+            <div class="md:col-span-5 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+              <h3 class="font-bold text-slate-900 text-sm uppercase tracking-wider border-b pb-2">🔍 ค้นหาบาร์โค้ด</h3>
+              
+              <!-- Direct Number Input -->
+              <div class="space-y-2">
+                <label for="mobileBarcodeSearchInput" class="block text-xs font-semibold text-slate-500 uppercase">พิมพ์เลขบาร์โค้ดด่วน</label>
+                <div class="flex gap-2">
+                  <input type="number" id="mobileBarcodeSearchInput" placeholder="กรอกเฉพาะตัวเลขบาร์โค้ด..." 
+                    class="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-base font-semibold" />
+                  <button type="button" id="btnMobileSearchBarcode" 
+                    class="px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md active:scale-95">ค้นหา</button>
+                </div>
+              </div>
+
+              <!-- Big Camera Scanner Trigger Button for Phone -->
+              <div class="pt-2">
+                <button type="button" id="btnMobileCameraScan" 
+                  class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98">
+                  <span>📷 เปิดกล้องสแกนบาร์โค้ด</span>
+                </button>
+              </div>
+
+              <!-- Scanner Area inside Mobile tab -->
+              <div id="mobile-scanner-container" class="mt-2 rounded-2xl border overflow-hidden hidden relative">
+                <div id="mobile-tab-scanner" class="w-full aspect-[4/3] bg-black relative">
+                  <div class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden"></div>
+                </div>
+                <button type="button" id="btnStopMobileScan" class="absolute top-2 right-2 px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg text-xs">ปิด</button>
+              </div>
+            </div>
+
+            <!-- Mobile Edit Form Card -->
+            <div id="mobileEditFormCard" class="md:col-span-7 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4 hidden">
+              <div class="flex items-center justify-between border-b pb-3">
+                <h3 id="mobileFormTitle" class="font-bold text-slate-900 text-base">✏️ รายละเอียดสินค้า</h3>
+                <button type="button" id="btnMobileCloseForm" class="text-slate-400 hover:text-slate-600 text-sm">ปิดฟอร์ม</button>
+              </div>
+
+              <!-- Mobile Form Content -->
+              <form id="mobileProductForm" class="space-y-4 text-sm">
+                <input type="hidden" id="mobileProdId" />
+                
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">รหัสบาร์โค้ดสินค้า</label>
+                    <input type="text" id="mobileProdBarcode" readonly class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 font-mono focus:outline-none" />
+                  </div>
+
+                  <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อสินค้า <span class="text-rose-500">*</span></label>
+                    <input type="text" id="mobileProdName" required placeholder="เช่น เลย์ รสเกลือ 50 กรัม" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none font-semibold text-slate-800" />
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">ราคาทุน (บาท)</label>
+                    <input type="number" step="any" id="mobileProdCostPrice" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-amber-300 focus:ring-2 focus:ring-amber-400 outline-none font-semibold text-slate-800" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">ราคาขาย (บาท) <span class="text-rose-500">*</span></label>
+                    <input type="number" step="any" id="mobileProdPrice" required placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-emerald-300 focus:ring-2 focus:ring-emerald-500 outline-none font-semibold text-slate-800" />
+                  </div>
+
+                  <!-- Profit Preview Box -->
+                  <div class="col-span-2 bg-emerald-50 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs">
+                    <span class="text-slate-500 font-semibold">กำไรต่อชิ้น</span>
+                    <span id="mobileProfitPreview" class="text-sm font-bold text-emerald-600">—</span>
+                  </div>
+
+                  <!-- Stock Adjustment with quick + / - buttons -->
+                  <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">จำนวนสต็อกสินค้า (ชิ้น)</label>
+                    <div class="flex items-center gap-2">
+                      <button type="button" onclick="adjustMobileStock(-1)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border text-lg font-bold flex items-center justify-center select-none">-1</button>
+                      <button type="button" onclick="adjustMobileStock(-5)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border text-xs font-bold flex items-center justify-center select-none">-5</button>
+                      <input type="number" id="mobileProdStock" required placeholder="0" class="flex-1 text-center px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-base" />
+                      <button type="button" onclick="adjustMobileStock(5)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border text-xs font-bold flex items-center justify-center select-none">+5</button>
+                      <button type="button" onclick="adjustMobileStock(1)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 border text-lg font-bold flex items-center justify-center select-none">+1</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">หน่วยขาย</label>
+                    <input type="text" id="mobileProdUnit" required placeholder="ขวด, ซอง, ชิ้น" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">หมวดหมู่</label>
+                    <input type="text" id="mobileProdCategory" required placeholder="เช่น ขนม, เครื่องดื่ม" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  </div>
+
+                  <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">จำนวนแจ้งเตือนของหมด (ชิ้น)</label>
+                    <input type="number" id="mobileProdThreshold" required placeholder="5" value="5" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
+                  </div>
+                </div>
+
+                <!-- Camera photo capture and upload for Cloudinary -->
+                <div class="border-t pt-4">
+                  <label class="block text-xs font-semibold text-slate-600 mb-2">📸 รูปภาพสินค้า (ถ่ายจากกล้องมือถือได้เลย)</label>
+                  <div class="flex items-center gap-4">
+                    <div id="mobileImagePreview" class="w-24 h-24 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center text-slate-400 flex-shrink-0">
+                      🖼️
+                    </div>
+                    <div class="flex-1 space-y-2">
+                      <!-- File input triggers camera on mobile using capture="environment" -->
+                      <input type="file" id="mobileImageFile" accept="image/*" capture="environment" class="hidden" />
+                      <button type="button" id="btnMobileTriggerCamera" class="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 border border-emerald-200/50">
+                        <span>📸 ถ่ายภาพ / อัปโหลด</span>
+                      </button>
+                      <div id="mobileUploadSpinner" class="hidden text-xxs font-semibold text-emerald-600 flex items-center gap-1">
+                        <span class="w-3 h-3 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></span>
+                        <span>กำลังอัปโหลดรูปภาพขึ้น Cloudinary...</span>
+                      </div>
+                      <input type="hidden" id="mobileProdImageUrl" />
+                      <input type="hidden" id="mobileProdImagePublicId" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4 border-t border-slate-100">
+                  <button type="submit" id="btnMobileSaveProduct" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/10 active:scale-[0.98] text-sm">
+                    💾 บันทึกข้อมูลสินค้า
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
       </main>
     </div>
   </div>
@@ -819,6 +981,8 @@
     let posScannerRunning = false;
     let formScannerRunning = false;
     let editingProduct = null;
+    let syncChannel = null;
+    let isMobileSyncEnabled = false;
 
     // Helper: Format Currency
     const fmt = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(n);
@@ -871,6 +1035,18 @@
           storage: remember ? localStorage : sessionStorage
         }
       });
+      
+      // Initialize real-time channel for scanning sync
+      if (!syncChannel) {
+        syncChannel = sbClient.channel('scanner-sync');
+        syncChannel.on('broadcast', { event: 'pc-scan' }, (payload) => {
+          if (isMobileSyncEnabled) {
+            handleMobileBarcodeReceived(payload.payload.barcode);
+          }
+        }).subscribe((status) => {
+          console.log("Supabase Realtime status:", status);
+        });
+      }
       return true;
     }
 
@@ -1014,6 +1190,7 @@
             },
             async (code) => {
               playScanSound();
+              broadcastBarcode(code);
               if (laser) laser.classList.add('hidden');
               document.getElementById('prodBarcode').value = code;
               autoFillProductDetails(); // Trigger auto-fill from Open Food Facts
@@ -1209,6 +1386,7 @@
           e.preventDefault();
           const query = posSearch.value.trim();
           if (!query) return;
+          broadcastBarcode(query);
 
           // Find exact match by barcode or name
           const found = productsList.find(p => p.barcode === query || p.name === query);
@@ -1387,6 +1565,96 @@
         }
       });
 
+    // --- Receipt File Auto-Download ---
+    function downloadReceiptFile(saleRecord, customerName, method) {
+      try {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const date = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        const filename = `receipt_${year}-${month}-${date}_${hours}-${minutes}-${seconds}.txt`;
+        const formattedDate = `${date}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+
+        let txt = `==========================================\n`;
+        txt += `        ใบเสร็จรับเงิน / ใบส่งสินค้า\n`;
+        txt += `         ร้านแม่น้อย บ้านดอนขี\n`;
+        txt += `==========================================\n`;
+        txt += `วันที่-เวลา: ${formattedDate}\n`;
+        if (customerName) {
+          txt += `ลูกค้า: ${customerName}\n`;
+        } else {
+          txt += `ลูกค้า: ลูกค้าทั่วไป\n`;
+        }
+        txt += `ช่องทางการชำระ: ${method === 'cash' ? 'เงินสด' : (method === 'promptpay' ? 'พร้อมเพย์' : 'ค้างชำระ (เครดิต)')}\n`;
+        txt += `------------------------------------------\n`;
+        txt += `รายการสินค้า                  จำนวน   ราคา\n`;
+        txt += `------------------------------------------\n`;
+
+        saleRecord.items.forEach(item => {
+          const name = item.product.name;
+          const qty = item.qty;
+          const price = item.product.price;
+          const itemTotal = price * qty;
+          
+          let displayName = name;
+          if (getVisualLength(name) > 25) {
+            // Trim name to fit nicely
+            let temp = '';
+            for (let i = 0; i < name.length; i++) {
+              if (getVisualLength(temp + name[i]) > 22) {
+                temp += '...';
+                break;
+              }
+              temp += name[i];
+            }
+            displayName = temp;
+          }
+          
+          const displayQtyPrice = `${qty} x ${price.toFixed(2)}`;
+          const displayItemTotal = itemTotal.toFixed(2);
+          
+          const namePadding = 28 - getVisualLength(displayName);
+          const spacedName = displayName + ' '.repeat(Math.max(1, namePadding));
+          const qtyPricePadding = 12 - displayQtyPrice.length;
+          const spacedQtyPrice = ' '.repeat(Math.max(1, qtyPricePadding)) + displayQtyPrice;
+          const totalPadding = 8 - displayItemTotal.length;
+          const spacedItemTotal = ' '.repeat(Math.max(1, totalPadding)) + displayItemTotal;
+          
+          txt += `${spacedName}${displayQtyPrice.padStart(7)} ${displayItemTotal.padStart(8)}\n`;
+        });
+
+        txt += `------------------------------------------\n`;
+        txt += `ยอดรวมสุทธิ:                     ${saleRecord.total.toFixed(2).padStart(10)} บาท\n`;
+        if (method === 'cash') {
+          txt += `รับเงินมา:                       ${saleRecord.cash_received.toFixed(2).padStart(10)} บาท\n`;
+          txt += `เงินทอน:                         ${saleRecord.change_amount.toFixed(2).padStart(10)} บาท\n`;
+        }
+        txt += `==========================================\n`;
+        txt += `       ขอบคุณที่ใช้บริการร้านแม่น้อยครับ\n`;
+        txt += `==========================================\n`;
+
+        const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (e) {
+        console.error("ดาวน์โหลดใบเสร็จล้มเหลว:", e);
+      }
+    }
+
+    function getVisualLength(str) {
+      // Thai combining characters that don't take horizontal width
+      const combiningChars = /[\u0e31\u0e34-\u0e3a\u0e47-\u0e4e]/g;
+      return str.replace(combiningChars, '').length;
+    }
+
       // Generic completeSale function
       async function completeSale(method, received = 0, change = 0, customerId = null) {
         if (!sbClient) throw new Error('Supabase client not initialized');
@@ -1414,6 +1682,14 @@
         if (saleErr) throw saleErr;
 
         // 3. Handle Credit transaction
+        let customerName = '';
+        if (customerId) {
+          const customer = customersList.find(c => c.id === customerId);
+          if (customer) {
+            customerName = customer.name;
+          }
+        }
+
         if (method === 'credit' && customerId && saleData && saleData.length > 0) {
           const creditRecord = {
             customer_id: customerId,
@@ -1432,7 +1708,25 @@
             const newBal = currentBal + saleRecord.total;
             const { error: custUpdErr } = await sbClient.from('customers').update({ total_credit: newBal }).eq('id', customerId);
             if (custUpdErr) throw custUpdErr;
+            // update local list value as well
+            customer.total_credit = newBal;
           }
+        }
+
+        // 3.5 Auto Download local receipt file
+        try {
+          const clientCartItems = posCart.map(item => ({
+            product: { name: item.product.name, price: item.product.price },
+            qty: item.qty
+          }));
+          downloadReceiptFile({
+            items: clientCartItems,
+            total: saleRecord.total,
+            cash_received: received,
+            change_amount: change
+          }, customerName, method);
+        } catch (receiptDlErr) {
+          console.error("ดาวน์โหลดไฟล์ใบเสร็จล้มเหลว:", receiptDlErr);
         }
 
         // 4. Update Customer Display Screen to SUCCESS
@@ -1756,6 +2050,7 @@
       document.getElementById('quickSearchInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           const q = document.getElementById('quickSearchInput').value.trim();
+          broadcastBarcode(q);
           const found = productsList.find(p => p.barcode === q);
           if (found) {
             document.getElementById('quickScanSearchModal').close();
@@ -2201,6 +2496,341 @@
       
       document.getElementById('salesDateFilter').addEventListener('change', filterSalesLogs);
       document.getElementById('salesPayFilter').addEventListener('change', filterSalesLogs);
+
+      // Mobile Tab Listeners
+      const mobileSyncSwitch = document.getElementById('mobileSyncSwitch');
+      if (mobileSyncSwitch) {
+        mobileSyncSwitch.addEventListener('change', () => {
+          isMobileSyncEnabled = mobileSyncSwitch.checked;
+          const syncStatusBadge = document.getElementById('syncStatusBadge');
+          if (syncStatusBadge) {
+            if (isMobileSyncEnabled) {
+              syncStatusBadge.classList.remove('hidden');
+              syncStatusBadge.classList.add('flex');
+            } else {
+              syncStatusBadge.classList.add('hidden');
+              syncStatusBadge.classList.remove('flex');
+            }
+          }
+        });
+      }
+
+      const btnMobileSearchBarcode = document.getElementById('btnMobileSearchBarcode');
+      if (btnMobileSearchBarcode) {
+        btnMobileSearchBarcode.addEventListener('click', () => {
+          const barcode = document.getElementById('mobileBarcodeSearchInput').value.trim();
+          if (!barcode) {
+            alert('กรุณากรอกเลขบาร์โค้ด');
+            return;
+          }
+          loadMobileProductDetails(barcode);
+        });
+      }
+
+      const mobileBarcodeSearchInput = document.getElementById('mobileBarcodeSearchInput');
+      if (mobileBarcodeSearchInput) {
+        mobileBarcodeSearchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const barcode = mobileBarcodeSearchInput.value.trim();
+            if (barcode) {
+              loadMobileProductDetails(barcode);
+            }
+          }
+        });
+      }
+
+      const btnMobileCloseForm = document.getElementById('btnMobileCloseForm');
+      if (btnMobileCloseForm) {
+        btnMobileCloseForm.addEventListener('click', () => {
+          document.getElementById('mobileEditFormCard').classList.add('hidden');
+        });
+      }
+
+      // Mobile Image Camera Trigger & Upload
+      const btnMobileTriggerCamera = document.getElementById('btnMobileTriggerCamera');
+      if (btnMobileTriggerCamera) {
+        btnMobileTriggerCamera.addEventListener('click', () => {
+          document.getElementById('mobileImageFile').click();
+        });
+      }
+
+      const mobileImageFile = document.getElementById('mobileImageFile');
+      if (mobileImageFile) {
+        mobileImageFile.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const previewDiv = document.getElementById('mobileImagePreview');
+          const spinner = document.getElementById('mobileUploadSpinner');
+          previewDiv.innerHTML = '<span class="text-xs">กำลังอัป...</span>';
+          if (spinner) spinner.classList.remove('hidden');
+
+          const c = AppConfig.get();
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', c.cloudinaryUploadPreset);
+
+          try {
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/upload`, {
+              method: 'POST',
+              body: formData
+            });
+            const data = await res.json();
+            if (data.secure_url) {
+              previewDiv.innerHTML = `<img src="${data.secure_url}" class="w-full h-full object-cover" />`;
+              document.getElementById('mobileProdImageUrl').value = data.secure_url;
+              document.getElementById('mobileProdImagePublicId').value = data.public_id;
+            } else {
+              alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + (data.error?.message || 'Unknown error'));
+              previewDiv.innerHTML = '🖼️';
+            }
+          } catch (err) {
+            console.error(err);
+            alert('อัปโหลดรูปภาพผิดพลาด');
+            previewDiv.innerHTML = '🖼️';
+          } finally {
+            if (spinner) spinner.classList.add('hidden');
+          }
+        });
+      }
+
+      // Mobile Scanner Listeners
+      const btnMobileCameraScan = document.getElementById('btnMobileCameraScan');
+      if (btnMobileCameraScan) {
+        btnMobileCameraScan.addEventListener('click', async () => {
+          document.getElementById('mobile-scanner-container').classList.remove('hidden');
+
+          if (mobileScannerRunning) return;
+
+          if (!mobileScanner) {
+            mobileScanner = new Html5Qrcode('mobile-tab-scanner');
+          }
+
+          const laser = document.querySelector('#mobile-scanner-container .scanner-laser');
+          if (laser) laser.classList.remove('hidden');
+
+          try {
+            await mobileScanner.start(
+              { facingMode: "environment" },
+              {
+                fps: 30,
+                qrbox: (width, height) => {
+                  const w = Math.min(width, height) * 0.85;
+                  const h = w * 0.45;
+                  return { width: w, height: h };
+                },
+                formatsToSupport: [
+                  Html5QrcodeSupportedFormats.EAN_13,
+                  Html5QrcodeSupportedFormats.EAN_8,
+                  Html5QrcodeSupportedFormats.CODE_128,
+                  Html5QrcodeSupportedFormats.QR_CODE
+                ],
+                rememberLastUsedCamera: true,
+                aspectRatio: 1.777778
+              },
+              async (code) => {
+                playScanSound();
+                if (laser) laser.classList.add('hidden');
+                document.getElementById('mobileBarcodeSearchInput').value = code;
+                
+                // Stop mobile scanner
+                if (mobileScannerRunning && mobileScanner) {
+                  try {
+                    await mobileScanner.stop();
+                    mobileScannerRunning = false;
+                    document.getElementById('mobile-scanner-container').classList.add('hidden');
+                  } catch (e) {}
+                }
+
+                // Load product details
+                loadMobileProductDetails(code);
+              },
+              (errorMessage) => {}
+            );
+            mobileScannerRunning = true;
+          } catch (err) {
+            console.error("Camera start error: ", err);
+            alert("ไม่สามารถเปิดกล้องได้: " + err);
+            if (laser) laser.classList.add('hidden');
+          }
+        });
+      }
+
+      const btnStopMobileScan = document.getElementById('btnStopMobileScan');
+      if (btnStopMobileScan) {
+        btnStopMobileScan.addEventListener('click', async () => {
+          if (mobileScannerRunning && mobileScanner) {
+            try {
+              await mobileScanner.stop();
+              mobileScannerRunning = false;
+            } catch (e) {}
+          }
+          document.getElementById('mobile-scanner-container').classList.add('hidden');
+        });
+      }
+
+      // Mobile Form Submit Listener
+      const mobileProductForm = document.getElementById('mobileProductForm');
+      if (mobileProductForm) {
+        mobileProductForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const id = document.getElementById('mobileProdId').value;
+          const barcode = document.getElementById('mobileProdBarcode').value.trim();
+          const sellPrice = parseFloat(document.getElementById('mobileProdPrice').value);
+          const costPriceVal = parseFloat(document.getElementById('mobileProdCostPrice').value) || 0;
+          
+          const payload = {
+            barcode: barcode || null,
+            name: document.getElementById('mobileProdName').value.trim(),
+            cost_price: costPriceVal,
+            price: sellPrice,
+            unit: document.getElementById('mobileProdUnit').value.trim(),
+            category: document.getElementById('mobileProdCategory').value.trim(),
+            stock: parseInt(document.getElementById('mobileProdStock').value) || 0,
+            low_stock_threshold: parseInt(document.getElementById('mobileProdThreshold').value) || 5,
+            image_url: document.getElementById('mobileProdImageUrl').value.trim() || null,
+            image_public_id: document.getElementById('mobileProdImagePublicId').value.trim() || null,
+            is_active: true
+          };
+
+          const btn = document.getElementById('btnMobileSaveProduct');
+          btn.disabled = true;
+          btn.textContent = 'กำลังบันทึกข้อมูล...';
+
+          try {
+            if (id) {
+              const { error } = await sbClient.from('products').update(payload).eq('id', id);
+              if (error) throw error;
+              alert('อัปเดตข้อมูลสินค้าสำเร็จ');
+            } else {
+              const { error } = await sbClient.from('products').insert([payload]);
+              if (error) throw error;
+              alert('เพิ่มสินค้าเรียบร้อย');
+            }
+            
+            document.getElementById('mobileBarcodeSearchInput').value = '';
+            document.getElementById('mobileEditFormCard').classList.add('hidden');
+            await loadDashboardData();
+          } catch (err) {
+            console.error(err);
+            alert('บันทึกสินค้าล้มเหลว: ' + err.message);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '💾 บันทึกข้อมูลสินค้า';
+          }
+        });
+      }
+    }
+
+    // --- Mobile Product Manager Globals ---
+    function handleMobileBarcodeReceived(code) {
+      if (!code) return;
+      playScanSound();
+      const input = document.getElementById('mobileBarcodeSearchInput');
+      if (input) input.value = code;
+      
+      // Look up product
+      loadMobileProductDetails(code);
+    }
+    window.handleMobileBarcodeReceived = handleMobileBarcodeReceived;
+
+    function adjustMobileStock(amount) {
+      const stockInput = document.getElementById('mobileProdStock');
+      if (stockInput) {
+        let val = parseInt(stockInput.value) || 0;
+        val += amount;
+        if (val < 0) val = 0;
+        stockInput.value = val;
+      }
+    }
+    window.adjustMobileStock = adjustMobileStock;
+
+    function loadMobileProductDetails(code) {
+      if (!code) return;
+      const p = productsList.find(x => x.barcode === code);
+      
+      const formCard = document.getElementById('mobileEditFormCard');
+      const formTitle = document.getElementById('mobileFormTitle');
+      const form = document.getElementById('mobileProductForm');
+      
+      form.reset();
+      
+      if (p) {
+        // Edit mode
+        formTitle.textContent = `✏️ แก้ไขสินค้า: ${p.name}`;
+        document.getElementById('mobileProdId').value = p.id;
+        document.getElementById('mobileProdBarcode').value = p.barcode || '';
+        document.getElementById('mobileProdName').value = p.name;
+        document.getElementById('mobileProdCostPrice').value = p.cost_price || '';
+        document.getElementById('mobileProdPrice').value = p.price;
+        document.getElementById('mobileProdStock').value = p.stock;
+        document.getElementById('mobileProdUnit').value = p.unit || '';
+        document.getElementById('mobileProdCategory').value = p.category || '';
+        document.getElementById('mobileProdThreshold').value = p.low_stock_threshold ?? 5;
+        document.getElementById('mobileProdImageUrl').value = p.image_url || '';
+        document.getElementById('mobileProdImagePublicId').value = p.image_public_id || '';
+        
+        const previewDiv = document.getElementById('mobileImagePreview');
+        if (p.image_url) {
+          previewDiv.innerHTML = `<img src="${p.image_url}" class="w-full h-full object-cover rounded-2xl" />`;
+        } else {
+          previewDiv.innerHTML = '🖼️';
+        }
+        
+        updateMobileProfitPreview();
+        formCard.classList.remove('hidden');
+        formCard.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // Not found -> ask to create new
+        if (confirm(`ไม่พบสินค้าบาร์โค้ด: ${code} ในฐานข้อมูล ต้องการเพิ่มเป็นสินค้าใหม่หรือไม่?`)) {
+          formTitle.textContent = `➕ เพิ่มสินค้าใหม่`;
+          document.getElementById('mobileProdId').value = '';
+          document.getElementById('mobileProdBarcode').value = code;
+          document.getElementById('mobileProdName').value = '';
+          document.getElementById('mobileProdCostPrice').value = '';
+          document.getElementById('mobileProdPrice').value = '';
+          document.getElementById('mobileProdStock').value = '0';
+          document.getElementById('mobileProdUnit').value = 'ชิ้น';
+          document.getElementById('mobileProdCategory').value = 'ของแห้ง';
+          document.getElementById('mobileProdThreshold').value = '5';
+          document.getElementById('mobileProdImageUrl').value = '';
+          document.getElementById('mobileProdImagePublicId').value = '';
+          
+          document.getElementById('mobileImagePreview').innerHTML = '🖼️';
+          updateMobileProfitPreview();
+          formCard.classList.remove('hidden');
+          formCard.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          formCard.classList.add('hidden');
+        }
+      }
+    }
+    window.loadMobileProductDetails = loadMobileProductDetails;
+
+    function updateMobileProfitPreview() {
+      const cost = parseFloat(document.getElementById('mobileProdCostPrice').value) || 0;
+      const sell = parseFloat(document.getElementById('mobileProdPrice').value) || 0;
+      const preview = document.getElementById('mobileProfitPreview');
+      if (sell > 0 && cost > 0) {
+        const profit = sell - cost;
+        preview.textContent = fmt(profit);
+        preview.className = 'text-sm font-bold ' + (profit >= 0 ? 'text-emerald-600' : 'text-rose-600');
+      } else {
+        preview.textContent = '\u2014';
+        preview.className = 'text-sm font-bold text-slate-400';
+      }
+    }
+    window.updateMobileProfitPreview = updateMobileProfitPreview;
+
+    function broadcastBarcode(code) {
+      if (syncChannel && code) {
+        syncChannel.send({
+          type: 'broadcast',
+          event: 'pc-scan',
+          payload: { barcode: code.trim() }
+        });
+      }
     }
 
     // Load All Data from Supabase
@@ -2605,6 +3235,7 @@
 
     // POS Cart Logic
     async function handlePosBarcodeScanned(code) {
+      broadcastBarcode(code);
       const found = productsList.find(p => p.barcode === code);
       if (found) {
         if (found.is_active === false) {
