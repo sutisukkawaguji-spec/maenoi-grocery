@@ -18,7 +18,7 @@ const AppConfig = {
       cloudinaryApiSecret: localStorage.getItem('MN_CLOUDINARY_API_SECRET') || '0V9c_hMD78FEXmPyQkdlFFMV5pY',
       adminPin: localStorage.getItem('MN_ADMIN_PIN') || '1234',
       promptpayId: localStorage.getItem('MN_PROMPTPAY_ID') || '0880699227',
-      gasUrl: localStorage.getItem('MN_GAS_URL') || ''
+      gasUrl: localStorage.getItem('MN_GAS_URL') || 'https://script.google.com/macros/s/AKfycbwHtZKyauII92QdsT4uuKkVuoHsFlFwoawM9LSAcXbGiA7UcvgTqQczjJvEnRTAx7B6/exec'
     };
   },
 

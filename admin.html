@@ -474,10 +474,19 @@
         
         // Enforce Supabase Auth Session
         const { data } = await sbClient.auth.getSession();
-        if (!data.session) {
-          // If no authenticated user session, redirect to login.html
-          window.location.href = 'login.html';
+        const session = data.session;
+        if (!session) {
+          // If no authenticated user session, redirect to index.html
+          window.location.href = 'index.html';
         } else {
+          // Check admin authorization by phone number
+          const phone = (session.user.email || '').split('@')[0];
+          const isAdmin = (phone === c.promptpayId || phone === '0880699227');
+          if (!isAdmin) {
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้าระบบหลังบ้าน');
+            window.location.href = 'index.html';
+            return;
+          }
           document.getElementById('adminPanel').classList.remove('hidden');
           loadDashboardData();
         }
@@ -532,7 +541,7 @@
         if (sbClient) {
           await sbClient.auth.signOut();
         }
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
       });
 
       // Tabs switcher
