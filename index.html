@@ -244,7 +244,7 @@
         if (sbClient) {
           const { data, error } = await sbClient.from('products').select('*');
           if (!error && data) {
-            PRODUCTS = data.map(p => ({
+            PRODUCTS = data.filter(p => p.is_active !== false).map(p => ({
               id: String(p.id),
               name: p.name,
               price: Number(p.price) || 0,
