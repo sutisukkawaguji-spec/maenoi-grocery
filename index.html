@@ -20,8 +20,8 @@
     .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
     .backdrop.show { opacity: 1; pointer-events: all; }
     /* Floating Notification Bell styling */
-    .bell-btn { position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px; background: #fff; border: 1px solid #e2e8f0; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 45; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; font-size: 20px; }
-    .bell-btn:hover { transform: scale(1.08); }
+    .bell-btn { width: 32px; height: 32px; background: #fff; border: 1px solid #e2e8f0; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; font-size: 14px; flex-shrink: 0; }
+    .bell-btn:hover { transform: scale(1.08); background-color: #f8fafc; }
     .bell-btn.granted { background: #10b981; border-color: #059669; color: #fff; }
     .bell-btn.denied { opacity: 0.6; cursor: not-allowed; background: #ef4444; border-color: #dc2626; color: #fff; }
     .bell-btn.default { color: #475569; }
@@ -40,6 +40,7 @@
     <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
       <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
         <img src="images/logo.png" alt="โลโก้ร้าน" class="w-10 h-10 rounded-xl object-cover" onerror="this.src='https://picsum.photos/seed/logo/96/96'">
+        <button id="notificationBell" onclick="toggleNotificationSubscription()" class="bell-btn default" title="คลิกเพื่อเปิดรับข่าวสารแจ้งเตือน">🔔</button>
         <div>
           <h1 class="text-lg font-semibold leading-tight">ร้านขายของชำ</h1>
           <p class="text-xs text-gray-500">เมนูวันนี้ • ประกาศวิ่ง • แบนเนอร์สับเอง • สินค้า • ตะกร้า • LINE</p>
@@ -52,10 +53,11 @@
           </button>
           <!-- Admin link (Visible dynamically by JS) -->
           <a id="adminButton" href="admin.html" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">⚙️ จัดการร้าน</a>
+        </div>
       </div>
-    </div>
+    </header>
 
-    <div class="bg-white">
+    <div class="bg-white border-b border-gray-200">
       <div class="max-w-6xl mx-auto px-0 md:px-4 py-2">
         <h3 class="font-semibold mb-2 px-4 md:px-0">🍽️ เมนูวันนี้</h3>
         <div class="marquee-viewport rounded-xl border overflow-hidden">
@@ -63,7 +65,6 @@
         </div>
       </div>
     </div>
-  </header>
 
   <div id="diag" class="max-w-6xl mx-auto px-4 mt-3 hidden">
     <div class="rounded-xl border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">
@@ -932,8 +933,6 @@
       }
     }
   </script>
-  <!-- Floating Notification Bell -->
-  <button id="notificationBell" onclick="toggleNotificationSubscription()" class="bell-btn default" title="คลิกเพื่อเปิดรับข่าวสารแจ้งเตือน">🔔</button>
   <div id="backdrop" class="backdrop"></div>
 
   <!-- Lightbox for Banner Image Preview -->
