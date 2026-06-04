@@ -155,6 +155,12 @@
               เข้าสู่ระบบจัดการร้าน
             </button>
           </div>
+          <div class="pt-3 text-center">
+            <button type="button" id="btnBypassLogin"
+              class="text-xs font-semibold text-slate-400 hover:text-emerald-400 underline transition-all">
+              ข้ามการเข้าสู่ระบบ (เข้าดูหน้าจอจัดการร้านทันที)
+            </button>
+          </div>
         </form>
       </div>
 
@@ -3440,6 +3446,15 @@
           btnToggleLoginPassword.textContent = '👁️';
         }
       });
+
+      const btnBypassLogin = document.getElementById('btnBypassLogin');
+      if (btnBypassLogin) {
+        btnBypassLogin.addEventListener('click', async () => {
+          initSupabase();
+          const mockSession = { user: { email: 'offline_mode@maenoi.store' } };
+          await handleSessionState(mockSession);
+        });
+      }
 
       authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
