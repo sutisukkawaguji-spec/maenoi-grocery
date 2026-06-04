@@ -344,10 +344,7 @@
                 <div id="posSearchResults"
                   class="absolute left-6 right-6 top-[104px] z-20 max-h-[500px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-xl hidden custom-scrollbar">
                 </div>
-                <!-- POS Camera Scanner Container -->
-                <div id="pos-scanner" class="w-full aspect-[16/9] bg-black relative rounded-2xl border overflow-hidden hidden">
-                  <div class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden"></div>
-                </div>
+
                 <p class="text-xs text-emerald-700 mt-auto">💡 คำแนะนำ: นำปืนสแกนบาร์โค้ดชี้ไปที่ตัวสินค้าและยิงได้เลย
                   หรือจะพิมพ์ชื่อเพื่อค้นหาก็ได้</p>
               </div>
@@ -1787,6 +1784,49 @@
     </div>
   </dialog>
 
+  <!-- Fullscreen Camera Scanner Overlay (POS & Mobile) -->
+  <div id="scannerOverlay" class="fixed inset-0 bg-slate-950/95 z-[9999] flex flex-col items-center justify-center hidden">
+    <!-- Camera Viewport Container -->
+    <div id="scannerViewport" class="relative w-full max-w-lg aspect-[3/4] md:aspect-[4/3] bg-black overflow-hidden flex items-center justify-center">
+      <div id="pos-scanner" class="w-full h-full"></div>
+      
+      <!-- Custom Target Focus Box HUD (Heads-Up Display) -->
+      <div class="absolute pointer-events-none inset-0 flex items-center justify-center">
+        <!-- Target Box (Focus Guide Area) -->
+        <div class="relative w-72 h-44 border-2 border-emerald-500/80 rounded-3xl shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+          <!-- Corners -->
+          <div class="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl"></div>
+          <div class="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl"></div>
+          <div class="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl"></div>
+          <div class="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl"></div>
+          
+          <!-- Moving Laser Line Guide -->
+          <div class="absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_10px_#f43f5e] z-10 animate-scan"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Floating Header Info & Controls -->
+    <div class="absolute top-6 left-0 right-0 flex justify-between items-center px-6 z-10">
+      <div class="text-white text-base font-bold flex items-center gap-2">
+        <span class="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>
+        <span class="tracking-wide">สแกนบาร์โค้ดสินค้า (กล้องสด)</span>
+      </div>
+      <button type="button" id="btnCloseScannerOverlay" class="w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all text-xl font-bold backdrop-blur">
+        ✕
+      </button>
+    </div>
+
+    <!-- Floating Footer Instructions -->
+    <div class="absolute bottom-10 left-0 right-0 text-center px-6 z-10">
+      <p class="text-emerald-400 text-sm font-bold">นำบาร์โค้ดของสินค้าให้อยู่ในกรอบสีเขียว</p>
+      <p class="text-white/55 text-xs mt-1.5">ระบบจะเพิ่มรายการและปิดหน้าจอนี้อัตโนมัติเมื่ออ่านสำเร็จ</p>
+      <button type="button" id="btnCancelScannerOverlay" class="mt-6 px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold transition-all shadow-lg active:scale-95">
+        ยกเลิกและปิดกล้อง
+      </button>
+    </div>
+  </div>
+
   <script>
     // System Global States
     let sbClient = null;
@@ -1804,6 +1844,21 @@
     let editingProduct = null;
     let syncChannel = null;
     let isMobileSyncEnabled = false;
+
+    async function closePosScanner() {
+      if (posScannerRunning && posScanner) {
+        try {
+          await posScanner.stop();
+          posScannerRunning = false;
+        } catch (e) { }
+      }
+      const overlay = document.getElementById('scannerOverlay');
+      if (overlay) overlay.classList.add('hidden');
+      const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
+      if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
+      const btnStopEl = document.getElementById('btnStopPosScan');
+      if (btnStopEl) btnStopEl.classList.add('hidden');
+    }
 
     // Custom states for keyboard navigation and admin PIN lock
     let isAdminUnlocked = false;
@@ -2170,17 +2225,7 @@
           }
 
           if (posScannerRunning && posScanner) {
-            posScanner.stop().then(() => {
-              posScannerRunning = false;
-              const laser = document.querySelector('#pos-scanner .scanner-laser');
-              if (laser) laser.classList.add('hidden');
-              const posScannerEl = document.getElementById('pos-scanner');
-              if (posScannerEl) posScannerEl.classList.add('hidden');
-              const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
-              if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
-              const btnStopEl = document.getElementById('btnStopPosScan');
-              if (btnStopEl) btnStopEl.classList.add('hidden');
-            }).catch(e => { });
+            closePosScanner();
           }
           if (mobileScannerRunning && mobileScanner) {
             mobileScanner.stop().then(() => {
@@ -2265,10 +2310,7 @@
         document.getElementById('form-scanner-container').classList.remove('hidden');
 
         if (posScannerRunning && posScanner) {
-          try {
-            await posScanner.stop();
-            posScannerRunning = false;
-          } catch (e) { }
+          await closePosScanner();
         }
 
         if (formScannerRunning) return;
@@ -2391,10 +2433,16 @@
 
       // POS Scanning Buttons
       const btnStartPosScan = document.getElementById('btnStartPosScan');
+      const scannerOverlay = document.getElementById('scannerOverlay');
+
+      if (scannerOverlay) {
+        document.getElementById('btnCloseScannerOverlay').addEventListener('click', closePosScanner);
+        document.getElementById('btnCancelScannerOverlay').addEventListener('click', closePosScanner);
+      }
+
       if (btnStartPosScan) {
         btnStartPosScan.addEventListener('click', async () => {
-          const posScannerEl = document.getElementById('pos-scanner');
-          if (posScannerEl) posScannerEl.classList.remove('hidden');
+          if (scannerOverlay) scannerOverlay.classList.remove('hidden');
           const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
           if (posPlaceholderEl) posPlaceholderEl.classList.add('hidden');
           const btnStopEl = document.getElementById('btnStopPosScan');
@@ -2413,19 +2461,12 @@
             posScanner = new Html5Qrcode('pos-scanner');
           }
 
-          const laser = document.querySelector('#pos-scanner .scanner-laser');
-          if (laser) laser.classList.remove('hidden');
-
           try {
             await posScanner.start(
               { facingMode: "environment" },
               {
                 fps: 30,
-                qrbox: (width, height) => {
-                  const w = Math.min(width, height) * 0.85;
-                  const h = w * 0.45;
-                  return { width: w, height: h };
-                },
+                qrbox: { width: 288, height: 176 },
                 formatsToSupport: [
                   Html5QrcodeSupportedFormats.EAN_13,
                   Html5QrcodeSupportedFormats.EAN_8,
@@ -2436,19 +2477,7 @@
               },
               async (code) => {
                 playScanSound();
-                if (posScannerRunning && posScanner) {
-                  try {
-                    await posScanner.stop();
-                    posScannerRunning = false;
-                  } catch (e) { }
-                }
-                const posScannerEl = document.getElementById('pos-scanner');
-                if (posScannerEl) posScannerEl.classList.add('hidden');
-                const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
-                if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
-                const btnStopEl = document.getElementById('btnStopPosScan');
-                if (btnStopEl) btnStopEl.classList.add('hidden');
-
+                await closePosScanner();
                 handlePosBarcodeScanned(code);
               },
               (errorMessage) => { }
@@ -2457,26 +2486,14 @@
           } catch (err) {
             console.error("Camera start error: ", err);
             alert("ไม่สามารถเปิดกล้องได้: " + err);
-            if (laser) laser.classList.add('hidden');
+            closePosScanner();
           }
         });
       }
 
       const btnStopPosScan = document.getElementById('btnStopPosScan');
       if (btnStopPosScan) {
-        btnStopPosScan.addEventListener('click', async () => {
-          if (posScannerRunning && posScanner) {
-            try {
-              await posScanner.stop();
-              posScannerRunning = false;
-            } catch (e) { }
-          }
-          const posScannerEl = document.getElementById('pos-scanner');
-          if (posScannerEl) posScannerEl.classList.add('hidden');
-          const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
-          if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
-          btnStopPosScan.classList.add('hidden');
-        });
+        btnStopPosScan.addEventListener('click', closePosScanner);
       }
 
       // POS Manual Search Input
