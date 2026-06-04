@@ -454,7 +454,7 @@
       const wrap = document.getElementById('manualBanner'); if(!wrap) return;
       if(!BANNERS.length){ wrap.innerHTML = '<div class="text-gray-500">ยังไม่มีแบนเนอร์</div>'; return; }
       const src = BANNERS[bannerIdx % BANNERS.length];
-      wrap.innerHTML = `<img src="${src}" class="w-full h-full object-cover" alt="banner" onerror="this.src='https://picsum.photos/seed/banner/1200/400'">`;
+      wrap.innerHTML = `<img src="${src}" class="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-all" alt="banner" onerror="this.src='https://picsum.photos/seed/banner/1200/400'">`;
     }
     function startBannerAuto(){
       stopBannerAuto();
@@ -745,6 +745,43 @@
       bannerWrap?.addEventListener('mouseenter', stopBannerAuto);
       bannerWrap?.addEventListener('mouseleave', startBannerAuto);
       startBannerAuto();
+
+      // Lightbox for Banner Image Preview
+      const lightbox = document.getElementById('bannerLightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+      
+      bannerWrap?.addEventListener('click', () => {
+        if (!BANNERS.length) return;
+        const currentSrc = BANNERS[bannerIdx % BANNERS.length];
+        if (!currentSrc) return;
+        
+        lightboxImg.src = currentSrc;
+        lightbox.classList.remove('hidden');
+        // Trigger animations
+        setTimeout(() => {
+          lightbox.classList.remove('opacity-0');
+          lightbox.classList.add('opacity-100');
+          lightboxImg.classList.remove('scale-95');
+          lightboxImg.classList.add('scale-100');
+        }, 10);
+      });
+
+      const closeLightbox = () => {
+        lightbox.classList.remove('opacity-100');
+        lightbox.classList.add('opacity-0');
+        lightboxImg.classList.remove('scale-100');
+        lightboxImg.classList.add('scale-95');
+        setTimeout(() => {
+          lightbox.classList.add('hidden');
+        }, 300);
+      };
+
+      document.getElementById('btnCloseLightbox')?.addEventListener('click', closeLightbox);
+      lightbox?.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+          closeLightbox();
+        }
+      });
     });
 
     // --- Web Push Notification Logic ---
@@ -898,5 +935,11 @@
   <!-- Floating Notification Bell -->
   <button id="notificationBell" onclick="toggleNotificationSubscription()" class="bell-btn default" title="คลิกเพื่อเปิดรับข่าวสารแจ้งเตือน">🔔</button>
   <div id="backdrop" class="backdrop"></div>
+
+  <!-- Lightbox for Banner Image Preview -->
+  <div id="bannerLightbox" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4 transition-all duration-300 opacity-0 backdrop-blur-md">
+    <button id="btnCloseLightbox" class="absolute top-4 right-4 w-12 h-12 bg-white/20 hover:bg-white/40 active:scale-95 text-white rounded-full flex items-center justify-center text-2xl transition-all shadow-lg border border-white/10 select-none">✕</button>
+    <img id="lightboxImg" src="" class="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl transition-all duration-300 scale-95" alt="Banner Full" />
+  </div>
 </body>
 </html>
