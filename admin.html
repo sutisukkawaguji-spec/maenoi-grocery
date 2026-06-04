@@ -851,16 +851,7 @@
                 </button>
               </div>
 
-              <!-- Scanner Area inside Mobile tab -->
-              <div id="mobile-scanner-container" class="mt-2 rounded-2xl border overflow-hidden hidden relative">
-                <div id="mobile-tab-scanner" class="w-full aspect-[16/9] bg-black relative">
-                  <div
-                    class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden">
-                  </div>
-                </div>
-                <button type="button" id="btnStopMobileScan"
-                  class="absolute top-2 right-2 px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg text-xs">ปิด</button>
-              </div>
+
             </div>
 
             <!-- Mobile Edit Form Card -->
@@ -1850,6 +1841,7 @@
     let syncChannel = null;
     let isMobileSyncEnabled = false;
     let isTorchOn = false;
+    let activeScannerSource = "pos"; // "pos" or "mobile"
 
     async function closePosScanner() {
       if (posScannerRunning && posScanner) {
@@ -2484,55 +2476,63 @@
         }
       }
 
-      if (btnStartPosScan) {
-        btnStartPosScan.addEventListener('click', async () => {
-          if (scannerOverlay) scannerOverlay.classList.remove('hidden');
-          const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
-          if (posPlaceholderEl) posPlaceholderEl.classList.add('hidden');
-          const btnStopEl = document.getElementById('btnStopPosScan');
-          if (btnStopEl) btnStopEl.classList.remove('hidden');
+      async function startCommonScanner(source) {
+        activeScannerSource = source;
+        if (scannerOverlay) scannerOverlay.classList.remove('hidden');
+        const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
+        if (posPlaceholderEl) posPlaceholderEl.classList.add('hidden');
+        const btnStopEl = document.getElementById('btnStopPosScan');
+        if (btnStopEl) btnStopEl.classList.remove('hidden');
 
-          if (formScannerRunning && formScanner) {
-            try {
-              await formScanner.stop();
-              formScannerRunning = false;
-            } catch (e) { }
-          }
-
-          if (posScannerRunning) return;
-
-          if (!posScanner) {
-            posScanner = new Html5Qrcode('pos-scanner');
-          }
-
+        if (formScannerRunning && formScanner) {
           try {
-            await posScanner.start(
-              { facingMode: "environment" },
-              {
-                fps: 30,
-                qrbox: { width: 288, height: 176 },
-                formatsToSupport: [
-                  Html5QrcodeSupportedFormats.EAN_13,
-                  Html5QrcodeSupportedFormats.EAN_8,
-                  Html5QrcodeSupportedFormats.CODE_128,
-                  Html5QrcodeSupportedFormats.QR_CODE
-                ],
-                rememberLastUsedCamera: true
-              },
-              async (code) => {
-                playScanSound();
-                await closePosScanner();
+            await formScanner.stop();
+            formScannerRunning = false;
+          } catch (e) { }
+        }
+
+        if (posScannerRunning) return;
+
+        if (!posScanner) {
+          posScanner = new Html5Qrcode('pos-scanner');
+        }
+
+        try {
+          await posScanner.start(
+            { facingMode: "environment" },
+            {
+              fps: 30,
+              qrbox: { width: 288, height: 176 },
+              formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.QR_CODE
+              ],
+              rememberLastUsedCamera: true
+            },
+            async (code) => {
+              playScanSound();
+              await closePosScanner();
+              if (activeScannerSource === "pos") {
                 handlePosBarcodeScanned(code);
-              },
-              (errorMessage) => { }
-            );
-            posScannerRunning = true;
-          } catch (err) {
-            console.error("Camera start error: ", err);
-            alert("ไม่สามารถเปิดกล้องได้: " + err);
-            closePosScanner();
-          }
-        });
+              } else if (activeScannerSource === "mobile") {
+                document.getElementById('mobileBarcodeSearchInput').value = code;
+                loadMobileProductDetails(code);
+              }
+            },
+            (errorMessage) => { }
+          );
+          posScannerRunning = true;
+        } catch (err) {
+          console.error("Camera start error: ", err);
+          alert("ไม่สามารถเปิดกล้องได้: " + err);
+          closePosScanner();
+        }
+      }
+
+      if (btnStartPosScan) {
+        btnStartPosScan.addEventListener('click', () => startCommonScanner('pos'));
       }
 
       const btnStopPosScan = document.getElementById('btnStopPosScan');
@@ -4561,75 +4561,7 @@
       // Mobile Scanner Listeners
       const btnMobileCameraScan = document.getElementById('btnMobileCameraScan');
       if (btnMobileCameraScan) {
-        btnMobileCameraScan.addEventListener('click', async () => {
-          document.getElementById('mobile-scanner-container').classList.remove('hidden');
-
-          if (mobileScannerRunning) return;
-
-          if (!mobileScanner) {
-            mobileScanner = new Html5Qrcode('mobile-tab-scanner');
-          }
-
-          const laser = document.querySelector('#mobile-scanner-container .scanner-laser');
-          if (laser) laser.classList.remove('hidden');
-
-          try {
-            await mobileScanner.start(
-              { facingMode: "environment" },
-              {
-                fps: 30,
-                qrbox: (width, height) => {
-                  const w = Math.min(width, height) * 0.85;
-                  const h = w * 0.45;
-                  return { width: w, height: h };
-                },
-                formatsToSupport: [
-                  Html5QrcodeSupportedFormats.EAN_13,
-                  Html5QrcodeSupportedFormats.EAN_8,
-                  Html5QrcodeSupportedFormats.CODE_128,
-                  Html5QrcodeSupportedFormats.QR_CODE
-                ],
-                rememberLastUsedCamera: true
-              },
-              async (code) => {
-                playScanSound();
-                if (laser) laser.classList.add('hidden');
-                document.getElementById('mobileBarcodeSearchInput').value = code;
-
-                // Stop mobile scanner
-                if (mobileScannerRunning && mobileScanner) {
-                  try {
-                    await mobileScanner.stop();
-                    mobileScannerRunning = false;
-                    document.getElementById('mobile-scanner-container').classList.add('hidden');
-                  } catch (e) { }
-                }
-
-                // Load product details
-                loadMobileProductDetails(code);
-              },
-              (errorMessage) => { }
-            );
-            mobileScannerRunning = true;
-          } catch (err) {
-            console.error("Camera start error: ", err);
-            alert("ไม่สามารถเปิดกล้องได้: " + err);
-            if (laser) laser.classList.add('hidden');
-          }
-        });
-      }
-
-      const btnStopMobileScan = document.getElementById('btnStopMobileScan');
-      if (btnStopMobileScan) {
-        btnStopMobileScan.addEventListener('click', async () => {
-          if (mobileScannerRunning && mobileScanner) {
-            try {
-              await mobileScanner.stop();
-              mobileScannerRunning = false;
-            } catch (e) { }
-          }
-          document.getElementById('mobile-scanner-container').classList.add('hidden');
-        });
+        btnMobileCameraScan.addEventListener('click', () => startCommonScanner('mobile'));
       }
 
       document.getElementById('posRegisterCustomerForm').addEventListener('submit', async (e) => {
