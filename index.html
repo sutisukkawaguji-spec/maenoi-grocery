@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ร้านแม่น้อย บ้านดอนขี — ร้านขายของชำ</title>
   <meta name="description" content="สินค้า สินค้าแนะนำ เมนูวันนี้ (หัวเว็บ), แบนเนอร์สับภาพเอง, ข้อความประกาศวิ่ง, ตะกร้า, พร้อมเพย์">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -18,6 +19,12 @@
     .drawer.open { right: 0; }
     .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(1px); z-index: 50; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
     .backdrop.show { opacity: 1; pointer-events: all; }
+    /* Floating Notification Bell styling */
+    .bell-btn { position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px; background: #fff; border: 1px solid #e2e8f0; border-radius: 9999px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 45; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; font-size: 20px; }
+    .bell-btn:hover { transform: scale(1.08); }
+    .bell-btn.granted { background: #10b981; border-color: #059669; color: #fff; }
+    .bell-btn.denied { opacity: 0.6; cursor: not-allowed; background: #ef4444; border-color: #dc2626; color: #fff; }
+    .bell-btn.default { color: #475569; }
     .marquee-viewport { overflow: hidden; }
     .marquee-track { display: inline-flex; align-items: center; gap: 16px; width: max-content; animation: marquee-linear 20s linear infinite; will-change: transform; }
     .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
@@ -122,16 +129,7 @@
     <section id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></section>
   </main>
 
-  <!-- Newsletter Section -->
-  <section class="max-w-6xl mx-auto px-4 py-8 bg-emerald-50 rounded-3xl border border-emerald-100/50 mb-10 text-center space-y-4">
-    <h3 class="text-xl font-bold text-emerald-800">สมัครรับข้อมูลข่าวสาร 📢</h3>
-    <p class="text-sm text-emerald-700 max-w-md mx-auto">รับข้อมูลเกี่ยวกับสินค้าใหม่ โปรโมชันประจำเดือน และเมนูอาหารแนะนำก่อนใคร ฟรี!</p>
-    <form id="newsletterForm" class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto px-4">
-      <input type="text" id="subscriberContact" placeholder="กรอกเบอร์โทรศัพท์ หรือ LINE ID" required class="flex-grow px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white" />
-      <button type="submit" class="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all shadow-md">สมัครเลย</button>
-    </form>
-    <p id="newsletterSuccess" class="text-xs text-emerald-600 font-semibold hidden">🎉 สมัครรับข้อมูลสำเร็จเรียบร้อยแล้ว!</p>
-  </section>
+  <!-- Newsletter section removed -->
 
   <footer class="border-t border-gray-200 py-10 text-center text-sm bg-white">
     <h3 class="text-lg font-semibold mb-2 text-emerald-700">ร้านแม่น้อย บ้านดอนขี</h3>
@@ -334,7 +332,9 @@
           if (!error && data) {
             const configRecord = data.find(s => s.contact && s.contact.startsWith('CONFIG_JSON:'));
             if (configRecord) {
-              supabaseConfig = JSON.parse(configRecord.contact.substring(12));
+              const rawStr = configRecord.contact.substring(12);
+              supabaseConfig = JSON.parse(rawStr);
+              localStorage.setItem('MN_LOCAL_WEB_CONFIG', rawStr);
             }
           }
         } catch (e) {
@@ -342,19 +342,31 @@
         }
       }
 
+      if (!supabaseConfig) {
+        try {
+          const localStr = localStorage.getItem('MN_LOCAL_WEB_CONFIG');
+          if (localStr) {
+            supabaseConfig = JSON.parse(localStr);
+          }
+        } catch (err) {
+          console.warn("โหลดข้อมูล Web Config จาก Local Storage ล้มเหลว:", err);
+        }
+      }
+
       // Banners
-      if (supabaseConfig && supabaseConfig.banners && supabaseConfig.banners.some(Boolean)) {
-        BANNERS.length = 0;
-        supabaseConfig.banners.forEach(url => {
-          if (url) BANNERS.push(url);
-        });
-        if (BANNERS.length === 0) {
+      if (supabaseConfig && Array.isArray(supabaseConfig.banners)) {
+        const validBanners = supabaseConfig.banners.filter(Boolean);
+        if (validBanners.length > 0) {
+          BANNERS.length = 0;
+          validBanners.forEach(url => BANNERS.push(url));
+        } else {
+          BANNERS.length = 0;
           BANNERS.push('images/banner1.jpg', 'images/banner2.jpg', 'images/banner3.jpg');
         }
       }
 
       // Daily Menu
-      if (supabaseConfig && supabaseConfig.menu && supabaseConfig.menu.length > 0) {
+      if (supabaseConfig && Array.isArray(supabaseConfig.menu)) {
         window.DAILY_MENU = supabaseConfig.menu.map(m => ({
           title: m.title || '',
           img: m.imageUrl || '',
@@ -381,6 +393,14 @@
       } else {
         await loadAnnouncesFallback();
       }
+
+      // VAPID key extract
+      if (supabaseConfig && supabaseConfig.vapidPublicKey) {
+        window.VAPID_PUBLIC_KEY = supabaseConfig.vapidPublicKey;
+        if (Notification.permission === 'granted') {
+          silentInitPushNotification(supabaseConfig.vapidPublicKey);
+        }
+      }
     }
     function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
     function filterItems(items){
@@ -404,9 +424,8 @@
         <div class="p-3"><h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
           <div class="mt-1 flex items-center justify-between"><span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit || '-'}</span>
             <span class="text-xs text-gray-500">${it.category || '-'}</span></div>
-          <div class="mt-3 grid grid-cols-2 gap-2">
-            <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90" data-id="${it.id}">หยิบลงตะกร้า</button>
-            <button class="btn-chat w-full px-3 py-2 rounded-xl border text-sm hover:bg-gray-50" data-id="${it.id}">แชตรายการนี้</button>
+          <div class="mt-3">
+            <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90 font-medium transition-all" data-id="${it.id}">หยิบลงตะกร้า</button>
           </div></div></article>`;
     }
     function renderGrid(items){
@@ -578,6 +597,8 @@
       // 4. Load catalog data immediately and unconditionally
       try {
         await Promise.all([ loadProducts(), loadWebContent() ]);
+        // Run lazy cron checking in background
+        runLazyCronNotifications();
       } catch (e) {
         console.error(e);
         showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
@@ -679,35 +700,7 @@
         document.getElementById('qrModal')?.close();
       });
 
-      // Newsletter form submission
-      document.getElementById('newsletterForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const contactInput = document.getElementById('subscriberContact');
-        const contactVal = contactInput.value.trim();
-        if (!contactVal) return;
-
-        try {
-          if (sbClient) {
-            const { error } = await sbClient.from('subscribers').insert([{ contact: contactVal }]);
-            if (error) throw error;
-          } else {
-            // Simulated local storage fallback if not configured
-            let localSubs = JSON.parse(localStorage.getItem('local_subscribers') || '[]');
-            localSubs.push({ contact: contactVal, created_at: new Date().toISOString() });
-            localStorage.setItem('local_subscribers', JSON.stringify(localSubs));
-          }
-          
-          contactInput.value = '';
-          const successMsg = document.getElementById('newsletterSuccess');
-          if (successMsg) {
-            successMsg.classList.remove('hidden');
-            setTimeout(() => successMsg.classList.add('hidden'), 5000);
-          }
-        } catch (err) {
-          console.error(err);
-          alert('สมัครรับข้อมูลผิดพลาด กรุณาลองใหม่อีกครั้ง');
-        }
-      });
+      // Newsletter handler removed
 
       if(location.protocol === 'file:'){
         const warn = document.createElement('div');
@@ -730,10 +723,11 @@
       document.getElementById('backdrop')?.addEventListener('click', () => { closeCart(); });
 
       document.addEventListener('click', (e) => {
-        const addBtn = e.target.closest('.btn-add'); const chatBtn = e.target.closest('.btn-chat');
+        const addBtn = e.target.closest('.btn-add');
         if (addBtn) { if (addBtn.hasAttribute('disabled')) return; const id = normalizeId(addBtn.getAttribute('data-id')); cart[id] = (Number(cart[id]) || 0) + 1; localStorage.setItem('cart', JSON.stringify(cart)); updateBadge(); if (document.getElementById('cartDrawer').classList.contains('open')) { renderCart(); } }
-        if (chatBtn) { if (chatBtn.hasAttribute('disabled')) return; const id = normalizeId(chatBtn.getAttribute('data-id')); const p = PRODUCTS.find(x => normalizeId(x.id) === id); if(!p) return; const text = `สั่งซื้อ: ${p.name} 1 ${p.unit||''} ราคา ${fmtBaht(p.price)}`; window.open(lineChatUrl(text), '_blank'); }
       });
+
+      updateBellUI(Notification.permission);
 
       document.getElementById('cartList').addEventListener('click', (e) => {
         const dec = e.target.closest('.btn-dec'); const inc = e.target.closest('.btn-inc');
@@ -752,7 +746,157 @@
       bannerWrap?.addEventListener('mouseleave', startBannerAuto);
       startBannerAuto();
     });
+
+    // --- Web Push Notification Logic ---
+    function urlB64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    async function silentInitPushNotification(publicKey) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const registration = await navigator.serviceWorker.register('sw.js');
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlB64ToUint8Array(publicKey)
+          });
+        }
+        await savePushSubscription(subscription);
+      } catch (e) {
+        console.warn("Silent push registration failed:", e);
+      }
+    }
+
+    async function toggleNotificationSubscription() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert('เบราว์เซอร์ของคุณไม่รองรับการแจ้งเตือน Push Notification');
+        return;
+      }
+      if (Notification.permission === 'denied') {
+        alert('คุณได้บล็อกการแจ้งเตือนไว้ กรุณาเปิดสิทธิ์ในการตั้งค่าของเบราว์เซอร์ของคุณ');
+        return;
+      }
+      const key = window.VAPID_PUBLIC_KEY;
+      if (!key) {
+        alert('ยังไม่ได้ตั้งค่าคีย์แจ้งเตือน (VAPID Public Key) หลังบ้าน');
+        return;
+      }
+      try {
+        const permission = await Notification.requestPermission();
+        updateBellUI(permission);
+        if (permission === 'granted') {
+          const registration = await navigator.serviceWorker.register('sw.js');
+          let subscription = await registration.pushManager.getSubscription();
+          if (subscription) {
+            await subscription.unsubscribe();
+          }
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlB64ToUint8Array(key)
+          });
+          await savePushSubscription(subscription);
+          alert('เปิดการแจ้งเตือนสำเร็จแล้ว! 🎉 คุณจะได้รับข่าวสารและโปรโมชันส่งตรงถึงหน้าจอ');
+        }
+      } catch (err) {
+        console.error("Error subscribing to notifications:", err);
+        alert('เกิดข้อผิดพลาดในการเปิดการแจ้งเตือน: ' + err.message);
+      }
+    }
+
+    async function savePushSubscription(subscription) {
+      if (!sbClient) return;
+      try {
+        const subObj = subscription.toJSON();
+        const p256dh = subObj.keys.p256dh;
+        const auth = subObj.keys.auth;
+        const { error } = await sbClient.from('UserSubscriptions').upsert({
+          LineID: 'customer',
+          endpoint: subscription.endpoint,
+          p256dh: p256dh,
+          auth: auth,
+          platform: /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'ios' : 'android'
+        }, { onConflict: 'endpoint' });
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Failed to save push subscription to DB:", err);
+      }
+    }
+
+    function updateBellUI(permission) {
+      const bell = document.getElementById('notificationBell');
+      if (!bell) return;
+      bell.className = 'bell-btn ' + (permission || 'default');
+      if (permission === 'granted') {
+        bell.title = 'เปิดแจ้งเตือนแล้ว';
+        bell.innerHTML = '🔔';
+      } else if (permission === 'denied') {
+        bell.title = 'บล็อกแจ้งเตือนไว้';
+        bell.innerHTML = '🔕';
+      } else {
+        bell.title = 'คลิกเพื่อเปิดรับข่าวสารแจ้งเตือน';
+        bell.innerHTML = '🔔';
+      }
+    }
+
+    // Lazy Cron System
+    async function runLazyCronNotifications() {
+      if (!sbClient) return;
+      try {
+        const nowIso = new Date().toISOString();
+        const { data, error } = await sbClient
+          .from('ScheduledNotifications')
+          .select('*')
+          .eq('status', 'PENDING')
+          .lte('scheduled_at', nowIso);
+
+        if (error) throw error;
+        if (!data || data.length === 0) return;
+
+        console.log(`[Lazy Cron] Found ${data.length} pending notifications to send`);
+        for (const notif of data) {
+          try {
+            const c = window.AppConfig.get();
+            const response = await fetch(`${c.supabaseUrl}/functions/v1/send-push`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${c.supabaseAnonKey}`
+              },
+              body: JSON.stringify({
+                title: notif.title,
+                body: notif.body,
+                url: notif.url,
+                targetLineId: 'all'
+              })
+            });
+            if (response.ok) {
+              await sbClient.from('ScheduledNotifications').update({ status: 'SENT' }).eq('id', notif.id);
+              console.log(`[Lazy Cron] Successfully sent scheduled notification ID ${notif.id}`);
+            } else {
+              const errBody = await response.text();
+              throw new Error(errBody || 'Edge Function returned non-ok status');
+            }
+          } catch (notifErr) {
+            console.error(`[Lazy Cron] Failed to send scheduled notification ID ${notif.id}:`, notifErr);
+            await sbClient.from('ScheduledNotifications').update({ status: 'FAILED' }).eq('id', notif.id);
+          }
+        }
+      } catch (err) {
+        console.warn("[Lazy Cron] scheduled checks failed:", err);
+      }
+    }
   </script>
+  <!-- Floating Notification Bell -->
+  <button id="notificationBell" onclick="toggleNotificationSubscription()" class="bell-btn default" title="คลิกเพื่อเปิดรับข่าวสารแจ้งเตือน">🔔</button>
   <div id="backdrop" class="backdrop"></div>
 </body>
 </html>

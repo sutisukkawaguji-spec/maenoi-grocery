@@ -519,6 +519,10 @@
                     <button type="button" onclick="clearBannerImage(3)" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all border border-rose-150">🗑️ ลบรูป</button>
                   </div>
                 </div>
+                <div class="border-t pt-3 mt-3">
+                  <label class="block text-xs font-bold text-slate-700 mb-1">🔑 VAPID Public Key (สำหรับระบบแจ้งเตือน Push Notification มือถือ)</label>
+                  <input type="text" id="webVapidPublicKey" placeholder="รัน npx web-push generate-vapid-keys แล้วนำ Public Key มาใส่ที่นี่" class="w-full px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+                </div>
               </div>
             </div>
  
@@ -592,6 +596,10 @@
                     <option value="OFF">ปิด</option>
                   </select>
                 </div>
+              </div>
+              <div class="flex flex-wrap gap-2 pt-2 text-xs">
+                <button type="button" id="btnNotifyAnnNow" onclick="notifyAnnNow()" class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl font-semibold transition-all">🔔 ส่งแจ้งเตือนข้อความนี้ทันที</button>
+                <button type="button" id="btnScheduleAnn" onclick="scheduleAnn()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl font-semibold transition-all">⏰ ตั้งเวลาแจ้งเตือนล่วงหน้า</button>
               </div>
             </div>
 
@@ -3357,7 +3365,7 @@
         document.getElementById('newMenuStatus').value = 'ON';
       });
 
-      // Web Content Menu Item Delete (delegated)
+      // Web Content Menu Item Delete and Notification clicks (delegated)
       document.getElementById('webMenuTableBody').addEventListener('click', async (e) => {
         const deleteBtn = e.target.closest('.btn-delete-menu-item');
         if (deleteBtn) {
@@ -3375,6 +3383,35 @@
           }
           webMenuList.splice(idx, 1);
           renderWebMenuTable();
+          return;
+        }
+
+        const notifyBtn = e.target.closest('.btn-notify-menu-item');
+        if (notifyBtn) {
+          const idx = parseInt(notifyBtn.getAttribute('data-index'));
+          const item = webMenuList[idx];
+          if (item) {
+            await triggerPushNotificationDirect(
+              "เมนูวันนี้แนะนำ 🍽️",
+              `วันนี้ทางร้านมีเมนูพิเศษ: ${item.title} อย่าลืมเข้ามาสั่งซื้อนะครับ/ค่ะ`,
+              "index.html"
+            );
+          }
+          return;
+        }
+
+        const scheduleBtn = e.target.closest('.btn-schedule-menu-item');
+        if (scheduleBtn) {
+          const idx = parseInt(scheduleBtn.getAttribute('data-index'));
+          const item = webMenuList[idx];
+          if (item) {
+            openScheduleNotificationModal(
+              "เมนูวันนี้แนะนำ 🍽️",
+              `วันนี้ทางร้านมีเมนูพิเศษ: ${item.title} อย่าลืมเข้ามาสั่งซื้อนะครับ/ค่ะ`,
+              "index.html"
+            );
+          }
+          return;
         }
       });
 
@@ -3438,14 +3475,18 @@
           href: document.getElementById('webAnnHref').value.trim(),
           status: document.getElementById('webAnnStatus').value
         };
+        const vapidPublicKey = document.getElementById('webVapidPublicKey').value.trim();
 
         const configPayload = {
           banners: banners,
           menu: webMenuList,
-          announcement: announcement
+          announcement: announcement,
+          vapidPublicKey: vapidPublicKey
         };
 
         const configJsonStr = 'CONFIG_JSON:' + JSON.stringify(configPayload);
+        // Save to local cache first
+        localStorage.setItem('MN_LOCAL_WEB_CONFIG', JSON.stringify(configPayload));
 
         try {
           const { data: existing, error: fetchErr } = await sbClient
@@ -5125,20 +5166,34 @@
           console.warn("Could not load sales logs:", salesRes.error);
         }
 
-        if (subsRes.error) throw subsRes.error;
-        const subs = subsRes.data || [];
+        let configRecord = null;
+        if (!subsRes.error && subsRes.data) {
+          const subs = subsRes.data || [];
+          configRecord = subs.find(s => s.contact && s.contact.startsWith('CONFIG_JSON:'));
+        }
 
-        // Load Web Content from subscribers JSON configuration
-        const configRecord = subs.find(s => s.contact && s.contact.startsWith('CONFIG_JSON:'));
+        let configData = null;
         if (configRecord) {
           try {
-            const configData = JSON.parse(configRecord.contact.substring(12));
-            if (typeof populateWebContentForm === 'function') {
-              populateWebContentForm(configData);
-            }
+            const rawStr = configRecord.contact.substring(12);
+            configData = JSON.parse(rawStr);
+            localStorage.setItem('MN_LOCAL_WEB_CONFIG', rawStr);
           } catch (e) {
             console.warn("Failed to parse web config:", e);
           }
+        } else {
+          try {
+            const localStr = localStorage.getItem('MN_LOCAL_WEB_CONFIG');
+            if (localStr) {
+              configData = JSON.parse(localStr);
+            }
+          } catch (localErr) {
+            console.warn("Failed to load local config cache:", localErr);
+          }
+        }
+
+        if (configData && typeof populateWebContentForm === 'function') {
+          populateWebContentForm(configData);
         }
 
         // Render UI
@@ -5151,6 +5206,9 @@
           populateCustomerDropdown(customersList);
         }
         renderSalesTable(salesHistoryList);
+
+        // Run lazy cron checking in background
+        runLazyCronNotifications();
 
       } catch (err) {
         console.error(err);
@@ -6247,6 +6305,9 @@
         webMenuList = configData.menu;
         renderWebMenuTable();
       }
+      if (configData.vapidPublicKey !== undefined) {
+        document.getElementById('webVapidPublicKey').value = configData.vapidPublicKey || '';
+      }
     }
 
     function renderWebMenuTable() {
@@ -6269,8 +6330,10 @@
               <span class="ml-2 text-xs font-bold ${item.status === 'ON' ? 'text-emerald-600' : 'text-slate-400'}">${item.status === 'ON' ? 'เปิดแสดงผล' : 'ซ่อน'}</span>
             </label>
           </td>
-          <td class="py-2.5 px-3 text-center">
-            <button type="button" class="btn-delete-menu-item p-1 text-rose-500 hover:bg-rose-50 rounded" data-index="${idx}">🗑️</button>
+          <td class="py-2.5 px-3 text-center flex items-center justify-center gap-1">
+            <button type="button" class="btn-delete-menu-item p-1 text-rose-500 hover:bg-rose-50 rounded" data-index="${idx}" title="ลบเมนู">🗑️</button>
+            <button type="button" class="btn-notify-menu-item p-1 text-amber-500 hover:bg-amber-50 rounded" data-index="${idx}" title="แจ้งเตือนลูกค้าทันที">🔔</button>
+            <button type="button" class="btn-schedule-menu-item p-1 text-indigo-500 hover:bg-indigo-50 rounded" data-index="${idx}" title="ตั้งเวลาแจ้งเตือนล่วงหน้า">⏰</button>
           </td>
         </tr>
       `).join('');
@@ -6421,6 +6484,166 @@
       return txt;
     }
 
+    // --- Web Push Notification Helpers ---
+    async function triggerPushNotificationDirect(title, body, url = 'index.html') {
+      const c = AppConfig.get();
+      if (!c.supabaseUrl || !c.supabaseAnonKey) {
+        alert('กรุณาตั้งค่าเชื่อมต่อ Supabase ในหน้าระบบก่อน');
+        return;
+      }
+      try {
+        const response = await fetch(`${c.supabaseUrl}/functions/v1/send-push`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${c.supabaseAnonKey}`
+          },
+          body: JSON.stringify({
+            title: title,
+            body: body,
+            url: url,
+            targetLineId: 'all'
+          })
+        });
+        const res = await response.json();
+        if (response.ok && res.success) {
+          alert(`ส่งการแจ้งเตือนสำเร็จแล้ว! (ส่งสำเร็จไปยัง ${res.sentCount} อุปกรณ์)`);
+        } else {
+          alert('ส่งการแจ้งเตือนล้มเหลว: ' + (res.error || 'กรุณาตรวจสอบการตั้งค่า Edge Function'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('เกิดข้อผิดพลาดในการส่งแจ้งเตือน: ' + err.message);
+      }
+    }
+
+    function openScheduleNotificationModal(title, body, url) {
+      document.getElementById('schedNotifTitle').value = title;
+      document.getElementById('schedNotifBody').value = body;
+      document.getElementById('schedNotifUrl').value = url;
+      
+      const now = new Date();
+      now.setHours(now.getHours() + 1);
+      const offset = now.getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
+      document.getElementById('schedNotifDateTime').value = localISOTime;
+
+      document.getElementById('scheduleNotificationModal').showModal();
+    }
+
+    async function saveScheduledNotification() {
+      if (!sbClient) {
+        alert('กรุณาเชื่อมต่อ Supabase ก่อนใช้งาน');
+        return;
+      }
+      const title = document.getElementById('schedNotifTitle').value;
+      const body = document.getElementById('schedNotifBody').value;
+      const url = document.getElementById('schedNotifUrl').value;
+      const dateTimeStr = document.getElementById('schedNotifDateTime').value;
+
+      if (!dateTimeStr) {
+        alert('กรุณาเลือกวันและเวลา');
+        return;
+      }
+
+      const scheduledAt = new Date(dateTimeStr).toISOString();
+      const btn = document.getElementById('btnConfirmScheduleNotif');
+      btn.disabled = true;
+      btn.textContent = '⏳ กำลังบันทึก...';
+
+      try {
+        const { error } = await sbClient.from('ScheduledNotifications').insert([{
+          title,
+          body,
+          url,
+          scheduled_at: scheduledAt,
+          status: 'PENDING'
+        }]);
+
+        if (error) throw error;
+
+        alert('ตั้งเวลาแจ้งเตือนล่วงหน้าสำเร็จแล้ว!');
+        document.getElementById('scheduleNotificationModal').close();
+      } catch (err) {
+        console.error(err);
+        alert('เกิดข้อผิดพลาดในการตั้งเวลา: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'บันทึกตั้งเวลาแจ้งเตือน';
+      }
+    }
+
+    function notifyAnnNow() {
+      const text = document.getElementById('webAnnText').value.trim();
+      if (!text) {
+        alert('กรุณากรอกข้อความที่จะประกาศก่อนส่งแจ้งเตือน');
+        return;
+      }
+      const href = document.getElementById('webAnnHref').value.trim() || 'index.html';
+      triggerPushNotificationDirect("ประกาศจากทางร้าน 📢", text, href);
+    }
+
+    function scheduleAnn() {
+      const text = document.getElementById('webAnnText').value.trim();
+      if (!text) {
+        alert('กรุณากรอกข้อความที่จะประกาศก่อนตั้งเวลา');
+        return;
+      }
+      const href = document.getElementById('webAnnHref').value.trim() || 'index.html';
+      openScheduleNotificationModal("ประกาศจากทางร้าน 📢", text, href);
+    }
+
+    async function runLazyCronNotifications() {
+      if (!sbClient) return;
+      try {
+        const nowIso = new Date().toISOString();
+        const { data, error } = await sbClient
+          .from('ScheduledNotifications')
+          .select('*')
+          .eq('status', 'PENDING')
+          .lte('scheduled_at', nowIso);
+
+        if (error) throw error;
+        if (!data || data.length === 0) return;
+
+        console.log(`[Lazy Cron] Found ${data.length} pending notifications to send`);
+        for (const notif of data) {
+          try {
+            const c = window.AppConfig.get();
+            const response = await fetch(`${c.supabaseUrl}/functions/v1/send-push`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${c.supabaseAnonKey}`
+              },
+              body: JSON.stringify({
+                title: notif.title,
+                body: notif.body,
+                url: notif.url,
+                targetLineId: 'all'
+              })
+            });
+            if (response.ok) {
+              await sbClient.from('ScheduledNotifications').update({ status: 'SENT' }).eq('id', notif.id);
+              console.log(`[Lazy Cron] Successfully sent scheduled notification ID ${notif.id}`);
+            } else {
+              const errBody = await response.text();
+              throw new Error(errBody || 'Edge Function returned non-ok status');
+            }
+          } catch (notifErr) {
+            console.error(`[Lazy Cron] Failed to send scheduled notification ID ${notif.id}:`, notifErr);
+            await sbClient.from('ScheduledNotifications').update({ status: 'FAILED' }).eq('id', notif.id);
+          }
+        }
+      } catch (err) {
+        console.warn("[Lazy Cron] scheduled checks failed:", err);
+      }
+    }
+
+    window.notifyAnnNow = notifyAnnNow;
+    window.scheduleAnn = scheduleAnn;
+    window.saveScheduledNotification = saveScheduledNotification;
+
     // Export Subscribers to CSV
     async function exportSubscribersToCsv() {
       if (!sbClient) return;
@@ -6447,6 +6670,23 @@
     }
   </script>
   <datalist id="categoryDatalist"></datalist>
+  <!-- Dialog for Scheduled Notification -->
+  <dialog id="scheduleNotificationModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-sm">⏰ ตั้งเวลาส่งการแจ้งเตือนล่วงหน้า</h3>
+        <button type="button" onclick="document.getElementById('scheduleNotificationModal').close();" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <input type="hidden" id="schedNotifTitle" />
+      <input type="hidden" id="schedNotifBody" />
+      <input type="hidden" id="schedNotifUrl" />
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">เลือกวันและเวลาที่ต้องการส่ง</label>
+        <input type="datetime-local" id="schedNotifDateTime" class="w-full px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 bg-white" required />
+      </div>
+      <button type="button" id="btnConfirmScheduleNotif" onclick="saveScheduledNotification()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all">บันทึกตั้งเวลาแจ้งเตือน</button>
+    </div>
+  </dialog>
 </body>
 
 </html>
