@@ -540,18 +540,13 @@
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
       setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
       
-      // 1. Attempt to load from GAS web app config
-      if (window.AppConfig) {
-        await window.AppConfig.loadFromGas();
-      }
-
-      // 2. Initialize Supabase if configured
+      // 1. Initialize Supabase if configured
       const c = AppConfig.get();
       if (c.supabaseUrl && c.supabaseAnonKey) {
         sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
       }
 
-      // 3. Session Validation
+      // 2. Session Validation
       let session = null;
       if (sbClient) {
         try {

@@ -1707,11 +1707,6 @@
     });
 
     async function initApp() {
-      if (window.AppConfig) {
-        // Attempt to load settings from Google Apps Script Web App in the background to prevent startup latency
-        window.AppConfig.loadFromGas().catch(console.error);
-      }
-
       // Init Supabase Client
       if (initSupabase()) {
         const { data } = await sbClient.auth.getSession();
