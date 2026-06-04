@@ -327,7 +327,10 @@
       let supabaseConfig = null;
       if (typeof sbClient !== 'undefined' && sbClient) {
         try {
-          const { data, error } = await sbClient.from('subscribers').select('contact');
+          const { data, error } = await sbClient
+            .from('subscribers')
+            .select('contact')
+            .order('created_at', { ascending: false });
           if (!error && data) {
             const configRecord = data.find(s => s.contact && s.contact.startsWith('CONFIG_JSON:'));
             if (configRecord) {
@@ -358,7 +361,7 @@
           status: m.status || 'ON'
         })).filter(m => m.title && m.img && m.status === 'ON');
       } else {
-        await loadDailyMenuFallback();
+        window.DAILY_MENU = [];
       }
 
       // Announcements

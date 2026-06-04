@@ -498,6 +498,7 @@
                     <input type="text" id="webBanner1" placeholder="URL รูปภาพแบนเนอร์" class="flex-grow px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500" />
                     <input type="file" id="fileBanner1" accept="image/*" class="hidden" />
                     <button type="button" onclick="document.getElementById('fileBanner1').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
+                    <button type="button" onclick="clearBannerImage(1)" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all border border-rose-150">🗑️ ลบรูป</button>
                   </div>
                 </div>
                 <div>
@@ -506,6 +507,7 @@
                     <input type="text" id="webBanner2" placeholder="URL รูปภาพแบนเนอร์" class="flex-grow px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500" />
                     <input type="file" id="fileBanner2" accept="image/*" class="hidden" />
                     <button type="button" onclick="document.getElementById('fileBanner2').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
+                    <button type="button" onclick="clearBannerImage(2)" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all border border-rose-150">🗑️ ลบรูป</button>
                   </div>
                 </div>
                 <div>
@@ -514,11 +516,12 @@
                     <input type="text" id="webBanner3" placeholder="URL รูปภาพแบนเนอร์" class="flex-grow px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500" />
                     <input type="file" id="fileBanner3" accept="image/*" class="hidden" />
                     <button type="button" onclick="document.getElementById('fileBanner3').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
+                    <button type="button" onclick="clearBannerImage(3)" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all border border-rose-150">🗑️ ลบรูป</button>
                   </div>
                 </div>
               </div>
             </div>
-
+ 
             <!-- Part 2: Menu Today -->
             <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
               <h3 class="font-bold text-slate-800 text-sm border-b pb-2">🍽️ เมนูวันนี้ (รายการอาหารสำเร็จรูป)</h3>
@@ -534,7 +537,8 @@
                   <div class="flex gap-1.5">
                     <input type="text" id="newMenuImg" placeholder="URL หรืออัปโหลด" class="flex-grow px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
                     <input type="file" id="fileMenuUpload" accept="image/*" class="hidden" />
-                    <button type="button" onclick="document.getElementById('fileMenuUpload').click()" class="px-2 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-bold transition-all">📷</button>
+                    <button type="button" onclick="document.getElementById('fileMenuUpload').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
+                    <button type="button" onclick="clearNewMenuImage()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all border border-rose-150" title="ลบรูปภาพ">🗑️ ลบรูป</button>
                   </div>
                 </div>
                 <div class="flex items-end gap-2">
@@ -1665,6 +1669,86 @@
         </button>
       </div>
     </form>
+  </dialog>
+
+  <!-- MODAL: Quick Price Editor (via Scan or Search) -->
+  <dialog id="quickPriceModal"
+    class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white p-6 md:p-8 space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">✏️ แก้ไขข้อมูลและราคาสินค้าด่วน</h3>
+          <p class="text-xs text-slate-500 mt-0.5">สามารถปรับปรุงรูป ชื่อ ราคาทุน และราคาขายได้ทันที</p>
+        </div>
+        <button id="btnCloseQuickPrice"
+          class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+      <input type="hidden" id="quickPriceProdId" />
+      <input type="hidden" id="quickPriceProdImageUrl" />
+      <input type="hidden" id="quickPriceProdImagePublicId" />
+
+      <!-- Image Display and Name Edit Box -->
+      <div class="flex gap-4 items-center bg-slate-50 border border-slate-100 p-3.5 rounded-2xl">
+        <div class="flex flex-col items-center gap-1.5 flex-shrink-0">
+          <div
+            class="w-20 h-20 bg-slate-200 border rounded-xl overflow-hidden flex items-center justify-center relative shadow-sm">
+            <img id="quickPriceProdImg" src="https://picsum.photos/seed/placeholder/80/80"
+              class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/seed/placeholder/80/80'" />
+          </div>
+          <input type="file" id="quickPriceImageFile" accept="image/*" class="hidden" />
+          <button type="button" id="btnTriggerQuickPriceUpload"
+            class="px-2 py-0.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-md font-bold text-[9px] transition-colors border border-violet-150">📷
+            เปลี่ยนรูป</button>
+        </div>
+        <div class="flex-1 space-y-1 text-sm w-full">
+          <label for="quickPriceProdNameInput" class="block font-bold text-slate-600 text-xs">ชื่อสินค้า</label>
+          <textarea id="quickPriceProdNameInput" rows="2"
+            class="w-full px-3 py-1.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-xs leading-relaxed font-semibold text-slate-800"
+            placeholder="ระบุชื่อสินค้า"></textarea>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">ราคาทุน (บาท)</label>
+          <input type="number" step="any" id="quickCostPrice" placeholder="0"
+            class="w-full px-4 py-2.5 rounded-xl border border-amber-300 focus:ring-2 focus:ring-amber-400 outline-none" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">ราคาขาย (บาท)</label>
+          <input type="number" step="any" id="quickSellPrice" placeholder="0"
+            class="w-full px-4 py-2.5 rounded-xl border border-emerald-300 focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+        <div class="col-span-2 bg-slate-50 rounded-xl px-4 py-2.5 flex items-center justify-between">
+          <span class="text-sm text-slate-500">กำไรต่อชิ้น</span>
+          <span id="quickProfitPreview" class="text-base font-bold text-emerald-600">—</span>
+        </div>
+      </div>
+      <div class="pt-2 flex gap-3">
+        <button type="button" id="btnCancelQuickPrice"
+          class="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold transition-colors">ยกเลิก</button>
+        <button type="button" id="btnSaveQuickPrice"
+          class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md">💾
+          บันทึกข้อมูล</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- MODAL: Quick Price Scan Search -->
+  <dialog id="quickScanSearchModal"
+    class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h3 class="text-lg font-bold text-slate-900">🔍 ค้นหาสินค้าเพื่อแก้ไขราคา</h3>
+        <button id="btnCloseQuickScanSearch"
+          class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+      <input type="text" id="quickSearchInput" placeholder="พิมพ์ชื่อ หรือยิงบาร์โค้ดเข้าช่องนี้..."
+        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-violet-400 outline-none text-sm"
+        autofocus />
+      <ul id="quickSearchResults" class="space-y-1 max-h-64 overflow-y-auto"></ul>
+      <p class="text-xs text-slate-400 text-center">ยิงบาร์โค้ดด้วยเครื่องสแกนได้เลย ระบบจะค้นหาให้อัตโนมัติ</p>
+    </div>
   </dialog>
 
   <script>
@@ -3274,11 +3358,32 @@
       });
 
       // Web Content Menu Item Delete (delegated)
-      document.getElementById('webMenuTableBody').addEventListener('click', (e) => {
+      document.getElementById('webMenuTableBody').addEventListener('click', async (e) => {
         const deleteBtn = e.target.closest('.btn-delete-menu-item');
         if (deleteBtn) {
           const idx = parseInt(deleteBtn.getAttribute('data-index'));
+          const item = webMenuList[idx];
+          if (item && item.imageUrl) {
+            const publicId = getCloudinaryPublicId(item.imageUrl);
+            if (publicId) {
+              try {
+                await deleteCloudinaryImage(publicId);
+              } catch (err) {
+                console.error('Failed to delete menu item image from Cloudinary:', err);
+              }
+            }
+          }
           webMenuList.splice(idx, 1);
+          renderWebMenuTable();
+        }
+      });
+
+      // Web Content Menu Item Status Toggle (delegated)
+      document.getElementById('webMenuTableBody').addEventListener('change', (e) => {
+        const toggle = e.target.closest('.toggle-menu-status');
+        if (toggle) {
+          const idx = parseInt(toggle.getAttribute('data-index'));
+          webMenuList[idx].status = toggle.checked ? 'ON' : 'OFF';
           renderWebMenuTable();
         }
       });
@@ -5673,6 +5778,63 @@
       localStorage.setItem('MN_CUSTOMER_DISPLAY_CART', JSON.stringify(stateObj));
     }
 
+    function getCloudinaryPublicId(url) {
+      if (!url || !url.includes('cloudinary.com')) return null;
+      try {
+        const parts = url.split(/\/image\/upload\/(?:v\d+\/)?/);
+        if (parts.length > 1) {
+          const pathWithExt = parts[1];
+          const dotIndex = pathWithExt.lastIndexOf('.');
+          if (dotIndex !== -1) {
+            return pathWithExt.substring(0, dotIndex);
+          }
+          return pathWithExt;
+        }
+      } catch (e) {
+        console.error('Error parsing Cloudinary URL:', e);
+      }
+      return null;
+    }
+
+    async function clearBannerImage(num) {
+      const input = document.getElementById(`webBanner${num}`);
+      if (!input) return;
+      const url = input.value.trim();
+      if (!url) return;
+      
+      if (confirm(`คุณต้องการลบรูปภาพแบนเนอร์ที่ ${num} หรือไม่?`)) {
+        const publicId = getCloudinaryPublicId(url);
+        if (publicId) {
+          try {
+            await deleteCloudinaryImage(publicId);
+          } catch (e) {
+            console.error('Failed to delete image from Cloudinary:', e);
+          }
+        }
+        input.value = '';
+        alert(`ลบรูปภาพแบนเนอร์ที่ ${num} เรียบร้อยแล้ว (รอกดบันทึกเพื่อบันทึกการเปลี่ยนแปลง)`);
+      }
+    }
+    window.clearBannerImage = clearBannerImage;
+
+    async function clearNewMenuImage() {
+      const input = document.getElementById('newMenuImg');
+      if (!input) return;
+      const url = input.value.trim();
+      if (!url) return;
+      
+      const publicId = getCloudinaryPublicId(url);
+      if (publicId) {
+        try {
+          await deleteCloudinaryImage(publicId);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      input.value = '';
+    }
+    window.clearNewMenuImage = clearNewMenuImage;
+
     // CLOUDINARY IMAGE DELETION (Secure server-side delegation via GAS, or fallback to client-side signing)
     async function deleteCloudinaryImage(publicId) {
       const c = AppConfig.get();
@@ -6101,9 +6263,11 @@
           </td>
           <td class="py-2.5 px-3 font-semibold">${item.title}</td>
           <td class="py-2.5 px-3 text-center">
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${item.status === 'ON' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-500'}">
-              ${item.status === 'ON' ? 'เปิดแสดงผล' : 'ซ่อน'}
-            </span>
+            <label class="relative inline-flex items-center cursor-pointer select-none">
+              <input type="checkbox" class="sr-only peer toggle-menu-status" data-index="${idx}" ${item.status === 'ON' ? 'checked' : ''}>
+              <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+              <span class="ml-2 text-xs font-bold ${item.status === 'ON' ? 'text-emerald-600' : 'text-slate-400'}">${item.status === 'ON' ? 'เปิดแสดงผล' : 'ซ่อน'}</span>
+            </label>
           </td>
           <td class="py-2.5 px-3 text-center">
             <button type="button" class="btn-delete-menu-item p-1 text-rose-500 hover:bg-rose-50 rounded" data-index="${idx}">🗑️</button>
