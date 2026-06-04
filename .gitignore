@@ -1,0 +1,12 @@
+# Local env files (containing secrets)
+.env
+.env.local
+.env.*.local
+
+# Supabase temporary files
+supabase/.temp/
+supabase/.branches/
+
+# OS files
+.DS_Store
+Thumbs.db

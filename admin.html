@@ -3458,6 +3458,26 @@
         fileMenuUpload.addEventListener('change', () => handleCloudinaryUploadForInput(fileMenuUpload, newMenuImgInput));
       }
 
+      // VAPID Public Key field unlock protection
+      const vapidInput = document.getElementById('webVapidPublicKey');
+      if (vapidInput) {
+        vapidInput.addEventListener('click', function(e) {
+          if (this.readOnly && this.value) {
+            const enteredPin = prompt("🔑 ช่องนี้ถูกล็อกเพื่อป้องกันการแก้ไขโดยไม่ได้ตั้งใจ\nกรุณากรอกรหัส PIN ผู้ดูแลระบบเพื่อแก้ไข VAPID Public Key:");
+            if (enteredPin === null) return;
+            const correctPin = AppConfig.get().adminPin;
+            if (enteredPin === correctPin) {
+              this.readOnly = false;
+              this.classList.remove('bg-slate-100', 'cursor-not-allowed');
+              this.classList.add('bg-white');
+              this.focus();
+            } else {
+              alert("❌ รหัส PIN ไม่ถูกต้อง!");
+            }
+          }
+        });
+      }
+
       // Web Content Form Save Submit
       document.getElementById('webContentForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -6306,7 +6326,22 @@
         renderWebMenuTable();
       }
       if (configData.vapidPublicKey !== undefined) {
-        document.getElementById('webVapidPublicKey').value = configData.vapidPublicKey || '';
+        const vapidInput = document.getElementById('webVapidPublicKey');
+        if (vapidInput) {
+          const val = configData.vapidPublicKey || '';
+          vapidInput.value = val;
+          if (val) {
+            vapidInput.readOnly = true;
+            vapidInput.classList.remove('bg-white');
+            vapidInput.classList.add('bg-slate-100', 'cursor-not-allowed');
+            vapidInput.title = "คลิกเพื่อใส่รหัส PIN เพื่อแก้ไขคีย์";
+          } else {
+            vapidInput.readOnly = false;
+            vapidInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            vapidInput.classList.add('bg-white');
+            vapidInput.title = "";
+          }
+        }
       }
     }
 
