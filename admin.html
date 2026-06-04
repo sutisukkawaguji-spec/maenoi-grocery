@@ -1708,8 +1708,8 @@
 
     async function initApp() {
       if (window.AppConfig) {
-        // Attempt to load settings from Google Apps Script Web App first
-        await window.AppConfig.loadFromGas();
+        // Attempt to load settings from Google Apps Script Web App in the background to prevent startup latency
+        window.AppConfig.loadFromGas().catch(console.error);
       }
 
       // Init Supabase Client
