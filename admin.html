@@ -5060,34 +5060,43 @@
     function renderLowStockTable(list) {
       const tbody = document.getElementById('lowStockTableBody');
       const badge = document.getElementById('lowStockBadge');
+      if (!tbody && !badge) return;
 
       const lowStockList = list.filter(p => p.stock <= p.low_stock_threshold);
 
-      if (lowStockList.length > 0) {
-        badge.textContent = lowStockList.length;
-        badge.classList.remove('hidden');
-        tbody.innerHTML = lowStockList.map(p => `
-          <tr class="hover:bg-slate-50 transition-colors">
-            <td class="py-3 px-4 flex items-center gap-3">
-              <img src="${p.image_url || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-12 h-10 object-cover rounded-lg border border-slate-100" />
-              <div>
-                <span class="font-bold text-slate-900 block">${p.name}</span>
-                <span class="text-xs text-slate-400">บาร์โค้ด: ${p.barcode || '-'}</span>
-              </div>
-            </td>
-            <td class="py-3 px-4 text-center font-bold text-rose-600 text-lg">${p.stock} ชิ้น</td>
-            <td class="py-3 px-4 text-center text-slate-500">${p.low_stock_threshold} ชิ้น</td>
-            <td class="py-3 px-4 text-center">
-              <div class="flex items-center justify-center gap-1">
-                <button class="btn-refill-stock px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs transition-colors" data-id="${p.id}" data-qty="10">+10</button>
-                <button class="btn-refill-stock px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs transition-colors" data-id="${p.id}" data-qty="50">+50</button>
-              </div>
-            </td>
-          </tr>
-        `).join('');
-      } else {
-        badge.classList.add('hidden');
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-slate-400">ไม่มีรายการสินค้าที่ต้องเติมสต็อก</td></tr>';
+      if (badge) {
+        if (lowStockList.length > 0) {
+          badge.textContent = lowStockList.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+
+      if (tbody) {
+        if (lowStockList.length > 0) {
+          tbody.innerHTML = lowStockList.map(p => `
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="py-3 px-4 flex items-center gap-3">
+                <img src="${p.image_url || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-12 h-10 object-cover rounded-lg border border-slate-100" />
+                <div>
+                  <span class="font-bold text-slate-900 block">${p.name}</span>
+                  <span class="text-xs text-slate-400">บาร์โค้ด: ${p.barcode || '-'}</span>
+                </div>
+              </td>
+              <td class="py-3 px-4 text-center font-bold text-rose-600 text-lg">${p.stock} ชิ้น</td>
+              <td class="py-3 px-4 text-center text-slate-500">${p.low_stock_threshold} ชิ้น</td>
+              <td class="py-3 px-4 text-center">
+                <div class="flex items-center justify-center gap-1">
+                  <button class="btn-refill-stock px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs transition-colors" data-id="${p.id}" data-qty="10">+10</button>
+                  <button class="btn-refill-stock px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs transition-colors" data-id="${p.id}" data-qty="50">+50</button>
+                </div>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-slate-400">ไม่มีรายการสินค้าที่ต้องเติมสต็อก</td></tr>';
+        }
       }
     }
 
