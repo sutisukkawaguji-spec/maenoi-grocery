@@ -1725,10 +1725,43 @@
       if (!session) {
         adminPanel.classList.add('hidden');
         authScreen.classList.remove('hidden');
+        checkUrlAutoLogin();
       } else {
         authScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         loadDashboardData();
+      }
+    }
+
+    function checkUrlAutoLogin() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const phone = urlParams.get('phone');
+        const password = urlParams.get('password');
+        if (phone && password) {
+          const phoneInput = document.getElementById('loginPhone');
+          const passwordInput = document.getElementById('loginPassword');
+          const authForm = document.getElementById('authForm');
+          
+          if (phoneInput && passwordInput && authForm) {
+            phoneInput.value = phone.trim();
+            passwordInput.value = password;
+            
+            // Clear credentials from URL for security
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+
+            setTimeout(() => {
+              if (typeof authForm.requestSubmit === 'function') {
+                authForm.requestSubmit();
+              } else {
+                authForm.dispatchEvent(new Event('submit'));
+              }
+            }, 100);
+          }
+        }
+      } catch (e) {
+        console.error("Auto-login error:", e);
       }
     }
 
