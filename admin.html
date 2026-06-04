@@ -252,12 +252,6 @@
           class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
           <span class="text-lg">📦</span> จัดการสินค้า
         </button>
-        <button data-tab="stock"
-          class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all relative">
-          <span class="text-lg">🚨</span> สินค้าเหลือน้อย
-          <span id="lowStockBadge"
-            class="hidden absolute right-4 px-2 py-0.5 rounded-full bg-rose-500 text-white text-xxs font-bold">0</span>
-        </button>
         <button data-tab="customers"
           class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
           <span class="text-lg">👤</span> จัดการลูกค้า & หนี้ค้าง
@@ -266,9 +260,9 @@
           class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
           <span class="text-lg">📝</span> ประวัติการขาย (เช็กกล้อง)
         </button>
-        <button data-tab="subscribers"
+        <button data-tab="web-content"
           class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
-          <span class="text-lg">✉️</span> รายชื่อสมัครข่าวสาร
+          <span class="text-lg">🖼️</span> จัดการแบนเนอร์หน้าเว็บ
         </button>
         <button data-tab="mobile-manager"
           class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
@@ -430,11 +424,27 @@
           <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
               <input type="text" id="prodSearchInput" placeholder="ค้นหาตามชื่อสินค้า หรือ บาร์โค้ด..."
-                class="sm:col-span-8 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+                class="sm:col-span-6 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
               <select id="prodCategoryFilter"
-                class="sm:col-span-4 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                class="sm:col-span-3 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
                 <option value="">ทุกหมวดหมู่</option>
               </select>
+              <label class="sm:col-span-3 flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 cursor-pointer select-none">
+                <input type="checkbox" id="prodLowStockFilter" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded" />
+                <span class="font-medium text-slate-700">สินค้าเหลือน้อย</span>
+              </label>
+            </div>
+
+            <!-- Batch Actions Bar -->
+            <div id="batchActionsBar" class="hidden flex flex-col sm:flex-row sm:items-center sm:justify-between bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-sm text-emerald-800 gap-2">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold">เลือกแล้ว <span id="selectedCount" class="font-bold">0</span> รายการ:</span>
+              </div>
+              <div class="flex gap-2">
+                <button type="button" id="btnBatchShow" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all">👁️ เปิดขายหน้าร้าน</button>
+                <button type="button" id="btnBatchHide" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all">🕶️ ซ่อนหน้าร้าน</button>
+                <button type="button" id="btnBatchDelete" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all">🗑️ ลบจากระบบ</button>
+              </div>
             </div>
 
             <!-- Product Table -->
@@ -442,6 +452,7 @@
               <table class="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                    <th class="py-3.5 px-4 text-center w-12"><input type="checkbox" id="selectAllProducts" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300" /></th>
                     <th class="py-3.5 px-4">รูปภาพ / รายละเอียด</th>
                     <th class="py-3.5 px-4">บาร์โค้ด</th>
                     <th class="py-3.5 px-4 text-center">หมวดหมู่</th>
@@ -462,69 +473,123 @@
           </div>
         </section>
 
-        <!-- TAB: Stock Alerts -->
-        <section id="tab-stock" class="tab-content space-y-6 hidden">
+        <!-- TAB: Web Content Management -->
+        <section id="tab-web-content" class="tab-content space-y-6 hidden">
           <div>
-            <h2 class="text-2xl font-bold text-slate-900">🚨 รายการสินค้าเหลือน้อย</h2>
-            <p class="text-sm text-slate-500">ระบบคัดกรองเฉพาะสินค้าที่มีจำนวนสต็อกน้อยกว่าหรือเท่ากับจุดแจ้งเตือนของหมด
-            </p>
-          </div>
-
-          <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-            <div class="overflow-x-auto rounded-2xl border border-slate-100">
-              <table class="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
-                    <th class="py-3.5 px-4">รูปภาพ / ชื่อสินค้า</th>
-                    <th class="py-3.5 px-4 text-center">สต็อกปัจจุบัน</th>
-                    <th class="py-3.5 px-4 text-center">จุดแจ้งเตือน</th>
-                    <th class="py-3.5 px-4 text-center">เพิ่มสต็อกทันที</th>
-                  </tr>
-                </thead>
-                <tbody id="lowStockTableBody" class="divide-y divide-slate-100">
-                  <tr>
-                    <td colspan="4" class="text-center py-10 text-slate-400">ไม่มีรายการสินค้าที่ต้องเติมสต็อก</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- TAB: Subscribers -->
-        <section id="tab-subscribers" class="tab-content space-y-6 hidden">
-          <div>
-            <h2 class="text-2xl font-bold text-slate-900">✉️ ลูกค้าที่สมัครรับข่าวสาร / โปรโมชั่น</h2>
+            <h2 class="text-2xl font-bold text-slate-900">🖼️ จัดการข้อมูล & แบนเนอร์หน้าเว็บ</h2>
             <p class="text-sm text-slate-500">
-              รายชื่อเบอร์โทรศัพท์หรือช่องทางติดต่อที่ลูกค้ากรอกหน้าเว็บเพื่อสมัครรับข้อมูล</p>
+              จัดการรูปภาพแบนเนอร์โปรโมชัน เมนูวันนี้ และข้อความวิ่งประกาศบนหน้าเว็บหลัก</p>
           </div>
 
-          <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
-            <div class="flex justify-between items-center">
-              <span class="text-sm text-slate-500 font-medium">ทั้งหมด <span id="subscriberCount"
-                  class="font-bold text-slate-700">0</span> รายการ</span>
-              <button id="btnExportSubscribers"
-                class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors">📥
-                ดาวน์โหลดเป็น CSV</button>
+          <form id="webContentForm" class="space-y-6">
+            <!-- Part 1: Banners -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+              <h3 class="font-bold text-slate-800 text-sm border-b pb-2">🎁 รูปภาพแบนเนอร์โปรโมชัน (สไลด์ภาพหน้าเว็บ)</h3>
+              <div class="space-y-3" id="bannerInputsContainer">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">แบนเนอร์ที่ 1</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="webBanner1" placeholder="URL รูปภาพแบนเนอร์" class="flex-grow px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <input type="file" id="fileBanner1" accept="image/*" class="hidden" />
+                    <button type="button" onclick="document.getElementById('fileBanner1').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">แบนเนอร์ที่ 2</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="webBanner2" placeholder="URL รูปภาพแบนเนอร์" class="flex-grow px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <input type="file" id="fileBanner2" accept="image/*" class="hidden" />
+                    <button type="button" onclick="document.getElementById('fileBanner2').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">แบนเนอร์ที่ 3</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="webBanner3" placeholder="URL รูปภาพแบนเนอร์" class="flex-grow px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <input type="file" id="fileBanner3" accept="image/*" class="hidden" />
+                    <button type="button" onclick="document.getElementById('fileBanner3').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="overflow-x-auto rounded-2xl border border-slate-100">
-              <table class="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
-                    <th class="py-3.5 px-4">ช่องทางติดต่อ</th>
-                    <th class="py-3.5 px-4 text-center">วันที่ลงทะเบียน</th>
-                    <th class="py-3.5 px-4 text-center">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody id="subscriberTableBody" class="divide-y divide-slate-100">
-                  <tr>
-                    <td colspan="3" class="text-center py-10 text-slate-400">กำลังโหลดรายชื่อผู้รับข้อมูล...</td>
-                  </tr>
-                </tbody>
-              </table>
+            <!-- Part 2: Menu Today -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+              <h3 class="font-bold text-slate-800 text-sm border-b pb-2">🍽️ เมนูวันนี้ (รายการอาหารสำเร็จรูป)</h3>
+              
+              <!-- Form to add new menu item -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">ชื่อเมนูอาหาร</label>
+                  <input type="text" id="newMenuTitle" placeholder="เช่น แกงเผ็ดเป็ดย่าง" class="w-full px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">รูปภาพเมนู</label>
+                  <div class="flex gap-1.5">
+                    <input type="text" id="newMenuImg" placeholder="URL หรืออัปโหลด" class="flex-grow px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+                    <input type="file" id="fileMenuUpload" accept="image/*" class="hidden" />
+                    <button type="button" onclick="document.getElementById('fileMenuUpload').click()" class="px-2 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-bold transition-all">📷</button>
+                  </div>
+                </div>
+                <div class="flex items-end gap-2">
+                  <div class="flex-grow">
+                    <label class="block font-semibold text-slate-600 mb-1">สถานะ</label>
+                    <select id="newMenuStatus" class="w-full px-3 py-2 border rounded-xl bg-white outline-none focus:ring-2 focus:ring-emerald-500">
+                      <option value="ON">เปิดแสดงผล</option>
+                      <option value="OFF">ซ่อน</option>
+                    </select>
+                  </div>
+                  <button type="button" id="btnAddMenuToList" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all h-[36px]">เพิ่ม</button>
+                </div>
+              </div>
+
+              <!-- List of added menu items -->
+              <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                      <th class="py-2.5 px-3">รูปเมนู</th>
+                      <th class="py-2.5 px-3">ชื่ออาหาร</th>
+                      <th class="py-2.5 px-3 text-center">สถานะ</th>
+                      <th class="py-2.5 px-3 text-center">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="webMenuTableBody" class="divide-y divide-slate-100">
+                    <tr>
+                      <td colspan="4" class="text-center py-4 text-slate-400">ยังไม่มีข้อมูลเมนูอาหารวันนี้</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            <!-- Part 3: Announcements -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+              <h3 class="font-bold text-slate-800 text-sm border-b pb-2">📢 ข้อความวิ่งประชาสัมพันธ์ แจ้งเตือน/คำแนะนำ</h3>
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
+                <div class="md:col-span-6">
+                  <label class="block font-semibold text-slate-600 mb-1">ข้อความที่จะประกาศ</label>
+                  <input type="text" id="webAnnText" placeholder="เช่น ทางร้านปิดวันพรุ่งนี้ 1 วัน..." class="w-full px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div class="md:col-span-4">
+                  <label class="block font-semibold text-slate-600 mb-1">ลิงก์แนบเพิ่มเติม (ถ้ามี)</label>
+                  <input type="url" id="webAnnHref" placeholder="https://..." class="w-full px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block font-semibold text-slate-600 mb-1">สถานะ</label>
+                  <select id="webAnnStatus" class="w-full px-3 py-2 border rounded-xl bg-white outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="ON">เปิดประกาศ</option>
+                    <option value="OFF">ปิด</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Save button -->
+            <div class="flex justify-end">
+              <button type="submit" id="btnSaveWebContent" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg transition-all">💾 บันทึกข้อมูลแบนเนอร์ & หน้าเว็บหลัก</button>
+            </div>
+          </form>
         </section>
 
         <!-- TAB: Customers & Credit -->
@@ -602,8 +667,11 @@
 
             <!-- Right: Customers Table -->
             <div class="md:col-span-8 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
-              <h3 class="font-bold text-slate-900 text-sm uppercase tracking-wider border-b pb-2">รายชื่อสมาชิกทั้งหมด
-              </h3>
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b pb-2">
+                <h3 class="font-bold text-slate-900 text-sm uppercase tracking-wider">รายชื่อสมาชิกทั้งหมด</h3>
+                <input type="text" id="custSearchInput" placeholder="ค้นหาชื่อหรือเบอร์โทร..."
+                  class="px-3 py-1.5 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-48" />
+              </div>
               <div class="overflow-x-auto rounded-2xl border border-slate-100">
                 <table class="w-full text-left border-collapse text-sm">
                   <thead>
@@ -647,6 +715,8 @@
                   <option value="promptpay">พร้อมเพย์</option>
                   <option value="credit">ค้างชำระ</option>
                 </select>
+                <input type="text" id="salesPhoneFilter" placeholder="ค้นหาด้วยเบอร์โทร..."
+                  class="px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
             </div>
 
@@ -660,11 +730,12 @@
                     <th class="py-3.5 px-4 text-right">ยอดสุทธิ</th>
                     <th class="py-3.5 px-4 text-right">รับเงิน / ทอน</th>
                     <th class="py-3.5 px-4">ลูกค้า</th>
+                    <th class="py-3.5 px-4 text-center">บิล</th>
                   </tr>
                 </thead>
                 <tbody id="salesTableBody" class="divide-y divide-slate-100">
                   <tr>
-                    <td colspan="6" class="text-center py-10 text-slate-400">กำลังโหลดประวัติการขาย...</td>
+                    <td colspan="7" class="text-center py-10 text-slate-400">กำลังโหลดประวัติการขาย...</td>
                   </tr>
                 </tbody>
               </table>
@@ -824,7 +895,7 @@
                   </div>
                   <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">หมวดหมู่</label>
-                    <input type="text" id="mobileProdCategory" required placeholder="เช่น ขนม, เครื่องดื่ม"
+                    <input type="text" id="mobileProdCategory" list="categoryDatalist" required placeholder="เช่น ขนม, เครื่องดื่ม"
                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
                   </div>
 
@@ -1079,7 +1150,7 @@
           </div>
           <div>
             <label class="block font-semibold text-slate-600 mb-1">หมวดหมู่</label>
-            <input type="text" id="prodCategory" required placeholder="เช่น เครื่องดื่ม, ของแห้ง"
+            <input type="text" id="prodCategory" list="categoryDatalist" required placeholder="เช่น เครื่องดื่ม, ของแห้ง"
               class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
           </div>
           <div>
@@ -1195,83 +1266,23 @@
     </div>
   </dialog>
 
-  <!-- MODAL: Quick Price Editor (via Scan or Search) -->
-  <dialog id="quickPriceModal"
-    class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 max-h-[90vh] overflow-y-auto">
-    <div class="bg-white p-6 md:p-8 space-y-5">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div>
-          <h3 class="text-lg font-bold text-slate-900">✏️ แก้ไขข้อมูลและราคาสินค้าด่วน</h3>
-          <p class="text-xs text-slate-500 mt-0.5">สามารถปรับปรุงรูป ชื่อ ราคาทุน และราคาขายได้ทันที</p>
-        </div>
-        <button id="btnCloseQuickPrice"
-          class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
-      </div>
-      <input type="hidden" id="quickPriceProdId" />
-      <input type="hidden" id="quickPriceProdImageUrl" />
-      <input type="hidden" id="quickPriceProdImagePublicId" />
-
-      <!-- Image Display and Name Edit Box -->
-      <div class="flex gap-4 items-center bg-slate-50 border border-slate-100 p-3.5 rounded-2xl">
-        <div class="flex flex-col items-center gap-1.5 flex-shrink-0">
-          <div
-            class="w-20 h-20 bg-slate-200 border rounded-xl overflow-hidden flex items-center justify-center relative shadow-sm">
-            <img id="quickPriceProdImg" src="https://picsum.photos/seed/placeholder/80/80"
-              class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/seed/placeholder/80/80'" />
-          </div>
-          <input type="file" id="quickPriceImageFile" accept="image/*" class="hidden" />
-          <button type="button" id="btnTriggerQuickPriceUpload"
-            class="px-2 py-0.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-md font-bold text-[9px] transition-colors border border-violet-150">📷
-            เปลี่ยนรูป</button>
-        </div>
-        <div class="flex-1 space-y-1 text-sm w-full">
-          <label for="quickPriceProdNameInput" class="block font-bold text-slate-600 text-xs">ชื่อสินค้า</label>
-          <textarea id="quickPriceProdNameInput" rows="2"
-            class="w-full px-3 py-1.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-xs leading-relaxed font-semibold text-slate-800"
-            placeholder="ระบุชื่อสินค้า"></textarea>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <label class="block font-semibold text-slate-600 mb-1">ราคาทุน (บาท)</label>
-          <input type="number" step="any" id="quickCostPrice" placeholder="0"
-            class="w-full px-4 py-2.5 rounded-xl border border-amber-300 focus:ring-2 focus:ring-amber-400 outline-none" />
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-600 mb-1">ราคาขาย (บาท)</label>
-          <input type="number" step="any" id="quickSellPrice" placeholder="0"
-            class="w-full px-4 py-2.5 rounded-xl border border-emerald-300 focus:ring-2 focus:ring-emerald-500 outline-none" />
-        </div>
-        <div class="col-span-2 bg-slate-50 rounded-xl px-4 py-2.5 flex items-center justify-between">
-          <span class="text-sm text-slate-500">กำไรต่อชิ้น</span>
-          <span id="quickProfitPreview" class="text-base font-bold text-emerald-600">—</span>
-        </div>
-      </div>
-      <div class="pt-2 flex gap-3">
-        <button type="button" id="btnCancelQuickPrice"
-          class="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold transition-colors">ยกเลิก</button>
-        <button type="button" id="btnSaveQuickPrice"
-          class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md">💾
-          บันทึกข้อมูล</button>
-      </div>
-    </div>
-  </dialog>
-
-  <!-- MODAL: Quick Price Scan/Search Launcher -->
-  <dialog id="quickScanSearchModal"
-    class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+  <!-- MODAL: View Receipt -->
+  <dialog id="viewReceiptModal"
+    class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
     <div class="bg-white p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-        <h3 class="text-lg font-bold text-slate-900">🔍 ค้นหาสินค้าเพื่อแก้ไขราคา</h3>
-        <button id="btnCloseQuickScanSearch"
+        <h3 class="text-lg font-bold text-slate-900">🧾 รายละเอียดใบเสร็จ</h3>
+        <button id="btnCloseViewReceipt"
           class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
       </div>
-      <input type="text" id="quickSearchInput" placeholder="พิมพ์ชื่อ หรือยิงบาร์โค้ดเข้าช่องนี้..."
-        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-violet-400 outline-none text-sm"
-        autofocus />
-      <ul id="quickSearchResults" class="space-y-1 max-h-64 overflow-y-auto"></ul>
-      <p class="text-xs text-slate-400 text-center">ยิงบาร์โค้ดด้วยเครื่องสแกนได้เลย ระบบจะค้นหาให้อัตโนมัติ</p>
+      <div id="receiptModalContent" class="flex justify-center p-2 bg-slate-50 rounded-2xl overflow-y-auto max-h-[60vh] w-full">
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="button" id="btnDownloadReceiptTxt"
+          class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5">💾 ดาวน์โหลดข้อความ</button>
+        <button type="button" id="btnPrintReceiptFromModal"
+          class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5">🖨️ พิมพ์ใบเสร็จ</button>
+      </div>
     </div>
   </dialog>
 
@@ -1655,6 +1666,8 @@
     let sbClient = null;
     let productsList = [];
     let customersList = [];
+    let salesHistoryList = [];
+    let selectedSaleRecord = null;
     let posCart = [];
     let posScanner = null;
     let formScanner = null;
@@ -2895,27 +2908,237 @@
         }
       });
 
-      // Subscriber Actions (Delete)
-      document.getElementById('subscriberTableBody').addEventListener('click', async (e) => {
-        const deleteBtn = e.target.closest('.btn-delete-sub');
-        if (deleteBtn) {
-          const id = deleteBtn.getAttribute('data-id');
-          if (confirm('ต้องการลบรายชื่อนี้หรือไม่?')) {
-            try {
-              const { error } = await sbClient.from('subscribers').delete().eq('id', id);
-              if (error) throw error;
-              alert('ลบรายชื่อผู้รับข่าวสารสำเร็จ');
-              loadDashboardData();
-            } catch (err) {
-              alert('ลบล้มเหลว: ' + err.message);
-            }
+      // Select All Products change event
+      document.getElementById('selectAllProducts').addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        document.querySelectorAll('.prod-select-checkbox').forEach(cb => {
+          cb.checked = checked;
+        });
+        updateBatchActionsBar();
+      });
+
+      // Product Row Selection change event (delegated)
+      document.getElementById('prodTableBody').addEventListener('change', (e) => {
+        if (e.target.classList.contains('prod-select-checkbox')) {
+          updateBatchActionsBar();
+        }
+      });
+
+      // Batch actions button clicks
+      document.getElementById('btnBatchShow').addEventListener('click', async () => {
+        const selectedIds = Array.from(document.querySelectorAll('.prod-select-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
+        if (selectedIds.length === 0) return;
+        if (confirm(`คุณต้องการเปิดขายสินค้าที่เลือกจำนวน ${selectedIds.length} รายการหน้าร้านใช่หรือไม่?`)) {
+          try {
+            const { error } = await sbClient.from('products').update({ is_active: true }).in('id', selectedIds);
+            if (error) throw error;
+            alert('เปิดขายสินค้าที่เลือกเรียบร้อย');
+            loadDashboardData();
+          } catch (err) {
+            alert('ล้มเหลว: ' + err.message);
           }
         }
       });
 
-      // Export Subscribers CSV
-      document.getElementById('btnExportSubscribers').addEventListener('click', () => {
-        exportSubscribersToCsv();
+      document.getElementById('btnBatchHide').addEventListener('click', async () => {
+        const selectedIds = Array.from(document.querySelectorAll('.prod-select-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
+        if (selectedIds.length === 0) return;
+        if (confirm(`คุณต้องการซ่อนสินค้าที่เลือกจำนวน ${selectedIds.length} รายการจากหน้าร้านใช่หรือไม่?`)) {
+          try {
+            const { error } = await sbClient.from('products').update({ is_active: false }).in('id', selectedIds);
+            if (error) throw error;
+            alert('ซ่อนสินค้าที่เลือกเรียบร้อย');
+            loadDashboardData();
+          } catch (err) {
+            alert('ล้มเหลว: ' + err.message);
+          }
+        }
+      });
+
+      document.getElementById('btnBatchDelete').addEventListener('click', async () => {
+        const selectedIds = Array.from(document.querySelectorAll('.prod-select-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
+        if (selectedIds.length === 0) return;
+        if (confirm(`คุณต้องการลบสินค้าที่เลือกจำนวน ${selectedIds.length} รายการออกจากระบบถาวรใช่หรือไม่?\n\n*คำเตือน: การดำเนินการนี้ไม่สามารถย้อนกลับได้`)) {
+          try {
+            const { error } = await sbClient.from('products').delete().in('id', selectedIds);
+            if (error) throw error;
+            alert('ลบสินค้าที่เลือกเรียบร้อย');
+            loadDashboardData();
+          } catch (err) {
+            alert('ล้มเหลว: ' + err.message);
+          }
+        }
+      });
+
+      // Low stock main filter change
+      document.getElementById('prodLowStockFilter').addEventListener('change', filterProductsTable);
+
+      // Customer search input event
+      const custSearchInput = document.getElementById('custSearchInput');
+      if (custSearchInput) {
+        custSearchInput.addEventListener('input', filterCustomersTable);
+      }
+
+      // Sales History member phone filter change event
+      const salesPhoneFilter = document.getElementById('salesPhoneFilter');
+      if (salesPhoneFilter) {
+        salesPhoneFilter.addEventListener('input', filterSalesLogs);
+      }
+
+      // Sales History receipt click delegation
+      document.getElementById('salesTableBody').addEventListener('click', (e) => {
+        const viewReceiptBtn = e.target.closest('.btn-view-receipt');
+        if (viewReceiptBtn) {
+          const id = viewReceiptBtn.getAttribute('data-id');
+          const sale = salesHistoryList.find(s => s.id == id);
+          if (!sale) return;
+          selectedSaleRecord = sale;
+          const customerName = sale.customers ? sale.customers.name.split('|')[0] : 'ลูกค้าทั่วไป';
+          const receiptHtml = generateReceiptHtml(sale, customerName, sale.payment_method, new Date(sale.created_at).toLocaleString('th-TH'));
+          document.getElementById('receiptModalContent').innerHTML = receiptHtml;
+          document.getElementById('viewReceiptModal').showModal();
+        }
+      });
+
+      // View receipt modal actions
+      document.getElementById('btnCloseViewReceipt').addEventListener('click', () => {
+        document.getElementById('viewReceiptModal').close();
+      });
+
+      document.getElementById('btnDownloadReceiptTxt').addEventListener('click', () => {
+        if (!selectedSaleRecord) return;
+        const customerName = selectedSaleRecord.customers ? selectedSaleRecord.customers.name.split('|')[0] : 'ลูกค้าทั่วไป';
+        const txt = generateReceiptText(selectedSaleRecord, customerName, selectedSaleRecord.payment_method, new Date(selectedSaleRecord.created_at).toLocaleString('th-TH'));
+        const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `receipt-${selectedSaleRecord.id}.txt`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
+
+      document.getElementById('btnPrintReceiptFromModal').addEventListener('click', () => {
+        if (!selectedSaleRecord) return;
+        const customerName = selectedSaleRecord.customers ? selectedSaleRecord.customers.name.split('|')[0] : 'ลูกค้าทั่วไป';
+        printReceipt(selectedSaleRecord, customerName, selectedSaleRecord.payment_method);
+      });
+
+      // Web Content Menu Item Add
+      document.getElementById('btnAddMenuToList').addEventListener('click', () => {
+        const title = document.getElementById('newMenuTitle').value.trim();
+        const imageUrl = document.getElementById('newMenuImg').value.trim();
+        const status = document.getElementById('newMenuStatus').value;
+        if (!title) {
+          alert('กรุณากรอกชื่อเมนูอาหาร');
+          return;
+        }
+        webMenuList.push({ title, imageUrl, status });
+        renderWebMenuTable();
+        // Clear fields
+        document.getElementById('newMenuTitle').value = '';
+        document.getElementById('newMenuImg').value = '';
+        document.getElementById('newMenuStatus').value = 'ON';
+      });
+
+      // Web Content Menu Item Delete (delegated)
+      document.getElementById('webMenuTableBody').addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.btn-delete-menu-item');
+        if (deleteBtn) {
+          const idx = parseInt(deleteBtn.getAttribute('data-index'));
+          webMenuList.splice(idx, 1);
+          renderWebMenuTable();
+        }
+      });
+
+      // Web Content File Upload Handlers
+      async function handleCloudinaryUploadForInput(fileInput, targetInput) {
+        const file = fileInput.files[0];
+        if (!file) return;
+        const btn = fileInput.nextElementSibling;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳';
+        try {
+          const url = await uploadToCloudinary(file);
+          targetInput.value = url;
+        } catch (err) {
+          alert('อัปโหลดล้มเหลว: ' + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      }
+
+      [1, 2, 3].forEach(num => {
+        const fileInput = document.getElementById(`fileBanner${num}`);
+        const textInput = document.getElementById(`webBanner${num}`);
+        if (fileInput && textInput) {
+          fileInput.addEventListener('change', () => handleCloudinaryUploadForInput(fileInput, textInput));
+        }
+      });
+
+      const fileMenuUpload = document.getElementById('fileMenuUpload');
+      const newMenuImgInput = document.getElementById('newMenuImg');
+      if (fileMenuUpload && newMenuImgInput) {
+        fileMenuUpload.addEventListener('change', () => handleCloudinaryUploadForInput(fileMenuUpload, newMenuImgInput));
+      }
+
+      // Web Content Form Save Submit
+      document.getElementById('webContentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSaveWebContent');
+        btn.disabled = true;
+        btn.textContent = '⏳ กำลังบันทึก...';
+
+        const banners = [
+          document.getElementById('webBanner1').value.trim(),
+          document.getElementById('webBanner2').value.trim(),
+          document.getElementById('webBanner3').value.trim()
+        ];
+        const announcement = {
+          text: document.getElementById('webAnnText').value.trim(),
+          href: document.getElementById('webAnnHref').value.trim(),
+          status: document.getElementById('webAnnStatus').value
+        };
+
+        const configPayload = {
+          banners: banners,
+          menu: webMenuList,
+          announcement: announcement
+        };
+
+        const configJsonStr = 'CONFIG_JSON:' + JSON.stringify(configPayload);
+
+        try {
+          const { data: existing, error: fetchErr } = await sbClient
+            .from('subscribers')
+            .select('id')
+            .like('contact', 'CONFIG_JSON:%');
+
+          if (fetchErr) throw fetchErr;
+
+          if (existing && existing.length > 0) {
+            const { error: updateErr } = await sbClient
+              .from('subscribers')
+              .update({ contact: configJsonStr })
+              .eq('id', existing[0].id);
+            if (updateErr) throw updateErr;
+          } else {
+            const { error: insertErr } = await sbClient
+              .from('subscribers')
+              .insert([{ contact: configJsonStr }]);
+            if (insertErr) throw insertErr;
+          }
+
+          alert('บันทึกข้อมูลหน้าเว็บหลักสำเร็จ!');
+          loadDashboardData();
+        } catch (err) {
+          console.error(err);
+          alert('บันทึกข้อมูลล้มเหลว: ' + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '💾 บันทึกข้อมูลแบนเนอร์ & หน้าเว็บหลัก';
+        }
       });
 
       // Filters
@@ -2952,7 +3175,10 @@
             const exactProduct = productsList.find(p => p.barcode === val);
             if (exactProduct) {
               fillProductForm(exactProduct);
+            } else {
+              openNewProductFormWithBarcode(val);
             }
+            e.target.value = ''; // clear search input after handling
           }
         }
       });
@@ -4047,6 +4273,15 @@
           const id = deleteBtn.getAttribute('data-id');
           const c = customersList.find(x => x.id === id);
           if (!c) return;
+
+          const enteredPin = prompt("กรุณากรอกรหัส PIN ผู้ดูแลระบบเพื่อยืนยันการลบสมาชิก:");
+          if (enteredPin === null) return;
+          const correctPin = AppConfig.get().adminPin;
+          if (enteredPin !== correctPin) {
+            alert("รหัส PIN ไม่ถูกต้อง ไม่สามารถลบลูกค้าได้");
+            return;
+          }
+
           if (confirm(`คุณแน่ใจว่าต้องการลบข้อมูลลูกค้า "${c.realName}" หรือไม่?\n\n*ยอดหนี้คงค้างและประวัติธุรกรรมจะถูกเคลียร์ลบออกด้วย`)) {
             try {
               const { error } = await sbClient.from('customers').delete().eq('id', id);
@@ -4065,6 +4300,7 @@
         if (!sbClient) return;
         const dateVal = document.getElementById('salesDateFilter').value;
         const payVal = document.getElementById('salesPayFilter').value;
+        const phoneVal = document.getElementById('salesPhoneFilter').value.trim();
 
         let query = sbClient.from('sales').select('*, customers(name)').order('created_at', { ascending: false }).limit(100);
 
@@ -4078,10 +4314,24 @@
           query = query.eq('payment_method', payVal);
         }
 
+        if (phoneVal) {
+          const matchingCustomerIds = customersList
+            .filter(c => c.phone && c.phone.includes(phoneVal))
+            .map(c => c.id);
+
+          if (matchingCustomerIds.length === 0) {
+            salesHistoryList = [];
+            renderSalesTable([]);
+            return;
+          }
+          query = query.in('customer_id', matchingCustomerIds);
+        }
+
         try {
           const { data, error } = await query;
           if (error) throw error;
-          renderSalesTable(data || []);
+          salesHistoryList = data || [];
+          renderSalesTable(salesHistoryList);
         } catch (err) {
           console.error(err);
         }
@@ -4673,75 +4923,67 @@
       if (!sbClient) return;
 
       try {
-        // Load Products
-        const { data: prods, error: prodErr } = await sbClient
-          .from('products')
-          .select('*')
-          .order('name', { ascending: true });
-        if (prodErr) throw prodErr;
-        productsList = prods || [];
+        const [prodRes, custRes, salesRes, subsRes] = await Promise.all([
+          sbClient.from('products').select('*').order('name', { ascending: true }),
+          sbClient.from('customers').select('*').order('name', { ascending: true }),
+          sbClient.from('sales').select('*, customers(name)').order('created_at', { ascending: false }).limit(100),
+          sbClient.from('subscribers').select('*').order('created_at', { ascending: false })
+        ]);
 
-        // Load Customers
+        if (prodRes.error) throw prodRes.error;
+        productsList = prodRes.data || [];
+
         let customersLoaded = false;
-        try {
-          const { data: custs, error: custErr } = await sbClient
-            .from('customers')
-            .select('*')
-            .order('name', { ascending: true });
-          if (!custErr) {
-            customersList = (custs || []).map(c => {
-              let realName = c.name || '';
-              let imageUrl = '';
-              if (realName.includes('|')) {
-                const parts = realName.split('|');
-                realName = parts[0];
-                imageUrl = parts[1];
-              }
-              return { ...c, realName, imageUrl };
-            });
-            customersLoaded = true;
-          } else {
-            console.warn("Could not load customers:", custErr);
-          }
-        } catch (e) {
-          console.warn("Exception loading customers table:", e);
+        if (!custRes.error) {
+          customersList = (custRes.data || []).map(c => {
+            let realName = c.name || '';
+            let imageUrl = '';
+            if (realName.includes('|')) {
+              const parts = realName.split('|');
+              realName = parts[0];
+              imageUrl = parts[1];
+            }
+            return { ...c, realName, imageUrl };
+          });
+          customersLoaded = true;
+        } else {
+          console.warn("Could not load customers:", custRes.error);
         }
 
-        // Load Sales Logs (Recent 100)
         let salesList = [];
-        try {
-          const { data: salesLogs, error: salesErr } = await sbClient
-            .from('sales')
-            .select('*, customers(name)')
-            .order('created_at', { ascending: false })
-            .limit(100);
-          if (!salesErr) {
-            salesList = salesLogs || [];
-          } else {
-            console.warn("Could not load sales logs:", salesErr);
-          }
-        } catch (e) {
-          console.warn("Exception loading sales table:", e);
+        if (!salesRes.error) {
+          salesList = salesRes.data || [];
+          salesHistoryList = salesList;
+        } else {
+          console.warn("Could not load sales logs:", salesRes.error);
         }
 
-        // Load Subscribers
-        const { data: subs, error: subErr } = await sbClient
-          .from('subscribers')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (subErr) throw subErr;
+        if (subsRes.error) throw subsRes.error;
+        const subs = subsRes.data || [];
+
+        // Load Web Content from subscribers JSON configuration
+        const configRecord = subs.find(s => s.contact && s.contact.startsWith('CONFIG_JSON:'));
+        if (configRecord) {
+          try {
+            const configData = JSON.parse(configRecord.contact.substring(12));
+            if (typeof populateWebContentForm === 'function') {
+              populateWebContentForm(configData);
+            }
+          } catch (e) {
+            console.warn("Failed to parse web config:", e);
+          }
+        }
 
         // Render UI
         renderProductsTable(productsList);
         renderLowStockTable(productsList);
-        renderSubscribersTable(subs || []);
         populateCategoriesFilter(productsList);
 
         if (customersLoaded) {
           renderCustomersTable(customersList);
           populateCustomerDropdown(customersList);
         }
-        renderSalesTable(salesList);
+        renderSalesTable(salesHistoryList);
 
       } catch (err) {
         console.error(err);
@@ -4749,9 +4991,16 @@
       }
     }
 
+
     // Render Product Table
     function renderProductsTable(list) {
       const tbody = document.getElementById('prodTableBody');
+      
+      const selectAll = document.getElementById('selectAllProducts');
+      if (selectAll) selectAll.checked = false;
+      const batchBar = document.getElementById('batchActionsBar');
+      if (batchBar) batchBar.classList.add('hidden');
+
       if (list.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-slate-400">ยังไม่มีสินค้าในระบบ</td></tr>';
         return;
@@ -4771,6 +5020,9 @@
 
         return `
         <tr class="${rowClass}">
+          <td class="py-3 px-4 text-center">
+            <input type="checkbox" class="prod-select-checkbox w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300" data-id="${p.id}" />
+          </td>
           <td class="py-3 px-4">
             <div class="flex items-center gap-3">
               <img src="${p.image_url || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-12 h-10 object-cover rounded-lg border border-slate-100 flex-shrink-0" onerror="this.src='https://picsum.photos/seed/placeholder/80/60'" />
@@ -4839,27 +5091,6 @@
       }
     }
 
-    // Render Subscribers Table
-    function renderSubscribersTable(list) {
-      const tbody = document.getElementById('subscriberTableBody');
-      document.getElementById('subscriberCount').textContent = list.length;
-
-      if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-slate-400">ยังไม่มีใครสมัครรับข้อมูลข่าวสาร</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = list.map(s => `
-        <tr class="hover:bg-slate-50 transition-colors">
-          <td class="py-3.5 px-4 font-semibold text-slate-800">${s.contact || s.email || '-'}</td>
-          <td class="py-3.5 px-4 text-center text-slate-500">${new Date(s.created_at).toLocaleString('th-TH')}</td>
-          <td class="py-3.5 px-4 text-center">
-            <button class="btn-delete-sub p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors" data-id="${s.id}">🗑️</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
     // Render Customers Table
     function renderCustomersTable(list) {
       const tbody = document.getElementById('customerTableBody');
@@ -4868,7 +5099,9 @@
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-10 text-slate-400">ยังไม่มีข้อมูลรายชื่อลูกค้า</td></tr>';
         return;
       }
-      tbody.innerHTML = list.map(c => `
+      tbody.innerHTML = list.map(c => {
+        const credit = parseFloat(c.total_credit || 0);
+        return `
         <tr class="hover:bg-slate-50 transition-colors">
           <td class="py-3 px-4 font-semibold text-slate-800 flex items-center gap-3">
             ${c.imageUrl ? `<img src="${c.imageUrl}" class="w-10 h-10 object-cover rounded-full border border-slate-100 flex-shrink-0 animate-fade-in" />` : `<div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 text-lg flex-shrink-0">👤</div>`}
@@ -4877,16 +5110,16 @@
               <span class="text-xs text-slate-400 font-mono">${c.phone}</span>
             </div>
           </td>
-          <td class="py-3 px-4 text-right font-bold text-rose-600 font-mono text-sm">฿${parseFloat(c.total_credit || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+          <td class="py-3 px-4 text-right font-bold text-rose-600 font-mono text-sm">฿${credit.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
           <td class="py-3 px-4 text-center text-xs text-slate-400">${new Date(c.created_at).toLocaleDateString('th-TH')}</td>
           <td class="py-3 px-4 text-center">
             <div class="flex items-center justify-center gap-1.5">
-              <button class="btn-pay-credit px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs transition-colors" data-id="${c.id}">ชำระหนี้</button>
+              ${credit > 0 ? `<button class="btn-pay-credit px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs transition-colors" data-id="${c.id}">ชำระหนี้</button>` : ''}
               <button class="btn-delete-cust p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors" data-id="${c.id}">🗑️</button>
             </div>
           </td>
         </tr>
-      `).join('');
+      `}).join('');
     }
 
     // Render Sales Table
@@ -4894,7 +5127,7 @@
       const tbody = document.getElementById('salesTableBody');
       if (!tbody) return;
       if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">ไม่มีข้อมูลประวัติการขาย</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-slate-400">ไม่มีข้อมูลประวัติการขาย</td></tr>';
         return;
       }
       tbody.innerHTML = list.map(s => {
@@ -4904,7 +5137,7 @@
         else if (s.payment_method === 'promptpay') { methodText = '💳 พร้อมเพย์'; methodClass = 'bg-teal-50 text-teal-700 border-teal-100'; }
         else if (s.payment_method === 'credit') { methodText = '📌 ค้างชำระ'; methodClass = 'bg-amber-50 text-amber-700 border-amber-100'; }
 
-        const itemsList = s.items.map(item => `${item.product.name} x${item.qty}`).join(', ');
+        const itemsList = s.items.map(item => `${item.product ? item.product.name : (item.name || 'สินค้า')} x${item.qty}`).join(', ');
         const changeText = s.payment_method === 'cash' ? `ทอน ฿${parseFloat(s.change_amount || 0).toFixed(2)}` : '—';
         const receivedText = s.payment_method === 'cash' ? `รับ ฿${parseFloat(s.cash_received || 0).toFixed(2)}` : '—';
 
@@ -4924,6 +5157,9 @@
               <div class="text-[10px] text-emerald-600 font-bold">${changeText}</div>
             </td>
             <td class="py-3 px-4 font-semibold text-slate-700">${customerName}</td>
+            <td class="py-3 px-4 text-center">
+              <button class="btn-view-receipt p-1 hover:bg-slate-200 rounded-lg text-emerald-600 transition-colors text-xs" data-id="${s.id}" title="ดูใบเสร็จ">🧾</button>
+            </td>
           </tr>
         `;
       }).join('');
@@ -4953,6 +5189,11 @@
         filter.innerHTML += `<option value="${cat}">${cat}</option>`;
       });
       filter.value = currentVal;
+
+      const dl = document.getElementById('categoryDatalist');
+      if (dl) {
+        dl.innerHTML = categories.map(cat => `<option value="${cat}">`).join('');
+      }
     }
 
     function updateProfitPreview() {
@@ -4996,6 +5237,22 @@
       }
 
       document.getElementById('productModal').showModal();
+    }
+
+    // Open New Product Form with prefilled Barcode
+    function openNewProductFormWithBarcode(barcode) {
+      editingProduct = null;
+      document.getElementById('modalTitle').textContent = 'เพิ่มสินค้าใหม่';
+      document.getElementById('productForm').reset();
+      document.getElementById('prodId').value = '';
+      document.getElementById('prodBarcode').value = barcode;
+      document.getElementById('imagePreview').innerHTML = '🖼️';
+      document.getElementById('prodImageUrl').value = '';
+      document.getElementById('prodImagePublicId').value = '';
+      document.getElementById('productModal').showModal();
+      
+      // Auto-fill from Open Food Facts if possible
+      autoFillProductDetails();
     }
 
     // Auto-fill product details from Open Food Facts API
@@ -5738,6 +5995,197 @@
       }
     }
 
+    // --- Helper Functions for Web Content & Receipts ---
+    let webMenuList = [];
+
+    function populateWebContentForm(configData) {
+      if (!configData) return;
+      if (configData.banners) {
+        document.getElementById('webBanner1').value = configData.banners[0] || '';
+        document.getElementById('webBanner2').value = configData.banners[1] || '';
+        document.getElementById('webBanner3').value = configData.banners[2] || '';
+      }
+      if (configData.announcement) {
+        document.getElementById('webAnnText').value = configData.announcement.text || '';
+        document.getElementById('webAnnHref').value = configData.announcement.href || '';
+        document.getElementById('webAnnStatus').value = configData.announcement.status || 'OFF';
+      }
+      if (configData.menu) {
+        webMenuList = configData.menu;
+        renderWebMenuTable();
+      }
+    }
+
+    function renderWebMenuTable() {
+      const tbody = document.getElementById('webMenuTableBody');
+      if (!tbody) return;
+      if (webMenuList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-400">ยังไม่มีข้อมูลเมนูอาหารวันนี้</td></tr>';
+        return;
+      }
+      tbody.innerHTML = webMenuList.map((item, idx) => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-2.5 px-3">
+            <img src="${item.imageUrl || 'https://picsum.photos/seed/placeholder/80/60'}" class="w-10 h-8 object-cover rounded border" onerror="this.src='https://picsum.photos/seed/placeholder/80/60'" />
+          </td>
+          <td class="py-2.5 px-3 font-semibold">${item.title}</td>
+          <td class="py-2.5 px-3 text-center">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${item.status === 'ON' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-500'}">
+              ${item.status === 'ON' ? 'เปิดแสดงผล' : 'ซ่อน'}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-center">
+            <button type="button" class="btn-delete-menu-item p-1 text-rose-500 hover:bg-rose-50 rounded" data-index="${idx}">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function uploadToCloudinary(file) {
+      const c = AppConfig.get();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', c.cloudinaryUploadPreset);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Upload failed');
+      return data.secure_url;
+    }
+
+    function filterCustomersTable() {
+      const q = document.getElementById('custSearchInput').value.trim().toLowerCase();
+      const filtered = customersList.filter(c => 
+        c.realName.toLowerCase().includes(q) || (c.phone && c.phone.includes(q))
+      );
+      renderCustomersTable(filtered);
+    }
+
+    function updateBatchActionsBar() {
+      const checkboxes = document.querySelectorAll('.prod-select-checkbox');
+      const checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+      const batchBar = document.getElementById('batchActionsBar');
+      const countEl = document.getElementById('selectedCount');
+      
+      if (checkedBoxes.length > 0) {
+        batchBar.classList.remove('hidden');
+        countEl.textContent = checkedBoxes.length;
+      } else {
+        batchBar.classList.add('hidden');
+        countEl.textContent = '0';
+      }
+
+      const selectAll = document.getElementById('selectAllProducts');
+      if (selectAll) {
+        selectAll.checked = checkboxes.length > 0 && checkedBoxes.length === checkboxes.length;
+      }
+    }
+
+    function generateReceiptHtml(saleRecord, customerName, method, dateString) {
+      const formattedDate = dateString || new Date().toLocaleString('th-TH');
+      let txt = `<div style="font-family: 'Courier New', Courier, monospace; width: 280px; font-size: 12px; line-height: 1.4; color: #000; margin: 0 auto; padding: 10px; border: 1px dashed #ccc; background: #fff;">`;
+      txt += `==========================================<br/>`;
+      txt += `<div style="text-align: center; font-weight: bold;">ใบเสร็จรับเงิน / ใบส่งสินค้า</div>`;
+      txt += `<div style="text-align: center; font-weight: bold;">ร้านแม่น้อย บ้านดอนขี</div>`;
+      txt += `==========================================<br/>`;
+      txt += `วันที่-เวลา: ${formattedDate}<br/>`;
+      txt += `ลูกค้า: ${customerName || 'ลูกค้าทั่วไป'}<br/>`;
+      txt += `ช่องทางการชำระ: ${method === 'cash' ? 'เงินสด' : (method === 'promptpay' ? 'พร้อมเพย์' : 'ค้างชำระ (เครดิต)')}<br/>`;
+      txt += `------------------------------------------<br/>`;
+      txt += `<table style="width: 100%; border-collapse: collapse; font-size: 12px; font-family: inherit; color: #000;">`;
+
+      const items = saleRecord.items || [];
+      items.forEach(item => {
+        const name = item.product ? item.product.name : (item.name || 'สินค้า');
+        const qty = item.qty;
+        const price = item.product ? (item.product.price || 0) : (item.price || 0);
+        const itemTotal = price * qty;
+        txt += `<tr>
+          <td style="padding: 2px 0; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${name}</td>
+          <td style="text-align: center; padding: 2px 0;">${qty}x${price.toFixed(2)}</td>
+          <td style="text-align: right; padding: 2px 0;">${itemTotal.toFixed(2)}</td>
+        </tr>`;
+      });
+
+      txt += `</table>`;
+      txt += `------------------------------------------<br/>`;
+      txt += `<div style="display: flex; justify-content: space-between;"><span>ยอดรวมสุทธิ:</span><span><b>${parseFloat(saleRecord.total || 0).toFixed(2)}</b> บาท</span></div>`;
+      if (method === 'cash') {
+        const rec = parseFloat(saleRecord.cash_received || 0);
+        const chg = parseFloat(saleRecord.change_amount || 0);
+        txt += `<div style="display: flex; justify-content: space-between;"><span>รับเงินมา:</span><span>${rec.toFixed(2)} บาท</span></div>`;
+        txt += `<div style="display: flex; justify-content: space-between;"><span>เงินทอน:</span><span><b>${chg.toFixed(2)}</b> บาท</span></div>`;
+      }
+      txt += `==========================================<br/>`;
+      txt += `<div style="text-align: center;">ขอบคุณที่ใช้บริการร้านแม่น้อยครับ</div>`;
+      txt += `==========================================<br/>`;
+      txt += `</div>`;
+      return txt;
+    }
+
+    function generateReceiptText(saleRecord, customerName, method, dateString) {
+      function getVisualLength(str) {
+        const combiningChars = /[\u0e31\u0e34-\u0e3a\u0e47-\u0e4e]/g;
+        return str.replace(combiningChars, '').length;
+      }
+      
+      const formattedDate = dateString || new Date().toLocaleString('th-TH');
+      let txt = `==========================================\n`;
+      txt += `        ใบเสร็จรับเงิน / ใบส่งสินค้า\n`;
+      txt += `         ร้านแม่น้อย บ้านดอนขี\n`;
+      txt += `==========================================\n`;
+      txt += `วันที่-เวลา: ${formattedDate}\n`;
+      txt += `ลูกค้า: ${customerName || 'ลูกค้าทั่วไป'}\n`;
+      txt += `ช่องทางการชำระ: ${method === 'cash' ? 'เงินสด' : (method === 'promptpay' ? 'พร้อมเพย์' : 'ค้างชำระ (เครดิต)')}\n`;
+      txt += `------------------------------------------\n`;
+      txt += `รายการสินค้า                  จำนวน   ราคา\n`;
+      txt += `------------------------------------------\n`;
+
+      const items = saleRecord.items || [];
+      items.forEach(item => {
+        const name = item.product ? item.product.name : (item.name || 'สินค้า');
+        const qty = item.qty;
+        const price = item.product ? (item.product.price || 0) : (item.price || 0);
+        const itemTotal = price * qty;
+
+        let displayName = name;
+        if (getVisualLength(name) > 25) {
+          let temp = '';
+          for (let i = 0; i < name.length; i++) {
+            if (getVisualLength(temp + name[i]) > 22) {
+              temp += '...';
+              break;
+            }
+            temp += name[i];
+          }
+          displayName = temp;
+        }
+
+        const displayQtyPrice = `${qty} x ${price.toFixed(2)}`;
+        const displayItemTotal = itemTotal.toFixed(2);
+
+        const namePadding = 28 - getVisualLength(displayName);
+        const spacedName = displayName + ' '.repeat(Math.max(1, namePadding));
+
+        txt += `${spacedName}${displayQtyPrice.padStart(7)} ${displayItemTotal.padStart(8)}\n`;
+      });
+
+      txt += `------------------------------------------\n`;
+      txt += `ยอดรวมสุทธิ:                     ${parseFloat(saleRecord.total || 0).toFixed(2).padStart(10)} บาท\n`;
+      if (method === 'cash') {
+        const rec = parseFloat(saleRecord.cash_received || 0);
+        const chg = parseFloat(saleRecord.change_amount || 0);
+        txt += `รับเงินมา:                       ${rec.toFixed(2).padStart(10)} บาท\n`;
+        txt += `เงินทอน:                         ${chg.toFixed(2).padStart(10)} บาท\n`;
+      }
+      txt += `==========================================\n`;
+      txt += `       ขอบคุณที่ใช้บริการร้านแม่น้อยครับ\n`;
+      txt += `==========================================\n`;
+      return txt;
+    }
+
     // Export Subscribers to CSV
     async function exportSubscribersToCsv() {
       if (!sbClient) return;
@@ -5763,6 +6211,7 @@
       }
     }
   </script>
+  <datalist id="categoryDatalist"></datalist>
 </body>
 
 </html>

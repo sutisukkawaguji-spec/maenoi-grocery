@@ -273,7 +273,7 @@
         });
       }catch(e){ showError(e.message); PRODUCTS = []; }
     }
-    async function loadDailyMenu(){
+    async function loadDailyMenuFallback(){
       try{
         const text = await fetchText(FILE_MENU);
         const cleaned = text
@@ -287,9 +287,9 @@
           const status = String(r[2]||'ON').trim().toUpperCase();
           return { title, img, status };
         }).filter(m => m.title && m.img && m.status !== 'OFF' && m.status !== '0');
-      }catch(e){ showError(e.message); window.DAILY_MENU = []; }
+      }catch(e){ console.warn("Fallback Menu load error:", e); window.DAILY_MENU = []; }
     }
-    async function loadAnnounces(){
+    async function loadAnnouncesFallback(){
       try{
         const text = await fetchText(FILE_ANN);
         const cleaned = text
@@ -320,8 +320,64 @@
           if(a.end && today > a.end) return false;
           return true;
         });
-        if(!window.ANNOUNCES.length){ showError('ไม่มีประกาศที่เปิดใช้งาน/อยู่ในช่วงวันที่'); }
-      }catch(e){ showError(e.message); window.ANNOUNCES = []; }
+      }catch(e){ console.warn("Fallback Announces load error:", e); window.ANNOUNCES = []; }
+    }
+
+    async function loadWebContent() {
+      let supabaseConfig = null;
+      if (typeof sbClient !== 'undefined' && sbClient) {
+        try {
+          const { data, error } = await sbClient.from('subscribers').select('contact');
+          if (!error && data) {
+            const configRecord = data.find(s => s.contact && s.contact.startsWith('CONFIG_JSON:'));
+            if (configRecord) {
+              supabaseConfig = JSON.parse(configRecord.contact.substring(12));
+            }
+          }
+        } catch (e) {
+          console.warn("โหลด Web Content จาก Supabase ล้มเหลว, ใช้ข้อมูลโลคัลสำรอง:", e);
+        }
+      }
+
+      // Banners
+      if (supabaseConfig && supabaseConfig.banners && supabaseConfig.banners.some(Boolean)) {
+        BANNERS.length = 0;
+        supabaseConfig.banners.forEach(url => {
+          if (url) BANNERS.push(url);
+        });
+        if (BANNERS.length === 0) {
+          BANNERS.push('images/banner1.jpg', 'images/banner2.jpg', 'images/banner3.jpg');
+        }
+      }
+
+      // Daily Menu
+      if (supabaseConfig && supabaseConfig.menu && supabaseConfig.menu.length > 0) {
+        window.DAILY_MENU = supabaseConfig.menu.map(m => ({
+          title: m.title || '',
+          img: m.imageUrl || '',
+          status: m.status || 'ON'
+        })).filter(m => m.title && m.img && m.status === 'ON');
+      } else {
+        await loadDailyMenuFallback();
+      }
+
+      // Announcements
+      if (supabaseConfig && supabaseConfig.announcement) {
+        const a = supabaseConfig.announcement;
+        if (a.text && a.status === 'ON') {
+          window.ANNOUNCES = [{
+            text: a.text,
+            href: a.href || '#',
+            status: 'ON',
+            start: null,
+            end: null
+          }];
+        } else {
+          window.ANNOUNCES = [];
+        }
+      } else {
+        await loadAnnouncesFallback();
+      }
     }
     function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
     function filterItems(items){
@@ -523,7 +579,7 @@
 
       // 4. Load catalog data immediately and unconditionally
       try {
-        await Promise.all([ loadProducts(), loadDailyMenu(), loadAnnounces() ]);
+        await Promise.all([ loadProducts(), loadWebContent() ]);
       } catch (e) {
         console.error(e);
         showError('โหลดข้อมูลไม่สำเร็จ: ' + e.message);
