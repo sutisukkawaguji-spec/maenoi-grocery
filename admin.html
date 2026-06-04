@@ -325,9 +325,6 @@
                     <button type="button" id="btnStartPosScan" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1">
                       <span>📷 สแกนด้วยกล้อง</span>
                     </button>
-                    <button type="button" id="btnTogglePosCamera" class="hidden px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm">
-                      <span>🔄 สลับกล้อง</span>
-                    </button>
                     <button type="button" id="btnStopPosScan" class="hidden px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm">
                       <span>ปิดกล้อง</span>
                     </button>
@@ -348,7 +345,7 @@
                   class="absolute left-6 right-6 top-[104px] z-20 max-h-[500px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-xl hidden custom-scrollbar">
                 </div>
                 <!-- POS Camera Scanner Container -->
-                <div id="pos-scanner" class="w-full aspect-[4/3] bg-black relative rounded-2xl border overflow-hidden hidden">
+                <div id="pos-scanner" class="w-full aspect-[16/9] bg-black relative rounded-2xl border overflow-hidden hidden">
                   <div class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden"></div>
                 </div>
                 <p class="text-xs text-emerald-700 mt-auto">💡 คำแนะนำ: นำปืนสแกนบาร์โค้ดชี้ไปที่ตัวสินค้าและยิงได้เลย
@@ -859,13 +856,11 @@
 
               <!-- Scanner Area inside Mobile tab -->
               <div id="mobile-scanner-container" class="mt-2 rounded-2xl border overflow-hidden hidden relative">
-                <div id="mobile-tab-scanner" class="w-full aspect-[4/3] bg-black relative">
+                <div id="mobile-tab-scanner" class="w-full aspect-[16/9] bg-black relative">
                   <div
                     class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden">
                   </div>
                 </div>
-                <button type="button" id="btnToggleMobileCamera"
-                  class="absolute top-2 left-2 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs">🔄 สลับกล้อง</button>
                 <button type="button" id="btnStopMobileScan"
                   class="absolute top-2 right-2 px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg text-xs">ปิด</button>
               </div>
@@ -1162,7 +1157,7 @@
           </div>
           <!-- Scanning Area in Form -->
           <div id="form-scanner-container" class="mt-2 rounded-xl border overflow-hidden hidden relative">
-            <div id="form-scanner" class="w-full aspect-[4/3] bg-black relative">
+            <div id="form-scanner" class="w-full aspect-[16/9] bg-black relative">
               <!-- Active Laser Red Scanner Line Overlay -->
               <div
                 class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden">
@@ -1804,10 +1799,8 @@
     let formScanner = null;
     let mobileScanner = null;
     let posScannerRunning = false;
-    let posCameraFacingMode = "environment";
     let formScannerRunning = false;
     let mobileScannerRunning = false;
-    let mobileCameraFacingMode = "environment";
     let editingProduct = null;
     let syncChannel = null;
     let isMobileSyncEnabled = false;
@@ -2303,8 +2296,7 @@
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.QR_CODE
               ],
-              rememberLastUsedCamera: true,
-              aspectRatio: 1.777778
+              rememberLastUsedCamera: true
             },
             async (code) => {
               playScanSound();
@@ -2399,7 +2391,6 @@
 
       // POS Scanning Buttons
       const btnStartPosScan = document.getElementById('btnStartPosScan');
-      const btnTogglePosCamera = document.getElementById('btnTogglePosCamera');
       if (btnStartPosScan) {
         btnStartPosScan.addEventListener('click', async () => {
           const posScannerEl = document.getElementById('pos-scanner');
@@ -2408,7 +2399,6 @@
           if (posPlaceholderEl) posPlaceholderEl.classList.add('hidden');
           const btnStopEl = document.getElementById('btnStopPosScan');
           if (btnStopEl) btnStopEl.classList.remove('hidden');
-          if (btnTogglePosCamera) btnTogglePosCamera.classList.remove('hidden');
 
           if (formScannerRunning && formScanner) {
             try {
@@ -2428,7 +2418,7 @@
 
           try {
             await posScanner.start(
-              { facingMode: posCameraFacingMode },
+              { facingMode: "environment" },
               {
                 fps: 30,
                 qrbox: (width, height) => {
@@ -2442,8 +2432,7 @@
                   Html5QrcodeSupportedFormats.CODE_128,
                   Html5QrcodeSupportedFormats.QR_CODE
                 ],
-                rememberLastUsedCamera: true,
-                aspectRatio: 1.777778
+                rememberLastUsedCamera: true
               },
               async (code) => {
                 playScanSound();
@@ -2459,7 +2448,6 @@
                 if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
                 const btnStopEl = document.getElementById('btnStopPosScan');
                 if (btnStopEl) btnStopEl.classList.add('hidden');
-                if (btnTogglePosCamera) btnTogglePosCamera.classList.add('hidden');
 
                 handlePosBarcodeScanned(code);
               },
@@ -2488,20 +2476,6 @@
           const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
           if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
           btnStopPosScan.classList.add('hidden');
-          if (btnTogglePosCamera) btnTogglePosCamera.classList.add('hidden');
-        });
-      }
-
-      if (btnTogglePosCamera) {
-        btnTogglePosCamera.addEventListener('click', async () => {
-          if (posScannerRunning && posScanner) {
-            try {
-              await posScanner.stop();
-              posScannerRunning = false;
-            } catch (e) { }
-          }
-          posCameraFacingMode = posCameraFacingMode === "environment" ? "user" : "environment";
-          btnStartPosScan.click();
         });
       }
 
@@ -4523,6 +4497,80 @@
         }
       });
 
+      // Mobile Scanner Listeners
+      const btnMobileCameraScan = document.getElementById('btnMobileCameraScan');
+      if (btnMobileCameraScan) {
+        btnMobileCameraScan.addEventListener('click', async () => {
+          document.getElementById('mobile-scanner-container').classList.remove('hidden');
+
+          if (mobileScannerRunning) return;
+
+          if (!mobileScanner) {
+            mobileScanner = new Html5Qrcode('mobile-tab-scanner');
+          }
+
+          const laser = document.querySelector('#mobile-scanner-container .scanner-laser');
+          if (laser) laser.classList.remove('hidden');
+
+          try {
+            await mobileScanner.start(
+              { facingMode: "environment" },
+              {
+                fps: 30,
+                qrbox: (width, height) => {
+                  const w = Math.min(width, height) * 0.85;
+                  const h = w * 0.45;
+                  return { width: w, height: h };
+                },
+                formatsToSupport: [
+                  Html5QrcodeSupportedFormats.EAN_13,
+                  Html5QrcodeSupportedFormats.EAN_8,
+                  Html5QrcodeSupportedFormats.CODE_128,
+                  Html5QrcodeSupportedFormats.QR_CODE
+                ],
+                rememberLastUsedCamera: true
+              },
+              async (code) => {
+                playScanSound();
+                if (laser) laser.classList.add('hidden');
+                document.getElementById('mobileBarcodeSearchInput').value = code;
+
+                // Stop mobile scanner
+                if (mobileScannerRunning && mobileScanner) {
+                  try {
+                    await mobileScanner.stop();
+                    mobileScannerRunning = false;
+                    document.getElementById('mobile-scanner-container').classList.add('hidden');
+                  } catch (e) { }
+                }
+
+                // Load product details
+                loadMobileProductDetails(code);
+              },
+              (errorMessage) => { }
+            );
+            mobileScannerRunning = true;
+          } catch (err) {
+            console.error("Camera start error: ", err);
+            alert("ไม่สามารถเปิดกล้องได้: " + err);
+            if (laser) laser.classList.add('hidden');
+          }
+        });
+      }
+
+      const btnStopMobileScan = document.getElementById('btnStopMobileScan');
+      if (btnStopMobileScan) {
+        btnStopMobileScan.addEventListener('click', async () => {
+          if (mobileScannerRunning && mobileScanner) {
+            try {
+              await mobileScanner.stop();
+              mobileScannerRunning = false;
+            } catch (e) { }
+          }
+          document.getElementById('mobile-scanner-container').classList.add('hidden');
+        });
+      }
+
       document.getElementById('posRegisterCustomerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const nameInput = document.getElementById('posCustName');
@@ -4876,96 +4924,6 @@
           }
         });
       }
-
-      // Mobile Scanner Listeners
-      const btnMobileCameraScan = document.getElementById('btnMobileCameraScan');
-      const btnToggleMobileCamera = document.getElementById('btnToggleMobileCamera');
-      if (btnMobileCameraScan) {
-        btnMobileCameraScan.addEventListener('click', async () => {
-          document.getElementById('mobile-scanner-container').classList.remove('hidden');
-
-          if (mobileScannerRunning) return;
-
-          if (!mobileScanner) {
-            mobileScanner = new Html5Qrcode('mobile-tab-scanner');
-          }
-
-          const laser = document.querySelector('#mobile-scanner-container .scanner-laser');
-          if (laser) laser.classList.remove('hidden');
-
-          try {
-            await mobileScanner.start(
-              { facingMode: mobileCameraFacingMode },
-              {
-                fps: 30,
-                qrbox: (width, height) => {
-                  const w = Math.min(width, height) * 0.85;
-                  const h = w * 0.45;
-                  return { width: w, height: h };
-                },
-                formatsToSupport: [
-                  Html5QrcodeSupportedFormats.EAN_13,
-                  Html5QrcodeSupportedFormats.EAN_8,
-                  Html5QrcodeSupportedFormats.CODE_128,
-                  Html5QrcodeSupportedFormats.QR_CODE
-                ],
-                rememberLastUsedCamera: true,
-                aspectRatio: 1.777778
-              },
-              async (code) => {
-                playScanSound();
-                if (laser) laser.classList.add('hidden');
-                document.getElementById('mobileBarcodeSearchInput').value = code;
-
-                // Stop mobile scanner
-                if (mobileScannerRunning && mobileScanner) {
-                  try {
-                    await mobileScanner.stop();
-                    mobileScannerRunning = false;
-                    document.getElementById('mobile-scanner-container').classList.add('hidden');
-                  } catch (e) { }
-                }
-
-                // Load product details
-                loadMobileProductDetails(code);
-              },
-              (errorMessage) => { }
-            );
-            mobileScannerRunning = true;
-          } catch (err) {
-            console.error("Camera start error: ", err);
-            alert("ไม่สามารถเปิดกล้องได้: " + err);
-            if (laser) laser.classList.add('hidden');
-          }
-        });
-      }
-
-      const btnStopMobileScan = document.getElementById('btnStopMobileScan');
-      if (btnStopMobileScan) {
-        btnStopMobileScan.addEventListener('click', async () => {
-          if (mobileScannerRunning && mobileScanner) {
-            try {
-              await mobileScanner.stop();
-              mobileScannerRunning = false;
-            } catch (e) { }
-          }
-          document.getElementById('mobile-scanner-container').classList.add('hidden');
-        });
-      }
-
-      if (btnToggleMobileCamera) {
-        btnToggleMobileCamera.addEventListener('click', async () => {
-          if (mobileScannerRunning && mobileScanner) {
-            try {
-              await mobileScanner.stop();
-              mobileScannerRunning = false;
-            } catch (e) { }
-          }
-          mobileCameraFacingMode = mobileCameraFacingMode === "environment" ? "user" : "environment";
-          btnMobileCameraScan.click();
-        });
-      }
-
       // Mobile Form Submit Listener
       const mobileProductForm = document.getElementById('mobileProductForm');
       if (mobileProductForm) {
