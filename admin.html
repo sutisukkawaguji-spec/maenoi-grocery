@@ -1645,10 +1645,10 @@
 
   <!-- MODAL: Admin PIN Verification -->
   <dialog id="adminPinModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
-    <form id="adminPinForm" class="bg-white p-6 space-y-4">
+    <form id="adminPinForm" class="bg-white p-6 space-y-4" onsubmit="event.preventDefault(); verifyAdminPin();">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 class="text-base font-bold text-slate-900">🔒 ยืนยันรหัสผ่านหลังบ้าน</h3>
-        <button type="button" id="btnCancelAdminPin" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+        <button type="button" id="btnCancelAdminPin" onclick="document.getElementById('adminPinModal').close();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
       </div>
       <div class="space-y-3">
         <p class="text-xs text-slate-500">กรุณาใส่รหัส PIN 4 หลัก เพื่อเข้าใช้งานระบบจัดการส่วนอื่น (รหัสเริ่มต้นคือ 1234)</p>
@@ -1700,8 +1700,203 @@
     // Helper: Format Currency
     const fmt = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(n);
 
+    // ---- Auth Listeners (login / register / change-password) ----
+    function setupAuthListeners() {
+      const authForm = document.getElementById('authForm');
+      const loginPasswordInput = document.getElementById('loginPassword');
+      const btnToggleLoginPassword = document.getElementById('btnToggleLoginPassword');
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+      const loginSection = document.getElementById('loginSection');
+      const registerSection = document.getElementById('registerSection');
+      const authSubtitle = document.getElementById('authSubtitle');
+
+      if (tabLogin) {
+        tabLogin.addEventListener('click', () => {
+          tabLogin.className = "flex-1 pb-3 text-center border-b-2 border-emerald-500 font-bold text-white text-sm focus:outline-none transition-all";
+          tabRegister.className = "flex-1 pb-3 text-center border-b-2 border-transparent font-bold text-slate-400 hover:text-white text-sm focus:outline-none transition-all";
+          if (loginSection) loginSection.classList.remove('hidden');
+          if (registerSection) registerSection.classList.add('hidden');
+          if (authSubtitle) authSubtitle.textContent = "กรุณาเข้าสู่ระบบด้วยเบอร์โทรศัพท์ผู้ดูแลร้าน";
+        });
+      }
+
+      if (tabRegister) {
+        tabRegister.addEventListener('click', () => {
+          tabRegister.className = "flex-1 pb-3 text-center border-b-2 border-emerald-500 font-bold text-white text-sm focus:outline-none transition-all";
+          tabLogin.className = "flex-1 pb-3 text-center border-b-2 border-transparent font-bold text-slate-400 hover:text-white text-sm focus:outline-none transition-all";
+          if (registerSection) registerSection.classList.remove('hidden');
+          if (loginSection) loginSection.classList.add('hidden');
+          if (authSubtitle) authSubtitle.textContent = "ลงทะเบียนสิทธิ์แอดมินสำหรับเบอร์โทรศัพท์ที่กำหนด";
+        });
+      }
+
+      if (btnToggleLoginPassword) {
+        btnToggleLoginPassword.addEventListener('click', () => {
+          if (loginPasswordInput.type === 'password') {
+            loginPasswordInput.type = 'text';
+            btnToggleLoginPassword.textContent = '🔒';
+          } else {
+            loginPasswordInput.type = 'password';
+            btnToggleLoginPassword.textContent = '👁️';
+          }
+        });
+      }
+
+      const btnBypassLogin = document.getElementById('btnBypassLogin');
+      if (btnBypassLogin) {
+        btnBypassLogin.addEventListener('click', async () => {
+          initSupabase();
+          const mockSession = { user: { email: 'offline_mode@maenoi.store' } };
+          await handleSessionState(mockSession);
+        });
+      }
+
+      if (authForm) {
+        authForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const phoneInput = document.getElementById('loginPhone');
+          const rememberCheckbox = document.getElementById('loginRemember');
+          const errBox = document.getElementById('loginErrorMessage');
+          const btnSubmit = document.getElementById('btnSubmitLogin');
+
+          const phone = phoneInput.value.trim();
+          const password = loginPasswordInput.value;
+
+          errBox.classList.add('hidden');
+          btnSubmit.disabled = true;
+          btnSubmit.textContent = 'กำลังเข้าสู่ระบบ...';
+
+          try {
+            localStorage.setItem('MN_AUTH_REMEMBER', rememberCheckbox.checked ? 'true' : 'false');
+            initSupabase();
+
+            const email = `${phone}@maenoi.store`;
+            const { data, error } = await sbClient.auth.signInWithPassword({
+              email: email,
+              password: password
+            });
+
+            if (error) throw error;
+
+            phoneInput.value = '';
+            loginPasswordInput.value = '';
+            await handleSessionState(data.session);
+
+          } catch (err) {
+            console.error(err);
+            let msg = err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+            if (msg.includes('Invalid login credentials')) {
+              msg = '❌ เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
+            } else if (msg.includes('Email not confirmed')) {
+              msg = '⚠️ บัญชียังไม่ยืนยัน — ปิด Email Confirm ใน Supabase Dashboard → Auth → Settings';
+            } else if (msg.includes('User not found')) {
+              msg = '❌ ไม่พบบัญชีนี้ กรุณาสมัครในแท็บ "สมัครแอดมินใหม่"';
+            } else if (msg.includes('fetch') || msg.includes('network') || msg.includes('NetworkError')) {
+              msg = '🔌 ไม่สามารถเชื่อมต่อ Supabase ได้';
+            }
+            errBox.textContent = msg;
+            errBox.classList.remove('hidden');
+          } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'เข้าสู่ระบบจัดการร้าน';
+          }
+        });
+      }
+
+      // Register form
+      const registerForm = document.getElementById('registerForm');
+      const registerPasswordInput = document.getElementById('registerPassword');
+      const registerConfirmPasswordInput = document.getElementById('registerConfirmPassword');
+      const btnToggleRegisterPassword = document.getElementById('btnToggleRegisterPassword');
+
+      if (btnToggleRegisterPassword) {
+        btnToggleRegisterPassword.addEventListener('click', () => {
+          if (registerPasswordInput.type === 'password') {
+            registerPasswordInput.type = 'text';
+            btnToggleRegisterPassword.textContent = '🔒';
+          } else {
+            registerPasswordInput.type = 'password';
+            btnToggleRegisterPassword.textContent = '👁️';
+          }
+        });
+      }
+
+      if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const phoneInput = document.getElementById('registerPhone');
+          const errBox = document.getElementById('registerErrorMessage');
+          const successBox = document.getElementById('registerSuccessMessage');
+          const btnSubmit = document.getElementById('btnSubmitRegister');
+
+          const phone = phoneInput.value.trim();
+          const password = registerPasswordInput.value;
+          const confirmPassword = registerConfirmPasswordInput.value;
+
+          errBox.classList.add('hidden');
+          successBox.classList.add('hidden');
+
+          if (password.length < 6) {
+            errBox.textContent = 'รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร';
+            errBox.classList.remove('hidden');
+            return;
+          }
+
+          if (password !== confirmPassword) {
+            errBox.textContent = 'รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน';
+            errBox.classList.remove('hidden');
+            return;
+          }
+
+          btnSubmit.disabled = true;
+          btnSubmit.textContent = 'กำลังสมัครสมาชิก...';
+
+          try {
+            initSupabase();
+            const email = `${phone}@maenoi.store`;
+            const { data, error } = await sbClient.auth.signUp({
+              email: email,
+              password: password,
+              options: { data: { phone: phone } }
+            });
+
+            if (error) throw error;
+
+            successBox.textContent = 'สมัครสมาชิกผู้ดูแลระบบสำเร็จ! กำลังสลับไปยังหน้าเข้าสู่ระบบ...';
+            successBox.classList.remove('hidden');
+
+            phoneInput.value = '';
+            registerPasswordInput.value = '';
+            registerConfirmPasswordInput.value = '';
+
+            setTimeout(() => {
+              if (tabLogin) tabLogin.click();
+              const lp = document.getElementById('loginPhone');
+              const lpw = document.getElementById('loginPassword');
+              if (lp) lp.value = phone;
+              if (lpw) lpw.value = password;
+            }, 2000);
+
+          } catch (err) {
+            console.error(err);
+            let msg = err.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+            if (msg.includes('User already registered') || msg.includes('email_exists')) {
+              msg = 'เบอร์โทรศัพท์นี้ถูกใช้สมัครสมาชิกไปแล้ว';
+            }
+            errBox.textContent = msg;
+            errBox.classList.remove('hidden');
+          } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'สมัครสมาชิกผู้ดูแลระบบ';
+          }
+        });
+      }
+    }
+
     // Initial check and routing (checks for Supabase config & active auth session)
     document.addEventListener('DOMContentLoaded', () => {
+      setupAuthListeners(); // Setup auth listeners FIRST, separately
       initApp();
       setupEventListeners();
     });
@@ -1725,7 +1920,6 @@
       if (!session) {
         adminPanel.classList.add('hidden');
         authScreen.classList.remove('hidden');
-        checkUrlAutoLogin();
       } else {
         authScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
@@ -1733,11 +1927,20 @@
       }
     }
 
+    let _autoLoginAttempted = false;
     function checkUrlAutoLogin() {
+      // Prevent running more than once to avoid login loops
+      if (_autoLoginAttempted) return;
+      _autoLoginAttempted = true;
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const phone = urlParams.get('phone');
         const password = urlParams.get('password');
+
+        // Always clear URL params immediately to prevent loops on reload
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+
         if (phone && password) {
           const phoneInput = document.getElementById('loginPhone');
           const passwordInput = document.getElementById('loginPassword');
@@ -1746,10 +1949,6 @@
           if (phoneInput && passwordInput && authForm) {
             phoneInput.value = phone.trim();
             passwordInput.value = password;
-            
-            // Clear credentials from URL for security
-            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
 
             setTimeout(() => {
               if (typeof authForm.requestSubmit === 'function') {
@@ -1757,7 +1956,7 @@
               } else {
                 authForm.dispatchEvent(new Event('submit'));
               }
-            }, 100);
+            }, 300);
           }
         }
       } catch (e) {
@@ -2922,7 +3121,7 @@
       });
 
       // Low Stock Fast Increment Button
-      document.getElementById('lowStockTableBody').addEventListener('click', async (e) => {
+      document.getElementById('lowStockTableBody')?.addEventListener('click', async (e) => {
         const refillBtn = e.target.closest('.btn-refill-stock');
         if (refillBtn) {
           const id = refillBtn.getAttribute('data-id');
@@ -3437,186 +3636,7 @@
         }
       });
 
-      // --- Admin Auth Events ---
-      const authForm = document.getElementById('authForm');
-      const btnToggleLoginPassword = document.getElementById('btnToggleLoginPassword');
-      const loginPasswordInput = document.getElementById('loginPassword');
-
-      // Tabs switcher for login/register
-      const tabLogin = document.getElementById('tabLogin');
-      const tabRegister = document.getElementById('tabRegister');
-      const loginSection = document.getElementById('loginSection');
-      const registerSection = document.getElementById('registerSection');
-      const authSubtitle = document.getElementById('authSubtitle');
-
-      tabLogin.addEventListener('click', () => {
-        tabLogin.className = "flex-1 pb-3 text-center border-b-2 border-emerald-500 font-bold text-white text-sm focus:outline-none transition-all";
-        tabRegister.className = "flex-1 pb-3 text-center border-b-2 border-transparent font-bold text-slate-400 hover:text-white text-sm focus:outline-none transition-all";
-        loginSection.classList.remove('hidden');
-        registerSection.classList.add('hidden');
-        authSubtitle.textContent = "กรุณาเข้าสู่ระบบด้วยเบอร์โทรศัพท์ผู้ดูแลร้าน";
-      });
-
-      tabRegister.addEventListener('click', () => {
-        tabRegister.className = "flex-1 pb-3 text-center border-b-2 border-emerald-500 font-bold text-white text-sm focus:outline-none transition-all";
-        tabLogin.className = "flex-1 pb-3 text-center border-b-2 border-transparent font-bold text-slate-400 hover:text-white text-sm focus:outline-none transition-all";
-        registerSection.classList.remove('hidden');
-        loginSection.classList.add('hidden');
-        authSubtitle.textContent = "ลงทะเบียนสิทธิ์แอดมินสำหรับเบอร์โทรศัพท์ที่กำหนด";
-      });
-
-      btnToggleLoginPassword.addEventListener('click', () => {
-        if (loginPasswordInput.type === 'password') {
-          loginPasswordInput.type = 'text';
-          btnToggleLoginPassword.textContent = '🔒';
-        } else {
-          loginPasswordInput.type = 'password';
-          btnToggleLoginPassword.textContent = '👁️';
-        }
-      });
-
-      const btnBypassLogin = document.getElementById('btnBypassLogin');
-      if (btnBypassLogin) {
-        btnBypassLogin.addEventListener('click', async () => {
-          initSupabase();
-          const mockSession = { user: { email: 'offline_mode@maenoi.store' } };
-          await handleSessionState(mockSession);
-        });
-      }
-
-      authForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const phoneInput = document.getElementById('loginPhone');
-        const rememberCheckbox = document.getElementById('loginRemember');
-        const errBox = document.getElementById('loginErrorMessage');
-        const btnSubmit = document.getElementById('btnSubmitLogin');
-
-        const phone = phoneInput.value.trim();
-        const password = loginPasswordInput.value;
-
-        errBox.classList.add('hidden');
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = 'กำลังเข้าสู่ระบบ...';
-
-        try {
-          localStorage.setItem('MN_AUTH_REMEMBER', rememberCheckbox.checked ? 'true' : 'false');
-          initSupabase();
-
-          const email = `${phone}@maenoi.store`;
-          const { data, error } = await sbClient.auth.signInWithPassword({
-            email: email,
-            password: password
-          });
-
-          if (error) throw error;
-
-          phoneInput.value = '';
-          loginPasswordInput.value = '';
-          await handleSessionState(data.session);
-
-        } catch (err) {
-          console.error(err);
-          let msg = err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
-          if (msg.includes('Invalid login credentials')) {
-            msg = 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง';
-          }
-          errBox.textContent = msg;
-          errBox.classList.remove('hidden');
-        } finally {
-          btnSubmit.disabled = false;
-          btnSubmit.textContent = 'เข้าสู่ระบบจัดการร้าน';
-        }
-      });
-
-      // --- Admin Register Events ---
-      const registerForm = document.getElementById('registerForm');
-      const registerPasswordInput = document.getElementById('registerPassword');
-      const registerConfirmPasswordInput = document.getElementById('registerConfirmPassword');
-      const btnToggleRegisterPassword = document.getElementById('btnToggleRegisterPassword');
-
-      btnToggleRegisterPassword.addEventListener('click', () => {
-        if (registerPasswordInput.type === 'password') {
-          registerPasswordInput.type = 'text';
-          btnToggleRegisterPassword.textContent = '🔒';
-        } else {
-          registerPasswordInput.type = 'password';
-          btnToggleRegisterPassword.textContent = '👁️';
-        }
-      });
-
-      registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const phoneInput = document.getElementById('registerPhone');
-        const errBox = document.getElementById('registerErrorMessage');
-        const successBox = document.getElementById('registerSuccessMessage');
-        const btnSubmit = document.getElementById('btnSubmitRegister');
-
-        const phone = phoneInput.value.trim();
-        const password = registerPasswordInput.value;
-        const confirmPassword = registerConfirmPasswordInput.value;
-
-        errBox.classList.add('hidden');
-        successBox.classList.add('hidden');
-
-        if (password.length < 6) {
-          errBox.textContent = 'รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร';
-          errBox.classList.remove('hidden');
-          return;
-        }
-
-        if (password !== confirmPassword) {
-          errBox.textContent = 'รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน';
-          errBox.classList.remove('hidden');
-          return;
-        }
-
-        // No restriction on which phone number can register as admin - anyone registered through here is admin
-
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = 'กำลังสมัครสมาชิก...';
-
-        try {
-          const email = `${phone}@maenoi.store`;
-          const { data, error } = await sbClient.auth.signUp({
-            email: email,
-            password: password,
-            options: {
-              data: {
-                phone: phone
-              }
-            }
-          });
-
-          if (error) throw error;
-
-          successBox.textContent = 'สมัครสมาชิกผู้ดูแลระบบสำเร็จ! กำลังสลับไปยังหน้าเข้าสู่ระบบ...';
-          successBox.classList.remove('hidden');
-
-          phoneInput.value = '';
-          registerPasswordInput.value = '';
-          registerConfirmPasswordInput.value = '';
-
-          setTimeout(() => {
-            tabLogin.click();
-            document.getElementById('loginPhone').value = phone;
-            document.getElementById('loginPassword').value = password;
-          }, 2000);
-
-        } catch (err) {
-          console.error(err);
-          let msg = err.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
-          if (msg.includes('User already registered') || msg.includes('email_exists')) {
-            msg = 'เบอร์โทรศัพท์นี้ถูกใช้สมัครสมาชิกไปแล้ว';
-          }
-          errBox.textContent = msg;
-          errBox.classList.remove('hidden');
-        } finally {
-          btnSubmit.disabled = false;
-          btnSubmit.textContent = 'สมัครสมาชิกผู้ดูแลระบบ';
-        }
-      });
-
-      // --- Change Password Events ---
+      // --- Change Password Events (moved auth section to setupAuthListeners()) ---
       const changePasswordModal = document.getElementById('changePasswordModal');
       const changePasswordForm = document.getElementById('changePasswordForm');
       const changePasswordError = document.getElementById('changePasswordError');
