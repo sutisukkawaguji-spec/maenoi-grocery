@@ -5,6 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ระบบหลังบ้าน — ร้านแม่น้อย บ้านดอนขี</title>
+  <link rel="manifest" href="admin.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -238,6 +239,9 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
+          <button id="btnInstallAdminPWA"
+            class="hidden px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shadow-sm">📲
+            ติดตั้งแอปหลังบ้าน</button>
           <button id="btnOpenChangePassword"
             class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5">🔑
             เปลี่ยนรหัสผ่าน</button>
@@ -6703,6 +6707,43 @@
         alert('ส่งออกไฟล์ผิดพลาด: ' + err.message);
       }
     }
+
+    // --- Admin PWA Installer Logic ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Admin Service Worker registered:', reg.scope))
+          .catch(err => console.warn('Admin Service Worker registration failed:', err));
+      });
+    }
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('btnInstallAdminPWA');
+      if (installBtn) {
+        installBtn.classList.remove('hidden');
+      }
+    });
+
+    const installBtn = document.getElementById('btnInstallAdminPWA');
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        deferredPrompt = null;
+        installBtn.classList.add('hidden');
+      });
+    }
+
+    window.addEventListener('appinstalled', (evt) => {
+      console.log('Admin PWA installed successfully!');
+      const installBtn = document.getElementById('btnInstallAdminPWA');
+      if (installBtn) installBtn.classList.add('hidden');
+    });
   </script>
   <datalist id="categoryDatalist"></datalist>
   <!-- Dialog for Scheduled Notification -->
