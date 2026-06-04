@@ -325,6 +325,9 @@
                     <button type="button" id="btnStartPosScan" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1">
                       <span>📷 สแกนด้วยกล้อง</span>
                     </button>
+                    <button type="button" id="btnTogglePosCamera" class="hidden px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm">
+                      <span>🔄 สลับกล้อง</span>
+                    </button>
                     <button type="button" id="btnStopPosScan" class="hidden px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm">
                       <span>ปิดกล้อง</span>
                     </button>
@@ -861,6 +864,8 @@
                     class="scanner-laser absolute inset-x-0 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e] z-10 animate-scan hidden">
                   </div>
                 </div>
+                <button type="button" id="btnToggleMobileCamera"
+                  class="absolute top-2 left-2 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs">🔄 สลับกล้อง</button>
                 <button type="button" id="btnStopMobileScan"
                   class="absolute top-2 right-2 px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg text-xs">ปิด</button>
               </div>
@@ -1799,8 +1804,10 @@
     let formScanner = null;
     let mobileScanner = null;
     let posScannerRunning = false;
+    let posCameraFacingMode = "environment";
     let formScannerRunning = false;
     let mobileScannerRunning = false;
+    let mobileCameraFacingMode = "environment";
     let editingProduct = null;
     let syncChannel = null;
     let isMobileSyncEnabled = false;
@@ -2392,6 +2399,7 @@
 
       // POS Scanning Buttons
       const btnStartPosScan = document.getElementById('btnStartPosScan');
+      const btnTogglePosCamera = document.getElementById('btnTogglePosCamera');
       if (btnStartPosScan) {
         btnStartPosScan.addEventListener('click', async () => {
           const posScannerEl = document.getElementById('pos-scanner');
@@ -2400,6 +2408,7 @@
           if (posPlaceholderEl) posPlaceholderEl.classList.add('hidden');
           const btnStopEl = document.getElementById('btnStopPosScan');
           if (btnStopEl) btnStopEl.classList.remove('hidden');
+          if (btnTogglePosCamera) btnTogglePosCamera.classList.remove('hidden');
 
           if (formScannerRunning && formScanner) {
             try {
@@ -2419,7 +2428,7 @@
 
           try {
             await posScanner.start(
-              { facingMode: "environment" },
+              { facingMode: posCameraFacingMode },
               {
                 fps: 30,
                 qrbox: (width, height) => {
@@ -2450,6 +2459,7 @@
                 if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
                 const btnStopEl = document.getElementById('btnStopPosScan');
                 if (btnStopEl) btnStopEl.classList.add('hidden');
+                if (btnTogglePosCamera) btnTogglePosCamera.classList.add('hidden');
 
                 handlePosBarcodeScanned(code);
               },
@@ -2478,6 +2488,20 @@
           const posPlaceholderEl = document.getElementById('pos-scanner-placeholder');
           if (posPlaceholderEl) posPlaceholderEl.classList.remove('hidden');
           btnStopPosScan.classList.add('hidden');
+          if (btnTogglePosCamera) btnTogglePosCamera.classList.add('hidden');
+        });
+      }
+
+      if (btnTogglePosCamera) {
+        btnTogglePosCamera.addEventListener('click', async () => {
+          if (posScannerRunning && posScanner) {
+            try {
+              await posScanner.stop();
+              posScannerRunning = false;
+            } catch (e) { }
+          }
+          posCameraFacingMode = posCameraFacingMode === "environment" ? "user" : "environment";
+          btnStartPosScan.click();
         });
       }
 
@@ -4855,6 +4879,7 @@
 
       // Mobile Scanner Listeners
       const btnMobileCameraScan = document.getElementById('btnMobileCameraScan');
+      const btnToggleMobileCamera = document.getElementById('btnToggleMobileCamera');
       if (btnMobileCameraScan) {
         btnMobileCameraScan.addEventListener('click', async () => {
           document.getElementById('mobile-scanner-container').classList.remove('hidden');
@@ -4870,7 +4895,7 @@
 
           try {
             await mobileScanner.start(
-              { facingMode: "environment" },
+              { facingMode: mobileCameraFacingMode },
               {
                 fps: 30,
                 qrbox: (width, height) => {
@@ -4925,6 +4950,19 @@
             } catch (e) { }
           }
           document.getElementById('mobile-scanner-container').classList.add('hidden');
+        });
+      }
+
+      if (btnToggleMobileCamera) {
+        btnToggleMobileCamera.addEventListener('click', async () => {
+          if (mobileScannerRunning && mobileScanner) {
+            try {
+              await mobileScanner.stop();
+              mobileScannerRunning = false;
+            } catch (e) { }
+          }
+          mobileCameraFacingMode = mobileCameraFacingMode === "environment" ? "user" : "environment";
+          btnMobileCameraScan.click();
         });
       }
 
