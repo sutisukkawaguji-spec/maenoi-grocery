@@ -1645,26 +1645,26 @@
 
   <!-- MODAL: Admin PIN Verification -->
   <dialog id="adminPinModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
-    <div class="bg-white p-6 space-y-4">
+    <form id="adminPinForm" class="bg-white p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 class="text-base font-bold text-slate-900">🔒 ยืนยันรหัสผ่านหลังบ้าน</h3>
-        <button id="btnCancelAdminPin" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+        <button type="button" id="btnCancelAdminPin" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
       </div>
       <div class="space-y-3">
-        <p class="text-xs text-slate-500">กรุณาใส่รหัส PIN 4 หลัก เพื่อเข้าใช้งานระบบจัดการส่วนอื่น</p>
+        <p class="text-xs text-slate-500">กรุณาใส่รหัส PIN 4 หลัก เพื่อเข้าใช้งานระบบจัดการส่วนอื่น (รหัสเริ่มต้นคือ 1234)</p>
         <div class="relative">
-          <input type="password" id="adminPinInput" maxlength="4" placeholder="กรอกรหัสผ่าน 4 หลัก"
+          <input type="password" id="adminPinInput" maxlength="4" placeholder="กรอกรหัสผ่าน 4 หลัก" required autocomplete="current-password"
             class="w-full text-center py-3 rounded-xl border border-slate-200 text-2xl font-bold tracking-widest focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800" />
         </div>
-        <p id="adminPinError" class="text-xs text-rose-500 font-semibold hidden text-center">⚠️ รหัส PIN ไม่ถูกต้อง</p>
+        <p id="adminPinError" class="text-xs text-rose-500 font-semibold hidden text-center">⚠️ รหัส PIN ไม่ถูกต้อง (ลองใช้ 1234)</p>
       </div>
       <div class="pt-2 flex gap-3">
-        <button type="button" id="btnConfirmAdminPin"
+        <button type="submit" id="btnConfirmAdminPin"
           class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md">
           ตกลง (Enter)
         </button>
       </div>
-    </div>
+    </form>
   </dialog>
 
   <script>
@@ -4694,14 +4694,13 @@
         document.getElementById('adminPinModal').close();
       });
 
-      document.getElementById('btnConfirmAdminPin').addEventListener('click', verifyAdminPin);
-
-      document.getElementById('adminPinInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+      const adminPinForm = document.getElementById('adminPinForm');
+      if (adminPinForm) {
+        adminPinForm.addEventListener('submit', (e) => {
           e.preventDefault();
           verifyAdminPin();
-        }
-      });
+        });
+      }
 
       // Cash input is now handled inside the payment selector modal
 
