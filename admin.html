@@ -952,10 +952,16 @@
                     <div class="flex-1 space-y-2">
                       <!-- File input triggers camera on mobile using capture="environment" -->
                       <input type="file" id="mobileImageFile" accept="image/*" capture="environment" class="hidden" />
-                      <button type="button" id="btnMobileTriggerCamera"
-                        class="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 border border-emerald-200/50">
-                        <span>📸 ถ่ายภาพ / อัปโหลด</span>
-                      </button>
+                      <div class="flex gap-2">
+                        <button type="button" id="btnMobileTriggerCamera"
+                          class="flex-1 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 border border-emerald-200/50">
+                          <span>📸 ถ่ายภาพ / อัปโหลด</span>
+                        </button>
+                        <button type="button" id="btnMobileDeleteProductImage"
+                          class="flex-1 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold transition-all text-xs flex items-center justify-center gap-1.5 border border-rose-200/50 hidden">
+                          <span>🗑️ ลบรูปภาพ</span>
+                        </button>
+                      </div>
                       <div id="mobileUploadSpinner"
                         class="hidden text-xxs font-semibold text-emerald-600 flex items-center gap-1">
                         <span
@@ -1209,9 +1215,14 @@
             </div>
             <div class="flex-1">
               <input type="file" id="prodImageFile" accept="image/*" class="hidden" />
-              <button type="button" id="btnTriggerUpload"
-                class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-colors text-xs">📷
-                อัปโหลดรูปภาพ</button>
+              <div class="flex gap-2">
+                <button type="button" id="btnTriggerUpload"
+                  class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold transition-colors text-xs">📷
+                  อัปโหลดรูปภาพ</button>
+                <button type="button" id="btnDeleteProductImage"
+                  class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-semibold transition-colors text-xs hidden">🗑️
+                  ลบรูปภาพ</button>
+              </div>
               <p class="text-[11px] text-slate-400 mt-1">รูปภาพจะถูกอัปโหลดเก็บเข้า Cloudinary อัตโนมัติ</p>
               <input type="hidden" id="prodImageUrl" />
               <input type="hidden" id="prodImagePublicId" />
@@ -1647,6 +1658,12 @@
             class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800" />
         </div>
 
+        <div>
+          <label class="block text-slate-600 mb-1">Google Apps Script Web App URL <span class="text-slate-400 font-normal">(สำหรับดึงตั้งค่าและลบรูปภาพอย่างปลอดภัย)</span></label>
+          <input type="url" id="settingsGasUrl" placeholder="https://script.google.com/macros/s/.../exec"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800" />
+        </div>
+
         <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
           <div>
             <span class="block text-slate-800 font-bold">🖨️ พิมพ์ใบเสร็จอัตโนมัติ</span>
@@ -1720,9 +1737,14 @@
               class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/seed/placeholder/80/80'" />
           </div>
           <input type="file" id="quickPriceImageFile" accept="image/*" class="hidden" />
-          <button type="button" id="btnTriggerQuickPriceUpload"
-            class="px-2 py-0.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-md font-bold text-[9px] transition-colors border border-violet-150">📷
-            เปลี่ยนรูป</button>
+          <div class="flex gap-1">
+            <button type="button" id="btnTriggerQuickPriceUpload"
+              class="px-2 py-0.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-md font-bold text-[9px] transition-colors border border-violet-150">📷
+              เปลี่ยนรูป</button>
+            <button type="button" id="btnDeleteQuickPriceProductImage"
+              class="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md font-bold text-[9px] transition-colors border border-rose-150 hidden">🗑️
+              ลบรูป</button>
+          </div>
         </div>
         <div class="flex-1 space-y-1 text-sm w-full">
           <label for="quickPriceProdNameInput" class="block font-bold text-slate-600 text-xs">ชื่อสินค้า</label>
@@ -2081,6 +2103,11 @@
     });
 
     async function initApp() {
+      if (window.AppConfig) {
+        // Attempt to load settings from Google Apps Script Web App
+        await window.AppConfig.loadFromGas();
+      }
+
       // Init Supabase Client
       if (initSupabase()) {
         const { data } = await sbClient.auth.getSession();
@@ -2255,6 +2282,8 @@
         document.getElementById('imagePreview').innerHTML = '🖼️';
         document.getElementById('prodImageUrl').value = '';
         document.getElementById('prodImagePublicId').value = '';
+        const btnDel = document.getElementById('btnDeleteProductImage');
+        if (btnDel) btnDel.classList.add('hidden');
         document.getElementById('productModal').showModal();
       });
 
@@ -2276,12 +2305,39 @@
         document.getElementById('prodImageFile').click();
       });
 
+      const btnDeleteProductImage = document.getElementById('btnDeleteProductImage');
+      if (btnDeleteProductImage) {
+        btnDeleteProductImage.addEventListener('click', async () => {
+          const imageUrl = document.getElementById('prodImageUrl').value;
+          const publicId = document.getElementById('prodImagePublicId').value || getCloudinaryPublicId(imageUrl);
+          if (!imageUrl) return;
+          if (confirm('คุณแน่ใจว่าต้องการลบรูปภาพสินค้าออกจาก Cloudinary หรือไม่?')) {
+            const previewDiv = document.getElementById('imagePreview');
+            previewDiv.innerHTML = '<span class="text-xs">กำลังลบ...</span>';
+            if (publicId) {
+              try {
+                await deleteCloudinaryImage(publicId);
+              } catch (err) {
+                console.error(err);
+              }
+            }
+            document.getElementById('prodImageUrl').value = '';
+            document.getElementById('prodImagePublicId').value = '';
+            previewDiv.innerHTML = '🖼️';
+            btnDeleteProductImage.classList.add('hidden');
+          }
+        });
+      }
+
       document.getElementById('prodImageFile').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         const previewDiv = document.getElementById('imagePreview');
         previewDiv.innerHTML = '<span class="text-xs">กำลังอัป...</span>';
+
+        const oldImageUrl = document.getElementById('prodImageUrl').value;
+        const oldPublicId = document.getElementById('prodImagePublicId').value || getCloudinaryPublicId(oldImageUrl);
 
         const c = AppConfig.get();
         const formData = new FormData();
@@ -2298,14 +2354,26 @@
             previewDiv.innerHTML = `<img src="${data.secure_url}" class="w-full h-full object-cover" />`;
             document.getElementById('prodImageUrl').value = data.secure_url;
             document.getElementById('prodImagePublicId').value = data.public_id;
+
+            const btnDel = document.getElementById('btnDeleteProductImage');
+            if (btnDel) btnDel.classList.remove('hidden');
+
+            // Delete old image from Cloudinary
+            if (oldPublicId) {
+              try {
+                await deleteCloudinaryImage(oldPublicId);
+              } catch (err) {
+                console.error('ลบรูปภาพเดิมบน Cloudinary ล้มเหลว:', err);
+              }
+            }
           } else {
             alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + (data.error?.message || 'Unknown error'));
-            previewDiv.innerHTML = '🖼️';
+            previewDiv.innerHTML = oldImageUrl ? `<img src="${oldImageUrl}" class="w-full h-full object-cover" />` : '🖼️';
           }
         } catch (err) {
           console.error(err);
           alert('อัปโหลดรูปภาพผิดพลาด');
-          previewDiv.innerHTML = '🖼️';
+          previewDiv.innerHTML = oldImageUrl ? `<img src="${oldImageUrl}" class="w-full h-full object-cover" />` : '🖼️';
         }
       });
 
@@ -3373,17 +3441,27 @@
           const p = productsList.find(x => x.id == id);
           if (!p) return;
 
-          if (confirm(`คุณแน่ใจว่าต้องการย้ายสินค้า "${p.name}" ไปเก็บในคลังฐานข้อมูล (ไม่วางขายหน้าร้าน) หรือไม่?\n\n*หมายเหตุ: รูปภาพบน Cloudinary จะไม่ถูกลบ เพื่อให้สามารถเรียกใช้งานใหม่ได้ในอนาคต`)) {
+          if (confirm(`คุณแน่ใจว่าต้องการลบสินค้า "${p.name}" ออกจากระบบถาวรใช่หรือไม่?\n\n*คำเตือน: การดำเนินการนี้ไม่สามารถย้อนกลับได้ และรูปภาพบน Cloudinary จะถูกลบถาวรด้วย`)) {
             try {
-              // Archive instead of hard delete: set is_active = false
-              const { error } = await sbClient.from('products').update({ is_active: false }).eq('id', id);
+              if (p.image_url) {
+                const publicId = p.image_public_id || getCloudinaryPublicId(p.image_url);
+                if (publicId) {
+                  try {
+                    await deleteCloudinaryImage(publicId);
+                  } catch (imgErr) {
+                    console.error('ลบรูปภาพบน Cloudinary ล้มเหลว:', imgErr);
+                  }
+                }
+              }
+
+              const { error } = await sbClient.from('products').delete().eq('id', id);
               if (error) throw error;
 
-              alert('ย้ายสินค้าไปคลังเก็บข้อมูลเรียบร้อย');
+              alert('ลบสินค้าออกจากระบบสำเร็จ');
               loadDashboardData();
             } catch (err) {
               console.error(err);
-              alert('การย้ายสินค้าล้มเหลว: ' + err.message);
+              alert('การลบสินค้าล้มเหลว: ' + err.message);
             }
           }
         }
@@ -3417,6 +3495,106 @@
           cb.checked = checked;
         });
         updateBatchActionsBar();
+      });
+
+      // --- Quick Price Edit Modal ---
+      function openQuickPriceModal(p) {
+        document.getElementById('quickPriceProdId').value = p.id;
+        document.getElementById('quickPriceProdNameInput').value = p.name;
+        document.getElementById('quickCostPrice').value = p.cost_price || '';
+        document.getElementById('quickSellPrice').value = p.price || '';
+        document.getElementById('quickPriceProdImageUrl').value = p.image_url || '';
+        document.getElementById('quickPriceProdImagePublicId').value = p.image_public_id || '';
+
+        const imgEl = document.getElementById('quickPriceProdImg');
+        const btnDel = document.getElementById('btnDeleteQuickPriceProductImage');
+        if (p.image_url) {
+          imgEl.src = p.image_url;
+          if (btnDel) btnDel.classList.remove('hidden');
+        } else {
+          imgEl.src = 'https://picsum.photos/seed/placeholder/80/80';
+          if (btnDel) btnDel.classList.add('hidden');
+        }
+        updateQuickProfitPreview();
+        document.getElementById('quickPriceModal').showModal();
+      }
+      window.openQuickPriceModal = openQuickPriceModal;
+
+      // Quick Price Modal Image Upload events
+      document.getElementById('btnTriggerQuickPriceUpload').addEventListener('click', () => {
+        document.getElementById('quickPriceImageFile').click();
+      });
+
+      const btnDeleteQuickPriceProductImage = document.getElementById('btnDeleteQuickPriceProductImage');
+      if (btnDeleteQuickPriceProductImage) {
+        btnDeleteQuickPriceProductImage.addEventListener('click', async () => {
+          const imageUrl = document.getElementById('quickPriceProdImageUrl').value;
+          const publicId = document.getElementById('quickPriceProdImagePublicId').value || getCloudinaryPublicId(imageUrl);
+          if (!imageUrl) return;
+          if (confirm('คุณแน่ใจว่าต้องการลบรูปภาพสินค้าออกจาก Cloudinary หรือไม่?')) {
+            const imgEl = document.getElementById('quickPriceProdImg');
+            imgEl.src = 'https://picsum.photos/seed/placeholder/80/80';
+            if (publicId) {
+              try {
+                await deleteCloudinaryImage(publicId);
+              } catch (err) {
+                console.error(err);
+              }
+            }
+            document.getElementById('quickPriceProdImageUrl').value = '';
+            document.getElementById('quickPriceProdImagePublicId').value = '';
+            btnDeleteQuickPriceProductImage.classList.add('hidden');
+          }
+        });
+      }
+
+      document.getElementById('quickPriceImageFile').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const imgEl = document.getElementById('quickPriceProdImg');
+        const originalSrc = imgEl.src;
+        imgEl.src = 'https://picsum.photos/seed/placeholder/80/80'; // placeholder as loading spinner indication
+
+        const oldImageUrl = document.getElementById('quickPriceProdImageUrl').value;
+        const oldPublicId = document.getElementById('quickPriceProdImagePublicId').value || getCloudinaryPublicId(oldImageUrl);
+
+        const c = AppConfig.get();
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', c.cloudinaryUploadPreset);
+
+        try {
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (data.secure_url) {
+            imgEl.src = data.secure_url;
+            document.getElementById('quickPriceProdImageUrl').value = data.secure_url;
+            document.getElementById('quickPriceProdImagePublicId').value = data.public_id;
+
+            const btnDel = document.getElementById('btnDeleteQuickPriceProductImage');
+            if (btnDel) btnDel.classList.remove('hidden');
+
+            // Delete old image from Cloudinary
+            if (oldPublicId) {
+              try {
+                await deleteCloudinaryImage(oldPublicId);
+              } catch (err) {
+                console.error('ลบรูปภาพเดิมบน Cloudinary ล้มเหลว:', err);
+              }
+            }
+          } else {
+            alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + (data.error?.message || 'Unknown error'));
+            imgEl.src = originalSrc;
+          }
+        } catch (err) {
+          console.error(err);
+          alert('อัปโหลดรูปภาพผิดพลาด');
+          imgEl.src = originalSrc;
+        }
       });
 
       // Product Row Selection change event (delegated)
@@ -3460,8 +3638,23 @@
       document.getElementById('btnBatchDelete').addEventListener('click', async () => {
         const selectedIds = Array.from(document.querySelectorAll('.prod-select-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
         if (selectedIds.length === 0) return;
-        if (confirm(`คุณต้องการลบสินค้าที่เลือกจำนวน ${selectedIds.length} รายการออกจากระบบถาวรใช่หรือไม่?\n\n*คำเตือน: การดำเนินการนี้ไม่สามารถย้อนกลับได้`)) {
+        if (confirm(`คุณต้องการลบสินค้าที่เลือกจำนวน ${selectedIds.length} รายการออกจากระบบถาวรใช่หรือไม่?\n\n*คำเตือน: การดำเนินการนี้ไม่สามารถย้อนกลับได้ และรูปภาพบน Cloudinary จะถูกลบถาวรด้วย`)) {
           try {
+            // Delete images from Cloudinary first
+            for (const id of selectedIds) {
+              const p = productsList.find(x => String(x.id) === String(id));
+              if (p && p.image_url) {
+                const publicId = p.image_public_id || getCloudinaryPublicId(p.image_url);
+                if (publicId) {
+                  try {
+                    await deleteCloudinaryImage(publicId);
+                  } catch (imgErr) {
+                    console.error('ลบรูปภาพบน Cloudinary ล้มเหลวสำหรับสินค้า:', p.name, imgErr);
+                  }
+                }
+              }
+            }
+
             const { error } = await sbClient.from('products').delete().in('id', selectedIds);
             if (error) throw error;
             alert('ลบสินค้าที่เลือกเรียบร้อย');
@@ -3770,64 +3963,7 @@
         document.getElementById('prodBarcode').value = 'MN' + Date.now().toString().slice(-8);
       });
 
-      // --- Quick Price Edit Modal ---
-      function openQuickPriceModal(p) {
-        document.getElementById('quickPriceProdId').value = p.id;
-        document.getElementById('quickPriceProdNameInput').value = p.name;
-        document.getElementById('quickCostPrice').value = p.cost_price || '';
-        document.getElementById('quickSellPrice').value = p.price || '';
-        document.getElementById('quickPriceProdImageUrl').value = p.image_url || '';
-        document.getElementById('quickPriceProdImagePublicId').value = p.image_public_id || '';
 
-        const imgEl = document.getElementById('quickPriceProdImg');
-        if (p.image_url) {
-          imgEl.src = p.image_url;
-        } else {
-          imgEl.src = 'https://picsum.photos/seed/placeholder/80/80';
-        }
-        updateQuickProfitPreview();
-        document.getElementById('quickPriceModal').showModal();
-      }
-      window.openQuickPriceModal = openQuickPriceModal;
-
-      // Quick Price Modal Image Upload events
-      document.getElementById('btnTriggerQuickPriceUpload').addEventListener('click', () => {
-        document.getElementById('quickPriceImageFile').click();
-      });
-
-      document.getElementById('quickPriceImageFile').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const imgEl = document.getElementById('quickPriceProdImg');
-        const originalSrc = imgEl.src;
-        imgEl.src = 'https://picsum.photos/seed/placeholder/80/80'; // placeholder as loading spinner indication
-
-        const c = AppConfig.get();
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', c.cloudinaryUploadPreset);
-
-        try {
-          const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/upload`, {
-            method: 'POST',
-            body: formData
-          });
-          const data = await res.json();
-          if (data.secure_url) {
-            imgEl.src = data.secure_url;
-            document.getElementById('quickPriceProdImageUrl').value = data.secure_url;
-            document.getElementById('quickPriceProdImagePublicId').value = data.public_id;
-          } else {
-            alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + (data.error?.message || 'Unknown error'));
-            imgEl.src = originalSrc;
-          }
-        } catch (err) {
-          console.error(err);
-          alert('อัปโหลดรูปภาพผิดพลาด');
-          imgEl.src = originalSrc;
-        }
-      });
 
       function updateQuickProfitPreview() {
         const cost = parseFloat(document.getElementById('quickCostPrice').value) || 0;
@@ -4804,6 +4940,8 @@
           document.getElementById('mobileProdImagePublicId').value = '';
 
           document.getElementById('mobileImagePreview').innerHTML = '🖼️';
+          const btnDel = document.getElementById('btnMobileDeleteProductImage');
+          if (btnDel) btnDel.classList.add('hidden');
           updateMobileProfitPreview();
 
           // Make barcode editable
@@ -4878,6 +5016,30 @@
         });
       }
 
+      const btnMobileDeleteProductImage = document.getElementById('btnMobileDeleteProductImage');
+      if (btnMobileDeleteProductImage) {
+        btnMobileDeleteProductImage.addEventListener('click', async () => {
+          const imageUrl = document.getElementById('mobileProdImageUrl').value;
+          const publicId = document.getElementById('mobileProdImagePublicId').value || getCloudinaryPublicId(imageUrl);
+          if (!imageUrl) return;
+          if (confirm('คุณแน่ใจว่าต้องการลบรูปภาพสินค้าออกจาก Cloudinary หรือไม่?')) {
+            const previewDiv = document.getElementById('mobileImagePreview');
+            previewDiv.innerHTML = '<span class="text-xs">กำลังลบ...</span>';
+            if (publicId) {
+              try {
+                await deleteCloudinaryImage(publicId);
+              } catch (err) {
+                console.error(err);
+              }
+            }
+            document.getElementById('mobileProdImageUrl').value = '';
+            document.getElementById('mobileProdImagePublicId').value = '';
+            previewDiv.innerHTML = '🖼️';
+            btnMobileDeleteProductImage.classList.add('hidden');
+          }
+        });
+      }
+
       const mobileImageFile = document.getElementById('mobileImageFile');
       if (mobileImageFile) {
         mobileImageFile.addEventListener('change', async (e) => {
@@ -4888,6 +5050,9 @@
           const spinner = document.getElementById('mobileUploadSpinner');
           previewDiv.innerHTML = '<span class="text-xs">กำลังอัป...</span>';
           if (spinner) spinner.classList.remove('hidden');
+
+          const oldImageUrl = document.getElementById('mobileProdImageUrl').value;
+          const oldPublicId = document.getElementById('mobileProdImagePublicId').value || getCloudinaryPublicId(oldImageUrl);
 
           const c = AppConfig.get();
           const formData = new FormData();
@@ -4901,17 +5066,29 @@
             });
             const data = await res.json();
             if (data.secure_url) {
-              previewDiv.innerHTML = `<img src="${data.secure_url}" class="w-full h-full object-cover" />`;
+              previewDiv.innerHTML = `<img src="${data.secure_url}" class="w-full h-full object-cover rounded-2xl" />`;
               document.getElementById('mobileProdImageUrl').value = data.secure_url;
               document.getElementById('mobileProdImagePublicId').value = data.public_id;
+
+              const btnDel = document.getElementById('btnMobileDeleteProductImage');
+              if (btnDel) btnDel.classList.remove('hidden');
+
+              // Delete old image from Cloudinary
+              if (oldPublicId) {
+                try {
+                  await deleteCloudinaryImage(oldPublicId);
+                } catch (err) {
+                  console.error('ลบรูปภาพเดิมบน Cloudinary ล้มเหลว:', err);
+                }
+              }
             } else {
               alert('อัปโหลดรูปภาพไม่สำเร็จ: ' + (data.error?.message || 'Unknown error'));
-              previewDiv.innerHTML = '🖼️';
+              previewDiv.innerHTML = oldImageUrl ? `<img src="${oldImageUrl}" class="w-full h-full object-cover rounded-2xl" />` : '🖼️';
             }
           } catch (err) {
             console.error(err);
             alert('อัปโหลดรูปภาพผิดพลาด');
-            previewDiv.innerHTML = '🖼️';
+            previewDiv.innerHTML = oldImageUrl ? `<img src="${oldImageUrl}" class="w-full h-full object-cover rounded-2xl" />` : '🖼️';
           } finally {
             if (spinner) spinner.classList.add('hidden');
           }
@@ -4985,6 +5162,7 @@
         const c = AppConfig.get();
         document.getElementById('settingsReceiptPath').value = localStorage.getItem('MN_RECEIPT_SAVE_PATH') || '';
         document.getElementById('settingsPromptpayId').value = localStorage.getItem('MN_PROMPTPAY_ID') || c.promptpayId;
+        document.getElementById('settingsGasUrl').value = localStorage.getItem('MN_GAS_URL') || c.gasUrl || '';
         document.getElementById('settingsAutoPrint').checked = localStorage.getItem('MN_AUTO_PRINT_RECEIPT') === 'true';
         document.getElementById('receiptSettingsModal').showModal();
       });
@@ -4997,18 +5175,21 @@
         document.getElementById('receiptSettingsModal').close();
       });
 
-      document.getElementById('receiptSettingsForm').addEventListener('submit', (e) => {
+      document.getElementById('receiptSettingsForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const path = document.getElementById('settingsReceiptPath').value.trim();
         const ppId = document.getElementById('settingsPromptpayId').value.trim();
+        const gasUrl = document.getElementById('settingsGasUrl').value.trim();
         const autoPrint = document.getElementById('settingsAutoPrint').checked;
 
         localStorage.setItem('MN_RECEIPT_SAVE_PATH', path);
         localStorage.setItem('MN_PROMPTPAY_ID', ppId);
+        localStorage.setItem('MN_GAS_URL', gasUrl);
         localStorage.setItem('MN_AUTO_PRINT_RECEIPT', autoPrint ? 'true' : 'false');
 
         if (window.AppConfig) {
-          AppConfig.save({ promptpayId: ppId });
+          AppConfig.save({ promptpayId: ppId, gasUrl: gasUrl });
+          await AppConfig.loadFromGas();
         }
 
         alert('บันทึกการตั้งค่าสำเร็จเรียบร้อย');
@@ -5175,10 +5356,13 @@
         document.getElementById('mobileProdImagePublicId').value = p.image_public_id || '';
 
         const previewDiv = document.getElementById('mobileImagePreview');
+        const btnDel = document.getElementById('btnMobileDeleteProductImage');
         if (p.image_url) {
           previewDiv.innerHTML = `<img src="${p.image_url}" class="w-full h-full object-cover rounded-2xl" />`;
+          if (btnDel) btnDel.classList.remove('hidden');
         } else {
           previewDiv.innerHTML = '🖼️';
+          if (btnDel) btnDel.classList.add('hidden');
         }
 
         // Disable barcode editing in edit mode
@@ -5209,6 +5393,8 @@
           document.getElementById('mobileProdImagePublicId').value = '';
 
           document.getElementById('mobileImagePreview').innerHTML = '🖼️';
+          const btnDel = document.getElementById('btnMobileDeleteProductImage');
+          if (btnDel) btnDel.classList.add('hidden');
 
           // Enable barcode editing in create mode
           if (barcodeInput) {
@@ -5587,14 +5773,17 @@
       updateProfitPreview();
 
       const previewDiv = document.getElementById('imagePreview');
+      const btnDel = document.getElementById('btnDeleteProductImage');
       if (p.image_url) {
         previewDiv.innerHTML = `<img src="${p.image_url}" class="w-full h-full object-cover" />`;
         document.getElementById('prodImageUrl').value = p.image_url;
         document.getElementById('prodImagePublicId').value = p.image_public_id || '';
+        if (btnDel) btnDel.classList.remove('hidden');
       } else {
         previewDiv.innerHTML = '🖼️';
         document.getElementById('prodImageUrl').value = '';
         document.getElementById('prodImagePublicId').value = '';
+        if (btnDel) btnDel.classList.add('hidden');
       }
 
       document.getElementById('productModal').showModal();
@@ -5610,6 +5799,8 @@
       document.getElementById('imagePreview').innerHTML = '🖼️';
       document.getElementById('prodImageUrl').value = '';
       document.getElementById('prodImagePublicId').value = '';
+      const btnDel = document.getElementById('btnDeleteProductImage');
+      if (btnDel) btnDel.classList.add('hidden');
       document.getElementById('productModal').showModal();
       
       // Auto-fill from Open Food Facts if possible
@@ -6030,7 +6221,10 @@
           const res = await fetch(`${c.gasUrl}?action=deleteImage&public_id=${encodeURIComponent(publicId)}`);
           const data = await res.json();
           console.log('Cloudinary Image delete via GAS response:', data);
-          return;
+          if (data && (data.result === 'ok' || data.result === 'not found')) {
+            return;
+          }
+          console.warn('ลบผ่าน GAS ไม่สำเร็จ หรือระบบไม่ได้ตั้งค่าคีย์ใน GAS. กำลังลองใช้วิธี client-side fallback...');
         } catch (err) {
           console.error('ลบรูปภาพผ่าน GAS ล้มเหลว:', err);
         }

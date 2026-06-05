@@ -17,7 +17,8 @@ const AppConfig = {
       cloudinaryApiKey: localStorage.getItem('MN_CLOUDINARY_API_KEY') || '722894334646583',
       cloudinaryApiSecret: localStorage.getItem('MN_CLOUDINARY_API_SECRET') || '0V9c_hMD78FEXmPyQkdlFFMV5pY',
       adminPin: localStorage.getItem('MN_ADMIN_PIN') || '1234',
-      promptpayId: localStorage.getItem('MN_PROMPTPAY_ID') || '0880699227'
+      promptpayId: localStorage.getItem('MN_PROMPTPAY_ID') || '0880699227',
+      gasUrl: localStorage.getItem('MN_GAS_URL') || 'https://script.google.com/macros/s/AKfycbwHtZKyauII92QdsT4uuKkVuoHsFlFwoawM9LSAcXbGiA7UcvgTqQczjJvEnRTAx7B6/exec'
     };
   },
 
@@ -30,6 +31,34 @@ const AppConfig = {
     if (data.cloudinaryApiSecret !== undefined) localStorage.setItem('MN_CLOUDINARY_API_SECRET', data.cloudinaryApiSecret.trim());
     if (data.adminPin !== undefined) localStorage.setItem('MN_ADMIN_PIN', data.adminPin.trim());
     if (data.promptpayId !== undefined) localStorage.setItem('MN_PROMPTPAY_ID', data.promptpayId.trim());
+    if (data.gasUrl !== undefined) localStorage.setItem('MN_GAS_URL', data.gasUrl.trim());
+  },
+
+  // Load configs dynamically from deployed Google Apps Script (Web App)
+  async loadFromGas() {
+    const c = this.get();
+    if (!c.gasUrl) return false;
+    try {
+      const res = await fetch(`${c.gasUrl}?action=getConfig`);
+      if (!res.ok) throw new Error('GAS endpoint error');
+      const data = await res.json();
+      if (data && data.supabaseUrl) {
+        this.save({
+          supabaseUrl: data.supabaseUrl,
+          supabaseAnonKey: data.supabaseAnonKey,
+          cloudinaryCloudName: data.cloudinaryCloudName,
+          cloudinaryUploadPreset: data.cloudinaryUploadPreset,
+          cloudinaryApiKey: data.cloudinaryApiKey,
+          cloudinaryApiSecret: data.cloudinaryApiSecret,
+          promptpayId: data.promptpayId,
+          adminPin: data.adminPin
+        });
+        return true;
+      }
+    } catch (e) {
+      console.error('ระบบโหลดข้อมูลจาก GAS ขัดข้อง:', e);
+    }
+    return false;
   },
 
   isConfigured() {
