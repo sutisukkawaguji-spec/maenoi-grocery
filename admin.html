@@ -1786,6 +1786,20 @@
           </label>
         </div>
 
+        <div class="bg-amber-50 p-3 rounded-xl border border-amber-100 space-y-2">
+          <div>
+            <span class="block text-slate-800 font-bold">🔊 เสียงพูดภาษาไทย</span>
+            <span class="block text-[10px] text-slate-500 font-normal mt-0.5">
+              กดทดสอบเพื่อให้แอปตรวจพบและเปิดใช้งาน Microsoft Pattara
+            </span>
+          </div>
+          <button type="button" id="btnTestThaiVoice"
+            class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition-colors">
+            ทดสอบเสียงภาษาไทย
+          </button>
+          <p id="thaiVoiceStatus" class="text-[10px] text-amber-800 font-normal"></p>
+        </div>
+
         <div class="bg-violet-50 p-3 rounded-xl border border-violet-100 space-y-2">
           <div>
             <span class="block text-slate-800 font-bold">🖥️ กำหนดตำแหน่ง 2 จอ</span>
@@ -2180,13 +2194,16 @@
       const index = posCart.findIndex(item => item.product.barcode === barcode);
       if (index < 0) {
         playScanSound();
+        speakPosMessage('ไม่พบสินค้านี้ในบิล');
         return false;
       }
       const removeQty = Math.max(1, parseInt(qty) || 1);
+      const removedQty = Math.min(posCart[index].qty, removeQty);
       if (posCart[index].qty > removeQty) posCart[index].qty -= removeQty;
       else posCart.splice(index, 1);
       renderPosCart();
       playScanSound();
+      announcePosCartChange('remove', removedQty);
       return true;
     }
 
@@ -2546,9 +2563,31 @@
       });
     }
 
+    function returnToPosReady(delay = 0) {
+      setTimeout(() => {
+        const settingsModal = document.getElementById('receiptSettingsModal');
+        if (settingsModal && settingsModal.open) {
+          settingsModal.close();
+        }
+
+        const posTabButton = document.querySelector('.tab-btn[data-tab="pos"]');
+        const posTab = document.getElementById('tab-pos');
+        if (posTab && posTab.classList.contains('hidden') && posTabButton) {
+          posTabButton.click();
+        }
+
+        try {
+          window.focus();
+        } catch (error) {
+          console.warn('ไม่สามารถดึงหน้าต่าง POS กลับด้านหน้าได้:', error);
+        }
+        focusPosScanner(true);
+      }, delay);
+    }
+
     function openCustomerDisplay(automatic = false) {
       if (customerDisplayWindow && !customerDisplayWindow.closed) {
-        customerDisplayWindow.focus();
+        returnToPosReady();
         return customerDisplayWindow;
       }
 
@@ -2576,7 +2615,9 @@
         return null;
       }
 
-      customerDisplayWindow.focus();
+      // Give the customer window time to open and restore its screen position,
+      // then return keyboard input to the POS barcode field.
+      returnToPosReady(700);
       return customerDisplayWindow;
     }
 
@@ -2619,6 +2660,7 @@
         localStorage.removeItem('MN_DISPLAY_LAYOUT');
         rememberPosWindowGeometry();
         status.textContent = 'ใช้โหมดจอเดียว: ระบบจะจำตำแหน่งและขนาดหน้าต่างตามปกติ';
+        returnToPosReady(300);
         return;
       }
 
@@ -2628,6 +2670,7 @@
           localStorage.removeItem('MN_DISPLAY_LAYOUT');
           rememberPosWindowGeometry();
           status.textContent = 'พบ 1 จอ: ระบบจะจำตำแหน่งและขนาดหน้าต่างตามปกติ';
+          returnToPosReady(300);
           return;
         }
 
@@ -2649,6 +2692,7 @@
 
         closeCustomerDisplay();
         setTimeout(() => openCustomerDisplay(false), 150);
+        returnToPosReady(1000);
       } catch (error) {
         status.textContent = 'กรุณากดอนุญาตสิทธิ์จัดการหน้าต่างหลายจอ แล้วลองอีกครั้ง';
       }
@@ -3613,8 +3657,9 @@
         await saveUnknownProductForQuickSale();
       });
       document.getElementById('posUnknownProductModal').addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' || e.key === 'Delete') {
           e.preventDefault();
+          e.stopPropagation();
           closeUnknownProductModal();
         }
       });
@@ -3828,6 +3873,7 @@
 
         // 4. Update Customer Display Screen to SUCCESS
         syncCustomerDisplay('success');
+        speakPosMessage('ชำระเงินเรียบร้อย ขอบคุณค่ะ');
 
         // 5. Open Success Modal Locally
         document.getElementById('successTotalText').textContent = fmt(saleRecord.total);
@@ -4225,6 +4271,7 @@
         customer.total_credit = newTotal;
         populateCustomerDropdown(customersList);
         syncCustomerDisplay('success');
+        speakPosMessage('ชำระเงินเรียบร้อย ขอบคุณค่ะ');
 
         document.getElementById('successTotalText').textContent = fmt(amount);
         document.getElementById('successCashDetails').classList.add('hidden');
@@ -6211,10 +6258,12 @@
 
       document.getElementById('btnCancelReceiptSettings').addEventListener('click', () => {
         document.getElementById('receiptSettingsModal').close();
+        returnToPosReady();
       });
 
       document.getElementById('btnCancelSettings').addEventListener('click', () => {
         document.getElementById('receiptSettingsModal').close();
+        returnToPosReady();
       });
 
       document.getElementById('receiptSettingsForm').addEventListener('submit', async (e) => {
@@ -6243,12 +6292,14 @@
 
         alert('บันทึกการตั้งค่าสำเร็จเรียบร้อย');
         document.getElementById('receiptSettingsModal').close();
+        returnToPosReady();
       });
 
       document.getElementById('btnOpenCustomerDisplay').addEventListener('click', () => {
         openCustomerDisplay(false);
       });
       document.getElementById('btnConfigureDisplayLayout').addEventListener('click', configureDisplayLayout);
+      document.getElementById('btnTestThaiVoice').addEventListener('click', testThaiVoice);
 
       // Admin PIN Verification dialog listeners
       document.getElementById('btnCancelAdminPin').addEventListener('click', () => {
@@ -6966,6 +7017,125 @@
       }
     }
 
+    function formatAmountForSpeech(amount) {
+      const value = Math.round((Number(amount) || 0) * 100) / 100;
+      return Number.isInteger(value) ? String(value) : value.toFixed(2);
+    }
+
+    let cachedThaiVoice = null;
+    let thaiVoiceWarningShown = false;
+
+    function findThaiSpeechVoice(voices) {
+      const thaiNames = ['premwadee', 'pattara', 'narisa', 'thai'];
+      return voices.find(voice => String(voice.lang || '').toLowerCase() === 'th-th')
+        || voices.find(voice => String(voice.lang || '').toLowerCase().startsWith('th'))
+        || voices.find(voice => thaiNames.some(name =>
+          `${voice.name || ''} ${voice.voiceURI || ''}`.toLowerCase().includes(name)
+        ))
+        || null;
+    }
+
+    async function getThaiSpeechVoice() {
+      if (cachedThaiVoice) return cachedThaiVoice;
+      const synth = window.speechSynthesis;
+      let voices = synth.getVoices();
+      cachedThaiVoice = findThaiSpeechVoice(voices);
+      if (cachedThaiVoice) return cachedThaiVoice;
+
+      await new Promise(resolve => {
+        let finished = false;
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          synth.removeEventListener?.('voiceschanged', onVoicesChanged);
+          resolve();
+        };
+        const onVoicesChanged = () => {
+          voices = synth.getVoices();
+          cachedThaiVoice = findThaiSpeechVoice(voices);
+          if (cachedThaiVoice) finish();
+        };
+        synth.addEventListener?.('voiceschanged', onVoicesChanged);
+        setTimeout(finish, 1800);
+      });
+
+      if (!cachedThaiVoice) {
+        cachedThaiVoice = findThaiSpeechVoice(synth.getVoices());
+      }
+      return cachedThaiVoice;
+    }
+
+    async function speakPosMessage(message) {
+      if (!message || !('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return;
+      try {
+        const thaiVoice = await getThaiSpeechVoice();
+        if (!thaiVoice) {
+          if (!thaiVoiceWarningShown) {
+            thaiVoiceWarningShown = true;
+            alert('เครื่องนี้ยังไม่มีเสียงภาษาไทย กรุณาติดตั้งเสียงพูดภาษาไทยใน Windows: Settings > Time & language > Language & region > Thai > Language options > Speech');
+          }
+          return;
+        }
+
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'th-TH';
+        utterance.voice = thaiVoice;
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        utterance.onerror = event => {
+          console.warn('ระบบเสียงภาษาไทยทำงานไม่สำเร็จ:', event.error);
+          const status = document.getElementById('thaiVoiceStatus');
+          if (status) status.textContent = `เปิดเสียงไม่สำเร็จ: ${event.error || 'ไม่ทราบสาเหตุ'}`;
+        };
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.warn('ไม่สามารถเล่นเสียงพูด POS ได้:', error);
+      }
+    }
+
+    async function testThaiVoice() {
+      const status = document.getElementById('thaiVoiceStatus');
+      if (status) status.textContent = 'กำลังค้นหาเสียงภาษาไทย...';
+      cachedThaiVoice = null;
+
+      if (!('speechSynthesis' in window)) {
+        if (status) status.textContent = 'เบราว์เซอร์นี้ไม่รองรับเสียงพูด';
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+      const voice = await getThaiSpeechVoice();
+      if (!voice) {
+        const names = window.speechSynthesis.getVoices().map(item => item.name).filter(Boolean);
+        if (status) {
+          status.textContent = names.length
+            ? `ยังไม่พบเสียงไทย พบเพียง: ${names.slice(0, 3).join(', ')}`
+            : 'ยังไม่พบเสียงใด กรุณาปิดแอป POS และเปิดใหม่หลังติดตั้งเสียงไทย';
+        }
+        return;
+      }
+
+      if (status) status.textContent = `พบเสียง: ${voice.name} (${voice.lang})`;
+      await speakPosMessage('ทดสอบเสียงภาษาไทย ร้านแม่น้อย พร้อมใช้งานแล้วค่ะ');
+    }
+    window.testThaiVoice = testThaiVoice;
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.addEventListener?.('voiceschanged', () => {
+        cachedThaiVoice = findThaiSpeechVoice(window.speechSynthesis.getVoices());
+      });
+    }
+
+    function announcePosCartChange(action, qty) {
+      const actionText = action === 'remove' ? 'ลบ' : 'เพิ่ม';
+      const total = calculatePosTotal();
+      speakPosMessage(`${actionText} ${Math.max(1, parseInt(qty) || 1)} ชิ้น ยอดรวม ${formatAmountForSpeech(total)} บาท`);
+    }
+
     // POS Cart Logic
     let pendingUnknownBarcode = '';
     let pendingUnknownQty = 1;
@@ -6984,8 +7154,7 @@
       pendingUnknownQty = 1;
       const modal = document.getElementById('posUnknownProductModal');
       if (modal.open) modal.close();
-      const posSearch = document.getElementById('posSearchInput');
-      if (posSearch) posSearch.focus();
+      focusPosScanner(true);
     }
 
     async function saveUnknownProductForQuickSale() {
@@ -7205,6 +7374,7 @@
       }
       renderPosCart();
       playScanSound();
+      announcePosCartChange('add', qty);
     }
 
     function openPosQtyPromptModal(product) {
