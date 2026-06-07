@@ -153,6 +153,32 @@
 
     const fmt = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(n);
 
+    function getSavedCustomerDisplayGeometry() {
+      const fallback = { left: 80, top: 80, width: 1000, height: 700 };
+      try {
+        const saved = JSON.parse(localStorage.getItem('MN_CUSTOMER_DISPLAY_GEOMETRY') || 'null');
+        if (!saved) return fallback;
+        return {
+          left: Number.isFinite(saved.left) ? Math.round(saved.left) : fallback.left,
+          top: Number.isFinite(saved.top) ? Math.round(saved.top) : fallback.top,
+          width: Number.isFinite(saved.width) ? Math.max(640, Math.round(saved.width)) : fallback.width,
+          height: Number.isFinite(saved.height) ? Math.max(480, Math.round(saved.height)) : fallback.height
+        };
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function restoreCustomerDisplayGeometry() {
+      const geometry = getSavedCustomerDisplayGeometry();
+      try {
+        window.moveTo(geometry.left, geometry.top);
+        window.resizeTo(geometry.width, geometry.height);
+      } catch (error) {
+        console.warn('ไม่สามารถคืนตำแหน่งหน้าจอลูกค้าได้:', error);
+      }
+    }
+
     function rememberCustomerDisplayGeometry() {
       const geometry = {
         left: Number.isFinite(window.screenX) ? Math.round(window.screenX) : 0,
@@ -163,6 +189,10 @@
       localStorage.setItem('MN_CUSTOMER_DISPLAY_GEOMETRY', JSON.stringify(geometry));
     }
 
+    setTimeout(() => {
+      restoreCustomerDisplayGeometry();
+      setTimeout(rememberCustomerDisplayGeometry, 300);
+    }, 100);
     window.addEventListener('resize', rememberCustomerDisplayGeometry);
     window.addEventListener('beforeunload', rememberCustomerDisplayGeometry);
     setInterval(rememberCustomerDisplayGeometry, 1000);

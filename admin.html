@@ -2380,10 +2380,63 @@
 
     // Initial check and routing (checks for Supabase config & active auth session)
     document.addEventListener('DOMContentLoaded', () => {
+      restorePosWindowGeometry();
+      startRememberingPosWindowGeometry();
       setupAuthListeners(); // Setup auth listeners FIRST, separately
       initApp();
       setupEventListeners();
     });
+
+    function readWindowGeometry(storageKey, fallback) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (!saved) return fallback;
+        return {
+          left: Number.isFinite(saved.left) ? Math.round(saved.left) : fallback.left,
+          top: Number.isFinite(saved.top) ? Math.round(saved.top) : fallback.top,
+          width: Number.isFinite(saved.width) ? Math.max(640, Math.round(saved.width)) : fallback.width,
+          height: Number.isFinite(saved.height) ? Math.max(480, Math.round(saved.height)) : fallback.height
+        };
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function rememberPosWindowGeometry() {
+      const geometry = {
+        left: Number.isFinite(window.screenX) ? Math.round(window.screenX) : 0,
+        top: Number.isFinite(window.screenY) ? Math.round(window.screenY) : 0,
+        width: Math.max(640, Math.round(window.outerWidth || 1200)),
+        height: Math.max(480, Math.round(window.outerHeight || 800))
+      };
+      localStorage.setItem('MN_POS_MAIN_GEOMETRY', JSON.stringify(geometry));
+    }
+
+    function restorePosWindowGeometry() {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (!isStandalone) return;
+
+      const geometry = readWindowGeometry('MN_POS_MAIN_GEOMETRY', {
+        left: 40,
+        top: 40,
+        width: 1200,
+        height: 800
+      });
+      setTimeout(() => {
+        try {
+          window.moveTo(geometry.left, geometry.top);
+          window.resizeTo(geometry.width, geometry.height);
+        } catch (error) {
+          console.warn('ไม่สามารถคืนตำแหน่งหน้าคิดเงินได้:', error);
+        }
+      }, 150);
+    }
+
+    function startRememberingPosWindowGeometry() {
+      window.addEventListener('resize', rememberPosWindowGeometry);
+      window.addEventListener('beforeunload', rememberPosWindowGeometry);
+      setInterval(rememberPosWindowGeometry, 1000);
+    }
 
     async function initApp() {
       if (window.AppConfig) {
@@ -2421,19 +2474,12 @@
     }
 
     function getCustomerDisplayGeometry() {
-      const fallback = { left: 80, top: 80, width: 1000, height: 700 };
-      try {
-        const saved = JSON.parse(localStorage.getItem('MN_CUSTOMER_DISPLAY_GEOMETRY') || 'null');
-        if (!saved) return fallback;
-        return {
-          left: Number.isFinite(saved.left) ? Math.round(saved.left) : fallback.left,
-          top: Number.isFinite(saved.top) ? Math.round(saved.top) : fallback.top,
-          width: Number.isFinite(saved.width) ? Math.max(640, Math.round(saved.width)) : fallback.width,
-          height: Number.isFinite(saved.height) ? Math.max(480, Math.round(saved.height)) : fallback.height
-        };
-      } catch (error) {
-        return fallback;
-      }
+      return readWindowGeometry('MN_CUSTOMER_DISPLAY_GEOMETRY', {
+        left: 80,
+        top: 80,
+        width: 1000,
+        height: 700
+      });
     }
 
     function openCustomerDisplay(automatic = false) {
