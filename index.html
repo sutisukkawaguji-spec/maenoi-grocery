@@ -98,6 +98,24 @@
           <p class="text-xs text-gray-500 hidden sm:block">ของชำ อาหารพร้อมทาน และของใช้ใกล้บ้าน</p>
         </div>
         <div class="ms-auto flex items-center gap-2">
+          <!-- Member Area -->
+          <div id="memberArea" class="flex items-center gap-2">
+            <button type="button" id="btnShowAuthModal" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs sm:text-sm font-semibold hover:bg-emerald-100 transition-colors">
+              👤 เข้าสู่ระบบ
+            </button>
+            <div id="memberProfileContainer" class="flex items-center gap-2 hidden">
+              <button type="button" id="btnMemberProfile" class="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-emerald-200 bg-white hover:bg-slate-50 transition-colors max-w-[120px] sm:max-w-xs h-[38px]">
+                <img id="memberAvatar" src="https://picsum.photos/seed/avatar/48/48" class="w-6 h-6 rounded-full object-cover border border-emerald-100" onerror="this.src='https://picsum.photos/seed/avatar/48/48'">
+                <div class="text-left leading-none min-w-0">
+                  <div id="memberHeaderName" class="text-xs font-bold text-slate-800 truncate">ชื่อสมาชิก</div>
+                  <div id="memberHeaderDebt" class="text-[9px] text-rose-500 font-bold mt-0.5 hidden">ค้าง: ฿0</div>
+                </div>
+              </button>
+              <button type="button" id="btnMemberLogout" title="ออกจากระบบ" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors text-xs font-bold">
+                ✕
+              </button>
+            </div>
+          </div>
           <a id="lineLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 text-sm hover:bg-emerald-50">💬 แชต LINE</a>
           <button id="openPromptPayHeader" class="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 text-sm hover:bg-emerald-50">💳 พร้อมเพย์</button>
           <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 text-sm hover:bg-emerald-50">
@@ -128,6 +146,36 @@
         </div>
       </div>
     </section>
+
+    <!-- Member Dashboard Card (Visible when member is logged in) -->
+    <div id="memberDashboard" class="max-w-6xl mx-auto px-4 mt-6 hidden">
+      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <img id="dashboardAvatar" src="https://picsum.photos/seed/avatar/96/96" class="w-12 h-12 rounded-2xl object-cover border border-emerald-200 shadow-sm" onerror="this.src='https://picsum.photos/seed/avatar/96/96'">
+          <div>
+            <h3 class="text-xs font-bold text-slate-400">ยินดีต้อนรับสมาชิก</h3>
+            <h2 id="dashboardName" class="text-sm font-bold text-slate-800">คุณ สมาชิก</h2>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 md:flex md:items-center gap-3 md:gap-6 text-xs sm:text-sm text-slate-600">
+          <div class="bg-white/80 backdrop-blur border border-emerald-100/50 px-4 py-2 rounded-2xl">
+            <span class="text-[10px] text-slate-400 block font-semibold">ยอดค้างชำระ (เครดิต)</span>
+            <strong id="dashboardDebt" class="text-sm font-extrabold text-rose-500">฿0.00</strong>
+          </div>
+          <div class="bg-white/80 backdrop-blur border border-emerald-100/50 px-4 py-2 rounded-2xl">
+            <span class="text-[10px] text-slate-400 block font-semibold">รายการสะสมที่ซื้อ</span>
+            <strong id="dashboardPurchaseCount" class="text-sm font-extrabold text-emerald-600">0 ครั้ง</strong>
+          </div>
+        </div>
+
+        <div>
+          <button type="button" id="btnDashboardDetail" class="w-full md:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-sm text-xs transition-all flex items-center justify-center gap-1.5">
+            👤 ดูรายละเอียด & ประวัติการสั่งซื้อ
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div class="bg-white border-b border-emerald-100">
       <div class="max-w-6xl mx-auto px-0 md:px-4 py-4">
@@ -492,6 +540,13 @@
           silentInitPushNotification(supabaseConfig.vapidPublicKey);
         }
       }
+
+      // Shop Background Dynamic Set
+      if (supabaseConfig && supabaseConfig.shopBackground) {
+        document.documentElement.style.setProperty('--shop-bg', "url('" + supabaseConfig.shopBackground + "')");
+      } else {
+        document.documentElement.style.removeProperty('--shop-bg');
+      }
     }
     function uniqueCategories(items){ return Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'th')); }
     function filterItems(items){
@@ -689,7 +744,7 @@
         sbClient = supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
       }
 
-      // 2. Session Validation
+      // 2. Session Validation & Storefront Member Dashboard
       let session = null;
       if (sbClient) {
         try {
@@ -699,6 +754,9 @@
           console.error("ตรวจสอบเซสชันผิดพลาด:", err);
         }
       }
+
+      let currentMemberData = null;
+      let memberSalesHistory = [];
 
       if (session) {
         const userEmail = session.user.email || '';
@@ -711,8 +769,82 @@
           if (isAdmin) adminBtn.classList.remove('hidden');
           else adminBtn.classList.add('hidden');
         }
+
+        // Fetch customer profile from customers table
+        if (sbClient) {
+          try {
+            const { data: custData, error: custErr } = await sbClient
+              .from('customers')
+              .select('*')
+              .eq('phone', phone);
+            
+            if (!custErr && custData && custData.length > 0) {
+              const cRaw = custData[0];
+              let realName = cRaw.name || '';
+              let imageUrl = '';
+              if (realName.includes('|')) {
+                const parts = realName.split('|');
+                realName = parts[0];
+                imageUrl = parts[1];
+              }
+              currentMemberData = { ...cRaw, realName, imageUrl };
+
+              // Load purchase history (sales logs)
+              const { data: salesData, error: salesErr } = await sbClient
+                .from('sales')
+                .select('*')
+                .eq('customer_id', currentMemberData.id)
+                .order('created_at', { ascending: false });
+              
+              if (!salesErr && salesData) {
+                memberSalesHistory = salesData;
+              }
+
+              // Update member UI elements in header
+              document.getElementById('btnShowAuthModal').classList.add('hidden');
+              document.getElementById('memberProfileContainer').classList.remove('hidden');
+              document.getElementById('memberHeaderName').textContent = realName;
+              if (imageUrl) {
+                document.getElementById('memberAvatar').src = imageUrl;
+              }
+
+              const debtNum = parseFloat(currentMemberData.total_credit || 0);
+              const debtHeader = document.getElementById('memberHeaderDebt');
+              if (debtNum > 0) {
+                debtHeader.textContent = `ค้าง: ฿${debtNum.toFixed(0)}`;
+                debtHeader.classList.remove('hidden');
+              } else {
+                debtHeader.classList.add('hidden');
+              }
+
+              // Update index member dashboard panel
+              document.getElementById('memberDashboard').classList.remove('hidden');
+              document.getElementById('dashboardName').textContent = `คุณ ${realName}`;
+              document.getElementById('dashboardDebt').textContent = `฿${debtNum.toFixed(2)}`;
+              if (debtNum > 0) {
+                document.getElementById('dashboardDebt').className = "text-sm font-extrabold text-rose-500";
+              } else {
+                document.getElementById('dashboardDebt').className = "text-sm font-extrabold text-slate-700";
+              }
+              document.getElementById('dashboardPurchaseCount').textContent = `${memberSalesHistory.length} ครั้ง`;
+              if (imageUrl) {
+                document.getElementById('dashboardAvatar').src = imageUrl;
+              }
+            } else {
+              // Authenticated but no customer row found
+              document.getElementById('btnShowAuthModal').classList.add('hidden');
+              document.getElementById('memberProfileContainer').classList.remove('hidden');
+              document.getElementById('memberHeaderName').textContent = phone;
+            }
+          } catch (e) {
+            console.error("โหลดโปรไฟล์สมาชิกล้มเหลว:", e);
+          }
+        }
       } else {
         document.getElementById('adminButton')?.classList.add('hidden');
+        document.getElementById('btnShowAuthModal').classList.remove('hidden');
+        document.getElementById('memberProfileContainer').classList.add('hidden');
+        document.getElementById('memberDashboard').classList.add('hidden');
       }
 
       // 4. Load catalog data immediately and unconditionally
@@ -805,6 +937,240 @@
         } finally {
           btnSubmitChangePassword.disabled = false;
           btnSubmitChangePassword.textContent = 'บันทึกรหัสผ่านใหม่';
+        }
+      });
+
+      // --- Member Authentication and Modals Logic ---
+      const authModal = document.getElementById('memberAuthModal');
+      const authForm = document.getElementById('authForm');
+      const authError = document.getElementById('authError');
+      const authSuccess = document.getElementById('authSuccess');
+      const authPhoneInput = document.getElementById('authPhone');
+      const authNameInput = document.getElementById('authName');
+      const authPasswordInput = document.getElementById('authPassword');
+      const btnSubmitAuth = document.getElementById('btnSubmitAuth');
+      const authNameField = document.getElementById('authNameField');
+      
+      const tabLogin = document.getElementById('tabAuthLogin');
+      const tabRegister = document.getElementById('tabAuthRegister');
+      let isRegisterMode = false;
+
+      // Show login modal
+      document.getElementById('btnShowAuthModal')?.addEventListener('click', () => {
+        authForm.reset();
+        authError.classList.add('hidden');
+        authSuccess.classList.add('hidden');
+        setAuthMode(false);
+        authModal.showModal();
+      });
+
+      document.getElementById('btnCloseAuthModal')?.addEventListener('click', () => {
+        authModal.close();
+      });
+
+      // Show profile details modal
+      const showProfileDetailsModal = () => {
+        if (!currentMemberData) return;
+        
+        document.getElementById('profileName').textContent = currentMemberData.realName;
+        document.getElementById('profilePhone').textContent = `เบอร์โทร: ${currentMemberData.phone}`;
+        if (currentMemberData.imageUrl) {
+          document.getElementById('profileAvatar').src = currentMemberData.imageUrl;
+        } else {
+          document.getElementById('profileAvatar').src = 'https://picsum.photos/seed/avatar/96/96';
+        }
+
+        const debtNum = parseFloat(currentMemberData.total_credit || 0);
+        const debtBadge = document.getElementById('profileDebtBadge');
+        debtBadge.textContent = `ค้างชำระ: ฿${debtNum.toFixed(2)}`;
+        if (debtNum > 0) {
+          debtBadge.className = "inline-block bg-rose-50 text-rose-600 font-bold border border-rose-100 px-2 py-0.5 rounded-md text-[10px]";
+        } else {
+          debtBadge.className = "inline-block bg-slate-50 text-slate-500 font-semibold border border-slate-200 px-2 py-0.5 rounded-md text-[10px]";
+        }
+
+        // Stats
+        document.getElementById('statPurchaseCount').textContent = `${memberSalesHistory.length} ครั้ง`;
+        const totalPurchased = memberSalesHistory.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+        document.getElementById('statPurchaseAmount').textContent = `฿${totalPurchased.toFixed(2)}`;
+
+        // Render history list
+        const listContainer = document.getElementById('profilePurchaseList');
+        if (memberSalesHistory.length === 0) {
+          listContainer.innerHTML = '<div class="text-center py-4 text-slate-400">ยังไม่มีประวัติการซื้อ</div>';
+        } else {
+          listContainer.innerHTML = memberSalesHistory.map(s => {
+            const dateStr = s.created_at ? new Date(s.created_at).toLocaleString('th-TH') : '-';
+            const items = s.items || [];
+            const itemsStr = items.map(it => `${it.product?.name || 'สินค้า'} x${it.qty}`).join(', ');
+            
+            let statusText = 'ชำระแล้ว';
+            let statusClass = 'text-emerald-600 font-bold';
+            if (s.payment_method === 'credit') {
+              statusText = 'ค้างชำระ';
+              statusClass = 'text-rose-600 font-bold';
+            }
+            
+            return `
+              <div class="bg-slate-50 border border-slate-100 p-2.5 rounded-xl space-y-1">
+                <div class="flex items-center justify-between font-semibold">
+                  <span class="text-slate-500 text-[10px]">${dateStr}</span>
+                  <span class="text-slate-800">ยอดรวม: ฿${parseFloat(s.total || 0).toFixed(2)}</span>
+                </div>
+                <div class="text-slate-600 text-[11px] truncate">${itemsStr}</div>
+                <div class="flex items-center justify-between text-[10px]">
+                  <span>วิธีจ่าย: ${s.payment_method === 'cash' ? 'เงินสด' : s.payment_method === 'promptpay' ? 'พร้อมเพย์' : 'ค้างชำระ (เครดิต)'}</span>
+                  <span class="${statusClass}">${statusText}</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        document.getElementById('memberProfileModal').showModal();
+      };
+
+      document.getElementById('btnMemberProfile')?.addEventListener('click', showProfileDetailsModal);
+      document.getElementById('btnDashboardDetail')?.addEventListener('click', showProfileDetailsModal);
+      
+      document.getElementById('btnCloseProfileModal')?.addEventListener('click', () => {
+        document.getElementById('memberProfileModal').close();
+      });
+
+      // Member Log out
+      document.getElementById('btnMemberLogout')?.addEventListener('click', async () => {
+        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+          if (sbClient) {
+            await sbClient.auth.signOut();
+          }
+          window.location.reload();
+        }
+      });
+
+      // Toggle Password visibility
+      document.getElementById('btnToggleAuthPassword')?.addEventListener('click', () => {
+        if (authPasswordInput.type === 'password') {
+          authPasswordInput.type = 'text';
+          document.getElementById('btnToggleAuthPassword').textContent = '🔒';
+        } else {
+          authPasswordInput.type = 'password';
+          document.getElementById('btnToggleAuthPassword').textContent = '👁️';
+        }
+      });
+
+      // Switch Mode function
+      function setAuthMode(registerMode) {
+        isRegisterMode = registerMode;
+        if (isRegisterMode) {
+          tabRegister.className = "flex-1 py-2 font-bold bg-emerald-600 text-white transition-colors";
+          tabLogin.className = "flex-1 py-2 font-bold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors";
+          authModalTitle.textContent = "สมัครสมาชิกใหม่";
+          authNameField.classList.remove('hidden');
+          authNameInput.required = true;
+          btnSubmitAuth.textContent = "สมัครสมาชิก";
+        } else {
+          tabLogin.className = "flex-1 py-2 font-bold bg-emerald-600 text-white transition-colors";
+          tabRegister.className = "flex-1 py-2 font-bold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors";
+          authModalTitle.textContent = "เข้าสู่ระบบสมาชิก";
+          authNameField.classList.add('hidden');
+          authNameInput.required = false;
+          btnSubmitAuth.textContent = "เข้าสู่ระบบ";
+        }
+      }
+
+      tabLogin?.addEventListener('click', () => setAuthMode(false));
+      tabRegister?.addEventListener('click', () => setAuthMode(true));
+
+      // Handle Authentication Form Submit
+      authForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        authError.classList.add('hidden');
+        authSuccess.classList.add('hidden');
+
+        const phone = authPhoneInput.value.trim();
+        const password = authPasswordInput.value;
+        const name = authNameInput.value.trim();
+
+        if (!phone || phone.length < 9) {
+          authError.textContent = "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง";
+          authError.classList.remove('hidden');
+          return;
+        }
+        if (password.length < 6) {
+          authError.textContent = "รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร";
+          authError.classList.remove('hidden');
+          return;
+        }
+
+        btnSubmitAuth.disabled = true;
+        btnSubmitAuth.textContent = isRegisterMode ? "กำลังสมัครสมาชิก..." : "กำลังเข้าสู่ระบบ...";
+
+        const mockEmail = `${phone}@maenoi.store`;
+
+        try {
+          if (!sbClient) throw new Error("Supabase client is not initialized");
+
+          if (isRegisterMode) {
+            // Sign Up in Supabase Auth
+            const { data, error } = await sbClient.auth.signUp({
+              email: mockEmail,
+              password: password,
+              options: { data: { phone: phone } }
+            });
+
+            if (error) throw error;
+
+            // Check if customer phone already exists in customers table
+            const { data: existingCust } = await sbClient
+              .from('customers')
+              .select('id')
+              .eq('phone', phone);
+            
+            if (!existingCust || existingCust.length === 0) {
+              // Insert a new row in customers table
+              const { error: dbErr } = await sbClient
+                .from('customers')
+                .insert([{ name: name, phone: phone }]);
+              if (dbErr) console.warn("Failed to create customer row in DB:", dbErr);
+            }
+
+            authSuccess.textContent = "สมัครสมาชิกสำเร็จเรียบร้อย! ระบบกำลังเข้าสู่ระบบให้อัตโนมัติ...";
+            authSuccess.classList.remove('hidden');
+
+            setTimeout(async () => {
+              await sbClient.auth.signInWithPassword({ email: mockEmail, password: password });
+              window.location.reload();
+            }, 1500);
+
+          } else {
+            // Sign In
+            const { error } = await sbClient.auth.signInWithPassword({
+              email: mockEmail,
+              password: password
+            });
+
+            if (error) throw error;
+
+            authSuccess.textContent = "เข้าสู่ระบบสำเร็จ!";
+            authSuccess.classList.remove('hidden');
+
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+        } catch (err) {
+          console.error(err);
+          let msg = err.message || "เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล";
+          if (msg.includes("Invalid login credentials")) {
+            msg = "เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง";
+          } else if (msg.includes("User already registered")) {
+            msg = "เบอร์โทรศัพท์นี้ถูกใช้สมัครสมาชิกไปแล้ว";
+          }
+          authError.textContent = msg;
+          authError.classList.remove('hidden');
+        } finally {
+          btnSubmitAuth.disabled = false;
+          btnSubmitAuth.textContent = isRegisterMode ? "สมัครสมาชิก" : "เข้าสู่ระบบ";
         }
       });
 
@@ -1055,6 +1421,119 @@
     }
   </script>
   <div id="backdrop" class="backdrop"></div>
+
+  <!-- DIALOG: Change Password Modal -->
+  <dialog id="changePasswordModal" class="p-0 rounded-2xl shadow-2xl backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm">
+    <div class="w-[320px] p-6 bg-white space-y-4 text-xs">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="text-sm font-bold text-slate-800">เปลี่ยนรหัสผ่านใหม่</h3>
+        <button id="btnClosePasswordModal" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+      <div id="changePasswordError" class="hidden rounded-xl bg-rose-50 text-rose-600 p-2.5 border border-rose-100"></div>
+      <div id="changePasswordSuccess" class="hidden rounded-xl bg-emerald-50 text-emerald-600 p-2.5 border border-emerald-100"></div>
+      <form id="changePasswordForm" class="space-y-3.5">
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">รหัสผ่านใหม่</label>
+          <div class="relative">
+            <input type="password" id="newPasswordInput" required placeholder="อย่างน้อย 6 ตัวอักษร" class="w-full px-3 py-2 pr-9 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+            <button type="button" id="btnToggleNewPassword" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">👁️</button>
+          </div>
+        </div>
+        <button type="submit" id="btnSubmitChangePassword" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-sm">บันทึกรหัสผ่านใหม่</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG: Member Login & Registration -->
+  <dialog id="memberAuthModal" class="p-0 rounded-2xl shadow-2xl backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm">
+    <div class="w-[320px] sm:w-[360px] p-6 bg-white space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 id="authModalTitle" class="text-base font-bold text-slate-800">เข้าสู่ระบบสมาชิก</h3>
+        <button id="btnCloseAuthModal" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <div id="authError" class="hidden rounded-xl bg-rose-50 text-rose-600 text-xs p-2.5 border border-rose-100"></div>
+      <div id="authSuccess" class="hidden rounded-xl bg-emerald-50 text-emerald-600 text-xs p-2.5 border border-emerald-100"></div>
+
+      <!-- Tab selection inside Auth Modal -->
+      <div class="flex border rounded-xl overflow-hidden text-xs">
+        <button id="tabAuthLogin" type="button" class="flex-1 py-2 font-bold bg-emerald-600 text-white transition-colors">เข้าสู่ระบบ</button>
+        <button id="tabAuthRegister" type="button" class="flex-1 py-2 font-bold bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors">สมัครสมาชิก</button>
+      </div>
+
+      <form id="authForm" class="space-y-3.5 text-xs">
+        <!-- Phone number input (Used for both login & register) -->
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">เบอร์โทรศัพท์</label>
+          <input type="tel" id="authPhone" required placeholder="เช่น 0812345678" maxlength="10" class="w-full px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+        </div>
+
+        <!-- Real Name input (Shown only for register) -->
+        <div id="authNameField" class="hidden">
+          <label class="block font-semibold text-slate-600 mb-1">ชื่อ-นามสกุลจริง</label>
+          <input type="text" id="authName" placeholder="เช่น นายสมชาย ดีมาก" class="w-full px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+        </div>
+
+        <!-- Password input -->
+        <div>
+          <label class="block font-semibold text-slate-600 mb-1">รหัสผ่าน</label>
+          <div class="relative">
+            <input type="password" id="authPassword" required placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร" class="w-full px-3 py-2 pr-9 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+            <button type="button" id="btnToggleAuthPassword" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" id="btnSubmitAuth" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-sm">เข้าสู่ระบบ</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG: Member Profile & Purchase History -->
+  <dialog id="memberProfileModal" class="p-0 rounded-2xl shadow-2xl backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm">
+    <div class="w-[340px] sm:w-[480px] p-6 bg-white space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b pb-2 shrink-0">
+        <h3 class="text-base font-bold text-slate-800">โปรไฟล์สมาชิก & ประวัติการซื้อ</h3>
+        <button id="btnCloseProfileModal" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <div class="overflow-y-auto pr-1 flex-grow space-y-4 custom-scrollbar text-xs">
+        <!-- User Info Header -->
+        <div class="flex items-center gap-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+          <img id="profileAvatar" src="https://picsum.photos/seed/avatar/96/96" class="w-16 h-16 rounded-2xl object-cover border border-emerald-100" onerror="this.src='https://picsum.photos/seed/avatar/96/96'">
+          <div class="space-y-1">
+            <h4 id="profileName" class="text-sm font-bold text-slate-900">ชื่อสมาชิก</h4>
+            <p id="profilePhone" class="text-slate-500 font-semibold">เบอร์โทร: -</p>
+            <div id="profileDebtBadge" class="inline-block bg-rose-50 text-rose-600 font-bold border border-rose-100 px-2 py-0.5 rounded-md text-[10px]">ค้างชำระ: ฿0.00</div>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 gap-2 text-center">
+          <div class="bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
+            <span class="text-[10px] text-slate-400 block font-semibold">จำนวนครั้งที่ซื้อ</span>
+            <strong id="statPurchaseCount" class="text-sm font-bold text-slate-700">0 ครั้ง</strong>
+          </div>
+          <div class="bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
+            <span class="text-[10px] text-slate-400 block font-semibold">ยอดซื้อสะสม</span>
+            <strong id="statPurchaseAmount" class="text-sm font-bold text-slate-700">฿0.00</strong>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2">
+          <button type="button" id="userPhoneButton" class="flex-grow py-2.5 border border-emerald-250 hover:bg-emerald-50 text-emerald-800 rounded-xl font-bold transition-all text-xs text-center flex items-center justify-center gap-1.5">🔑 เปลี่ยนรหัสผ่าน</button>
+        </div>
+
+        <!-- Purchase History List -->
+        <div>
+          <h5 class="font-bold text-slate-800 text-xs mb-2">📋 ประวัติการซื้อสินค้า</h5>
+          <div id="profilePurchaseList" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+            <div class="text-center py-4 text-slate-400">ยังไม่มีประวัติการซื้อ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
 
   <!-- Lightbox for Banner Image Preview -->
   <div id="bannerLightbox" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4 transition-all duration-300 opacity-0 backdrop-blur-md">

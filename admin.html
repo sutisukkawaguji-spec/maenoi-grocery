@@ -541,6 +541,15 @@
                   </div>
                 </div>
                 <div class="border-t pt-3 mt-3">
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">🖼️ ภาพพื้นหลังชื่อร้าน (หัวเว็บหน้าแรก)</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="webShopBackground" placeholder="URL รูปภาพพื้นหลัง หรือปล่อยว่างเพื่อใช้แบบเริ่มต้น" class="flex-grow px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
+                    <input type="file" id="fileShopBackground" accept="image/*" class="hidden" />
+                    <button type="button" onclick="document.getElementById('fileShopBackground').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
+                    <button type="button" onclick="clearShopBackground()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all border border-rose-150">🗑️ ลบรูป</button>
+                  </div>
+                </div>
+                <div class="border-t pt-3 mt-3">
                   <label class="block text-xs font-bold text-slate-700 mb-1">🔑 VAPID Public Key (สำหรับระบบแจ้งเตือน Push Notification มือถือ)</label>
                   <input type="text" id="webVapidPublicKey" placeholder="รัน npx web-push generate-vapid-keys แล้วนำ Public Key มาใส่ที่นี่" class="w-full px-3 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 bg-white" />
                 </div>
@@ -924,7 +933,7 @@
 
                   <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">หน่วยขาย</label>
-                    <input type="text" id="mobileProdUnit" required placeholder="ขวด, ซอง, ชิ้น"
+                    <input type="text" id="mobileProdUnit" required placeholder="ขวด, ซอง, ชิ้น" list="unitDatalist"
                       class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
                   </div>
                   <div>
@@ -1185,7 +1194,7 @@
           </div>
           <div>
             <label class="block font-semibold text-slate-600 mb-1">หน่วยขาย</label>
-            <input type="text" id="prodUnit" required placeholder="เช่น ขวด, กล่อง, แพ็ก"
+            <input type="text" id="prodUnit" required placeholder="เช่น ขวด, กล่อง, แพ็ก" list="unitDatalist"
               class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" />
           </div>
           <div>
@@ -2340,8 +2349,15 @@
         const oldPublicId = document.getElementById('prodImagePublicId').value || getCloudinaryPublicId(oldImageUrl);
 
         const c = AppConfig.get();
+        let uploadFile = file;
+        try {
+          const comp = await compressImage(file);
+          if (comp) uploadFile = comp;
+        } catch (e) {
+          console.warn('Compression error:', e);
+        }
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', uploadFile);
         formData.append('upload_preset', c.cloudinaryUploadPreset);
 
         try {
@@ -3560,8 +3576,15 @@
         const oldPublicId = document.getElementById('quickPriceProdImagePublicId').value || getCloudinaryPublicId(oldImageUrl);
 
         const c = AppConfig.get();
+        let uploadFile = file;
+        try {
+          const comp = await compressImage(file);
+          if (comp) uploadFile = comp;
+        } catch (e) {
+          console.warn('Compression error:', e);
+        }
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', uploadFile);
         formData.append('upload_preset', c.cloudinaryUploadPreset);
 
         try {
@@ -3828,6 +3851,12 @@
         fileMenuUpload.addEventListener('change', () => handleCloudinaryUploadForInput(fileMenuUpload, newMenuImgInput));
       }
 
+      const fileShopBg = document.getElementById('fileShopBackground');
+      const textShopBg = document.getElementById('webShopBackground');
+      if (fileShopBg && textShopBg) {
+        fileShopBg.addEventListener('change', () => handleCloudinaryUploadForInput(fileShopBg, textShopBg));
+      }
+
       // VAPID Public Key field unlock protection
       const vapidInput = document.getElementById('webVapidPublicKey');
       if (vapidInput) {
@@ -3866,12 +3895,14 @@
           status: document.getElementById('webAnnStatus').value
         };
         const vapidPublicKey = document.getElementById('webVapidPublicKey').value.trim();
+        const shopBackground = document.getElementById('webShopBackground').value.trim();
 
         const configPayload = {
           banners: banners,
           menu: webMenuList,
           announcement: announcement,
-          vapidPublicKey: vapidPublicKey
+          vapidPublicKey: vapidPublicKey,
+          shopBackground: shopBackground
         };
 
         const configJsonStr = 'CONFIG_JSON:' + JSON.stringify(configPayload);
@@ -3914,7 +3945,9 @@
       document.getElementById('prodSearchInput').addEventListener('input', filterProductsTable);
       document.getElementById('prodCategoryFilter').addEventListener('change', filterProductsTable);
 
-      // Scanner Focus Wedge for Product Management Search
+      // Scanner Focus Wedge for Product Management Search with buffering
+      let prodScanBuffer = '';
+      let prodScanTimer = null;
       window.addEventListener('keydown', (e) => {
         // Only run if the active tab is 'products' and no dialog modal is open
         const tabProducts = document.getElementById('tab-products');
@@ -3927,12 +3960,31 @@
         const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
         if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
 
-        // If it's a single alphanumeric key, focus search input and let characters flow
         if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+          e.preventDefault();
+          prodScanBuffer += e.key;
+          if (prodScanTimer) clearTimeout(prodScanTimer);
+          prodScanTimer = setTimeout(() => {
+            const searchInput = document.getElementById('prodSearchInput');
+            if (searchInput && prodScanBuffer) {
+              searchInput.focus();
+              searchInput.value = prodScanBuffer;
+              searchInput.dispatchEvent(new Event('input'));
+            }
+            prodScanBuffer = '';
+          }, 40);
+        } else if (e.key === 'Enter' && prodScanBuffer) {
+          e.preventDefault();
+          if (prodScanTimer) clearTimeout(prodScanTimer);
           const searchInput = document.getElementById('prodSearchInput');
           if (searchInput) {
             searchInput.focus();
+            searchInput.value = prodScanBuffer;
+            searchInput.dispatchEvent(new Event('input'));
+            const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true });
+            searchInput.dispatchEvent(event);
           }
+          prodScanBuffer = '';
         }
       });
 
@@ -4463,22 +4515,58 @@
         });
       }
 
-      // Scanner Focus Wedge for POS tab
+      // Scanner Focus Wedge for POS tab with buffering
+      let posScanBuffer = '';
+      let posScanTimer = null;
       window.addEventListener('keydown', (e) => {
         const tabPos = document.getElementById('tab-pos');
         if (!tabPos || tabPos.classList.contains('hidden')) return;
 
         const openDialog = document.querySelector('dialog[open]');
-        if (openDialog) return;
+        if (openDialog) {
+          // Fix lost characters if focus left the quantity modal input
+          if (openDialog.id === 'posQtyPromptModal') {
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            if (activeTag !== 'input') {
+              const qtyInput = document.getElementById('posQtyInput');
+              if (qtyInput && e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+                e.preventDefault();
+                qtyInput.focus();
+                qtyInput.value = e.key;
+              }
+            }
+          }
+          return;
+        }
 
         const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
         if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
 
         if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+          e.preventDefault();
+          posScanBuffer += e.key;
+          if (posScanTimer) clearTimeout(posScanTimer);
+          posScanTimer = setTimeout(() => {
+            const posSearch = document.getElementById('posSearchInput');
+            if (posSearch && posScanBuffer) {
+              posSearch.focus();
+              posSearch.value = posScanBuffer;
+              posSearch.dispatchEvent(new Event('input'));
+            }
+            posScanBuffer = '';
+          }, 40);
+        } else if (e.key === 'Enter' && posScanBuffer) {
+          e.preventDefault();
+          if (posScanTimer) clearTimeout(posScanTimer);
           const posSearch = document.getElementById('posSearchInput');
           if (posSearch) {
             posSearch.focus();
+            posSearch.value = posScanBuffer;
+            posSearch.dispatchEvent(new Event('input'));
+            const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true });
+            posSearch.dispatchEvent(event);
           }
+          posScanBuffer = '';
         }
       });
 
@@ -4611,8 +4699,15 @@
         stopMainCustCamera();
 
         const c = AppConfig.get();
+        let uploadFile = dataUrl;
+        try {
+          const comp = await compressImage(dataUrl);
+          if (comp) uploadFile = comp;
+        } catch (e) {
+          console.warn('Compression error:', e);
+        }
         const formData = new FormData();
-        formData.append('file', dataUrl);
+        formData.append('file', uploadFile);
         formData.append('upload_preset', c.cloudinaryUploadPreset);
 
         try {
@@ -4670,8 +4765,15 @@
         stopPosCustCamera();
 
         const c = AppConfig.get();
+        let uploadFile = dataUrl;
+        try {
+          const comp = await compressImage(dataUrl);
+          if (comp) uploadFile = comp;
+        } catch (e) {
+          console.warn('Compression error:', e);
+        }
         const formData = new FormData();
-        formData.append('file', dataUrl);
+        formData.append('file', uploadFile);
         formData.append('upload_preset', c.cloudinaryUploadPreset);
 
         try {
@@ -4969,7 +5071,9 @@
         });
       }
 
-      // Scanner Focus Wedge for Mobile tab
+      // Scanner Focus Wedge for Mobile tab with buffering
+      let mobileScanBuffer = '';
+      let mobileScanTimer = null;
       window.addEventListener('keydown', (e) => {
         const tabMobile = document.getElementById('tab-mobile-manager');
         if (!tabMobile || tabMobile.classList.contains('hidden')) return;
@@ -4981,10 +5085,30 @@
         if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
 
         if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+          e.preventDefault();
+          mobileScanBuffer += e.key;
+          if (mobileScanTimer) clearTimeout(mobileScanTimer);
+          mobileScanTimer = setTimeout(() => {
+            const mobileInput = document.getElementById('mobileBarcodeSearchInput');
+            if (mobileInput && mobileScanBuffer) {
+              mobileInput.focus();
+              mobileInput.value = mobileScanBuffer;
+              mobileInput.dispatchEvent(new Event('input'));
+            }
+            mobileScanBuffer = '';
+          }, 40);
+        } else if (e.key === 'Enter' && mobileScanBuffer) {
+          e.preventDefault();
+          if (mobileScanTimer) clearTimeout(mobileScanTimer);
           const mobileInput = document.getElementById('mobileBarcodeSearchInput');
           if (mobileInput) {
             mobileInput.focus();
+            mobileInput.value = mobileScanBuffer;
+            mobileInput.dispatchEvent(new Event('input'));
+            const event = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true });
+            mobileInput.dispatchEvent(event);
           }
+          mobileScanBuffer = '';
         }
       });
 
@@ -5055,8 +5179,15 @@
           const oldPublicId = document.getElementById('mobileProdImagePublicId').value || getCloudinaryPublicId(oldImageUrl);
 
           const c = AppConfig.get();
+          let uploadFile = file;
+          try {
+            const comp = await compressImage(file);
+            if (comp) uploadFile = comp;
+          } catch (e) {
+            console.warn('Compression error:', e);
+          }
           const formData = new FormData();
-          formData.append('file', file);
+          formData.append('file', uploadFile);
           formData.append('upload_preset', c.cloudinaryUploadPreset);
 
           try {
@@ -6211,6 +6342,27 @@
     }
     window.clearNewMenuImage = clearNewMenuImage;
 
+    async function clearShopBackground() {
+      const input = document.getElementById('webShopBackground');
+      if (!input) return;
+      const url = input.value.trim();
+      if (!url) return;
+      
+      if (confirm('คุณต้องการลบรูปภาพพื้นหลังชื่อร้านหรือไม่?')) {
+        const publicId = getCloudinaryPublicId(url);
+        if (publicId) {
+          try {
+            await deleteCloudinaryImage(publicId);
+          } catch (e) {
+            console.error('Failed to delete image from Cloudinary:', e);
+          }
+        }
+        input.value = '';
+        alert('ลบรูปภาพพื้นหลังเรียบร้อยแล้ว (รอกดบันทึกเพื่อบันทึกการเปลี่ยนแปลง)');
+      }
+    }
+    window.clearShopBackground = clearShopBackground;
+
     // CLOUDINARY IMAGE DELETION (Secure server-side delegation via GAS, or fallback to client-side signing)
     async function deleteCloudinaryImage(publicId) {
       const c = AppConfig.get();
@@ -6617,6 +6769,9 @@
         document.getElementById('webBanner2').value = configData.banners[1] || '';
         document.getElementById('webBanner3').value = configData.banners[2] || '';
       }
+      if (configData.shopBackground !== undefined) {
+        document.getElementById('webShopBackground').value = configData.shopBackground || '';
+      }
       if (configData.announcement) {
         document.getElementById('webAnnText').value = configData.announcement.text || '';
         document.getElementById('webAnnHref').value = configData.announcement.href || '';
@@ -6675,10 +6830,63 @@
       `).join('');
     }
 
+    async function compressImage(fileOrDataUrl, maxWidth = 800, maxHeight = 800, quality = 0.7) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              resolve(fileOrDataUrl);
+            }
+          }, 'image/jpeg', quality);
+        };
+        img.onerror = () => resolve(fileOrDataUrl);
+        if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            img.src = e.target.result;
+          };
+          reader.onerror = () => resolve(fileOrDataUrl);
+          reader.readAsDataURL(fileOrDataUrl);
+        } else if (typeof fileOrDataUrl === 'string') {
+          img.src = fileOrDataUrl;
+        } else {
+          resolve(fileOrDataUrl);
+        }
+      });
+    }
+
     async function uploadToCloudinary(file) {
       const c = AppConfig.get();
+      let uploadFile = file;
+      try {
+        const compressed = await compressImage(file);
+        if (compressed) {
+          uploadFile = compressed;
+        }
+      } catch (err) {
+        console.warn('Image compression failed, using original file:', err);
+      }
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', uploadFile);
       formData.append('upload_preset', c.cloudinaryUploadPreset);
       const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/upload`, {
         method: 'POST',
@@ -7043,6 +7251,31 @@
     });
   </script>
   <datalist id="categoryDatalist"></datalist>
+  <datalist id="unitDatalist">
+    <!-- ใช้บ่อย (Commonly used at the top) -->
+    <option value="ชิ้น"></option>
+    <option value="ขวด"></option>
+    <option value="ซอง"></option>
+    <option value="กล่อง"></option>
+    <option value="แพ็ก"></option>
+    <option value="ถุง"></option>
+    <option value="กระป๋อง"></option>
+    <!-- ตัวเลือกอื่นๆ ครบถ้วน (Other units) -->
+    <option value="ลูก"></option>
+    <option value="ฟอง"></option>
+    <option value="กิโลกรัม"></option>
+    <option value="กรัม"></option>
+    <option value="ม้วน"></option>
+    <option value="หลอด"></option>
+    <option value="ก้อน"></option>
+    <option value="มัด"></option>
+    <option value="แผง"></option>
+    <option value="คู่"></option>
+    <option value="เส้น"></option>
+    <option value="ชุด"></option>
+    <option value="แผ่น"></option>
+    <option value="ห่อ"></option>
+  </datalist>
   <!-- Dialog for Scheduled Notification -->
   <dialog id="scheduleNotificationModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
     <div class="bg-white p-6 space-y-4">
