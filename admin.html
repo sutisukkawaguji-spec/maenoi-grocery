@@ -2000,6 +2000,7 @@
     let isAdminUnlocked = false;
     let customerDisplayWindow = null;
     let customerDisplayAutoOpenAttempted = false;
+    let customerDisplayHeartbeatTimer = null;
     let shortcutMode = false;
     let activeSearchIndex = -1;
     let lastSaleRecord = null;
@@ -2406,11 +2407,14 @@
       const adminPanel = document.getElementById('adminPanel');
 
       if (!session) {
+        stopCustomerDisplayHeartbeat();
+        closeCustomerDisplay();
         adminPanel.classList.add('hidden');
         authScreen.classList.remove('hidden');
       } else {
         authScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
+        startCustomerDisplayHeartbeat();
         loadDashboardData();
         openCustomerDisplayAutomatically();
       }
@@ -2464,6 +2468,31 @@
 
       customerDisplayWindow.focus();
       return customerDisplayWindow;
+    }
+
+    function startCustomerDisplayHeartbeat() {
+      stopCustomerDisplayHeartbeat();
+      const updateHeartbeat = () => {
+        localStorage.setItem('MN_POS_MAIN_HEARTBEAT', String(Date.now()));
+      };
+      updateHeartbeat();
+      customerDisplayHeartbeatTimer = setInterval(updateHeartbeat, 1000);
+    }
+
+    function stopCustomerDisplayHeartbeat() {
+      if (customerDisplayHeartbeatTimer) {
+        clearInterval(customerDisplayHeartbeatTimer);
+        customerDisplayHeartbeatTimer = null;
+      }
+      localStorage.removeItem('MN_POS_MAIN_HEARTBEAT');
+    }
+
+    function closeCustomerDisplay() {
+      if (customerDisplayWindow && !customerDisplayWindow.closed) {
+        customerDisplayWindow.close();
+      }
+      customerDisplayWindow = null;
+      localStorage.setItem('MN_CUSTOMER_DISPLAY_CLOSE_REQUEST', String(Date.now()));
     }
 
     function openCustomerDisplayAutomatically() {
@@ -2568,6 +2597,8 @@
 
       // Logout (Supabase Auth Session terminate)
       document.getElementById('btnLogout').addEventListener('click', async () => {
+        stopCustomerDisplayHeartbeat();
+        closeCustomerDisplay();
         if (sbClient) {
           await sbClient.auth.signOut();
         }
@@ -6041,6 +6072,8 @@
         localStorage.setItem('MN_AUTO_CUSTOMER_DISPLAY', autoCustomerDisplay ? 'true' : 'false');
         if (autoCustomerDisplay) {
           openCustomerDisplay(false);
+        } else {
+          closeCustomerDisplay();
         }
 
         if (window.AppConfig) {

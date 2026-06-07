@@ -167,6 +167,29 @@
     window.addEventListener('beforeunload', rememberCustomerDisplayGeometry);
     setInterval(rememberCustomerDisplayGeometry, 1000);
 
+    let lastMainHeartbeat = Number(localStorage.getItem('MN_POS_MAIN_HEARTBEAT')) || Date.now();
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'MN_POS_MAIN_HEARTBEAT' && e.newValue) {
+        lastMainHeartbeat = Number(e.newValue) || Date.now();
+      }
+      if (e.key === 'MN_CUSTOMER_DISPLAY_CLOSE_REQUEST' && e.newValue) {
+        window.close();
+      }
+    });
+
+    setInterval(() => {
+      const storedHeartbeat = Number(localStorage.getItem('MN_POS_MAIN_HEARTBEAT')) || 0;
+      if (storedHeartbeat > lastMainHeartbeat) {
+        lastMainHeartbeat = storedHeartbeat;
+      }
+
+      const openerClosed = window.opener && window.opener.closed;
+      const mainSystemStopped = Date.now() - lastMainHeartbeat > 5000;
+      if (openerClosed || mainSystemStopped) {
+        window.close();
+      }
+    }, 1000);
+
     // Main event listener to synchronize with POS tab
     window.addEventListener('storage', (e) => {
       if (e.key === 'MN_CUSTOMER_DISPLAY_CART') {
