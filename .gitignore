@@ -10,3 +10,6 @@ supabase/.branches/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local UI review renders
+preview-pos-*.png

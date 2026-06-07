@@ -321,8 +321,10 @@
                   <label for="posSearchInput" class="text-sm font-bold text-emerald-800 flex items-center gap-1.5">
                     <span>🏷️ ช่องยิงบาร์โค้ด / ค้นหาสินค้า</span>
                   </label>
-                  <div class="flex items-center gap-2">
-                    <button type="button" id="btnStartPosScan" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1">
+	                  <div class="flex items-center gap-2">
+	                    <span id="posRemoveModeBadge"
+	                      class="hidden text-xs font-bold text-rose-700 px-2.5 py-1 rounded-full bg-rose-100 border border-rose-200 animate-pulse">โหมดลบ: ยิงสินค้าที่ต้องการลด 1 ชิ้น</span>
+	                    <button type="button" id="btnStartPosScan" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1">
                       <span>📷 สแกนด้วยกล้อง</span>
                     </button>
                     <button type="button" id="btnStopPosScan" class="hidden px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm">
@@ -345,8 +347,7 @@
                   class="absolute left-6 right-6 top-[104px] z-20 max-h-[500px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-xl hidden custom-scrollbar">
                 </div>
 
-                <p class="text-xs text-emerald-700 mt-auto">💡 คำแนะนำ: นำปืนสแกนบาร์โค้ดชี้ไปที่ตัวสินค้าและยิงได้เลย
-                  หรือจะพิมพ์ชื่อเพื่อค้นหาก็ได้</p>
+	                <p class="text-xs text-emerald-700 mt-auto">💡 ยิงสินค้าเพื่อเพิ่ม · กด - แล้วยิงเพื่อลด 1 ชิ้น · กด Delete เพื่อล้างทั้งบิล</p>
               </div>
             </div>
 
@@ -807,9 +808,9 @@
               <div class="flex items-center gap-3">
                 <span class="text-2xl">🔗</span>
                 <div>
-                  <h4 class="text-sm font-bold text-violet-900">เชื่อมต่อเครื่องยิง PC</h4>
-                  <p class="text-xs text-violet-700">รับข้อมูลบาร์โค้ดที่สแกนจากเครื่องคิดเงินหลัก (PC)
-                    มาแสดงบนมือถือทันทีแบบเรียลไทม์</p>
+	                  <h4 class="text-sm font-bold text-violet-900">ติดตามการทำงานเครื่องคิดเงินหลัก</h4>
+	                  <p class="text-xs text-violet-700">แสดงแท็บ ตะกร้า สมาชิก และขั้นตอนชำระเงินจาก PC
+	                    บนอุปกรณ์นี้แบบเรียลไทม์</p>
                 </div>
               </div>
               <label class="relative inline-flex items-center cursor-pointer select-none">
@@ -822,7 +823,7 @@
             <div id="syncStatusBadge"
               class="hidden text-xs font-semibold px-3 py-1.5 rounded-xl bg-violet-100 text-violet-700 border border-violet-200/50 items-center gap-1.5 w-fit">
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>กำลังรอรับข้อมูลจากเครื่องยิง PC...</span>
+	              <span>กำลังติดตามการทำงานจากเครื่องคิดเงินหลัก...</span>
             </div>
           </div>
 
@@ -1520,6 +1521,38 @@
     </div>
   </dialog>
 
+  <!-- MODAL: Unknown barcode quick sale -->
+  <dialog id="posUnknownProductModal"
+    class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
+    <form id="posUnknownProductForm" class="bg-white p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">ไม่พบสินค้านี้</h3>
+          <p class="text-xs text-slate-500 mt-0.5">ใส่ราคาขายชั่วคราวเพื่อขายต่อได้ทันที</p>
+        </div>
+        <button type="button" id="btnCancelUnknownProduct"
+          class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+      <div class="rounded-2xl bg-amber-50 border border-amber-100 p-3">
+        <span class="block text-[10px] font-bold text-amber-600 uppercase">บาร์โค้ดใหม่</span>
+        <strong id="posUnknownBarcode" class="block font-mono text-lg text-slate-800 break-all"></strong>
+      </div>
+      <div>
+        <label for="posUnknownPrice" class="block text-xs font-bold text-slate-600 mb-1">ราคาขาย (บาท)</label>
+        <input type="number" id="posUnknownPrice" min="0.01" step="0.01" required
+          class="w-full px-4 py-3 text-2xl text-center font-bold font-mono border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+          placeholder="0.00" />
+      </div>
+      <p class="text-[11px] leading-relaxed text-slate-500 bg-slate-50 rounded-xl p-3">
+        ระบบจะสร้างรายการใน “การจัดการสินค้า” หมวด “รอลงรายละเอียด” เพื่อให้เติมชื่อ ต้นทุน รูป และสต็อกภายหลัง
+      </p>
+      <button type="submit" id="btnSaveUnknownProduct"
+        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-md">
+        เพิ่มลงบิลและยิงสินค้าต่อ (Enter)
+      </button>
+    </form>
+  </dialog>
+
   <!-- MODAL: POS Payment Selector -->
   <dialog id="posPaymentSelectorModal"
     class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
@@ -1538,8 +1571,8 @@
 
       <!-- Payment Option Grid (Keyboard 1 & 2 & 3) -->
       <div class="grid grid-cols-3 gap-2">
-        <button type="button" id="btnPaySelectCash"
-          class="py-3 px-2 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-800 font-bold text-xs text-center flex flex-col items-center gap-1 transition-all shadow-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        <button type="button" id="btnPaySelectCash" autofocus
+          class="py-3 px-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs text-center flex flex-col items-center gap-1 transition-all focus:ring-2 focus:ring-emerald-500 focus:outline-none">
           <span class="text-lg">💵</span>
           <span>1. เงินสด</span>
         </button>
@@ -1557,8 +1590,12 @@
 
       <!-- Details Panel for selected method -->
       <div class="border border-slate-100 p-4 rounded-2xl bg-slate-50/50">
+        <div id="panelPayChoose" class="py-5 text-center">
+          <p class="font-bold text-slate-700">กรุณาเลือกช่องทางการชำระเงิน</p>
+          <p class="text-xs text-slate-400 mt-1">กด 1 เงินสด · 2 พร้อมเพย์ · 3 ค้างชำระ</p>
+        </div>
         <!-- CASH PANEL -->
-        <div id="panelPayCash" class="space-y-3">
+        <div id="panelPayCash" class="hidden space-y-3">
           <div>
             <label for="posCashReceived" class="block text-[11px] font-bold text-slate-500 mb-1">ยอดเงินที่รับมา
               (บาท)</label>
@@ -1594,11 +1631,23 @@
 
       <!-- Action Button -->
       <button type="button" id="btnConfirmPaySelector"
-        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-md flex items-center justify-center gap-1">
+        disabled
+        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-md flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
         <span>ตกลงและพิมพ์บิล (Enter)</span>
       </button>
     </div>
   </dialog>
+
+  <div id="remoteFollowIndicator"
+    class="hidden fixed bottom-4 right-4 z-[10000] bg-violet-700 text-white px-4 py-3 rounded-2xl shadow-2xl items-center gap-3">
+    <span class="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-pulse"></span>
+    <div>
+      <strong class="block text-xs">กำลังติดตามเครื่องคิดเงินหลัก</strong>
+      <span id="remoteFollowStatus" class="block text-[10px] text-violet-200">รอสถานะล่าสุด...</span>
+    </div>
+    <button type="button" id="btnStopRemoteFollow"
+      class="ml-2 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-bold">หยุดติดตาม</button>
+  </div>
 
   <!-- MODAL: POS Transaction Success -->
   <dialog id="posSuccessModal"
@@ -1699,7 +1748,7 @@
 
   <!-- MODAL: Admin PIN Verification -->
   <dialog id="adminPinModal" class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
-    <form id="adminPinForm" class="bg-white p-6 space-y-4" onsubmit="event.preventDefault(); verifyAdminPin();">
+    <form id="adminPinForm" class="bg-white p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 class="text-base font-bold text-slate-900">🔒 ยืนยันรหัสผ่านหลังบ้าน</h3>
         <button type="button" id="btnCancelAdminPin" onclick="document.getElementById('adminPinModal').close();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
@@ -1710,7 +1759,7 @@
           <input type="password" id="adminPinInput" maxlength="4" placeholder="กรอกรหัสผ่าน 4 หลัก" required autocomplete="current-password"
             class="w-full text-center py-3 rounded-xl border border-slate-200 text-2xl font-bold tracking-widest focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800" />
         </div>
-        <p id="adminPinError" class="text-xs text-rose-500 font-semibold hidden text-center">⚠️ รหัส PIN ไม่ถูกต้อง (ลองใช้ 1234)</p>
+        <p id="adminPinError" class="text-xs text-rose-500 font-semibold hidden text-center">⚠️ รหัส PIN ไม่ถูกต้อง</p>
       </div>
       <div class="pt-2 flex gap-3">
         <button type="submit" id="btnConfirmAdminPin"
@@ -1871,6 +1920,8 @@
     let editingProduct = null;
     let syncChannel = null;
     let isMobileSyncEnabled = false;
+    let isApplyingRemoteState = false;
+    const syncInstanceId = (crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}-${Math.random()}`);
     let isTorchOn = false;
     let activeScannerSource = "pos"; // "pos" or "mobile"
 
@@ -1900,6 +1951,7 @@
     let shortcutMode = false;
     let activeSearchIndex = -1;
     let lastSaleRecord = null;
+    let posRemoveScanMode = false;
 
     // POS Quantity Modal and Keyboard Interceptor States
     let pendingCartProduct = null;
@@ -1909,6 +1961,100 @@
 
     // Helper: Format Currency
     const fmt = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(n);
+
+    // Read scanner digits by physical key position, independent of Thai/English layout.
+    function getScannerDigit(event) {
+      const digitMatch = /^Digit([0-9])$/.exec(event.code || '');
+      if (digitMatch) return digitMatch[1];
+      const numpadMatch = /^Numpad([0-9])$/.exec(event.code || '');
+      if (numpadMatch) return numpadMatch[1];
+      return /^[0-9]$/.test(event.key || '') ? event.key : '';
+    }
+
+    function installNumericScannerInputGuard() {
+      const scannerInputIds = new Set([
+        'posSearchInput',
+        'prodSearchInput',
+        'quickSearchInput',
+        'mobileBarcodeSearchInput',
+        'mobileProdBarcode',
+        'prodBarcode',
+        'posQtyInput'
+      ]);
+
+      window.addEventListener('keydown', (event) => {
+        const target = event.target;
+        if (!target || !scannerInputIds.has(target.id)) return;
+
+        const digit = getScannerDigit(event);
+        if (!digit || event.key === digit) return;
+
+        event.preventDefault();
+        const start = target.selectionStart ?? target.value.length;
+        const end = target.selectionEnd ?? start;
+        target.setRangeText(digit, start, end, 'end');
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+      }, true);
+    }
+
+    function resetPosCustomer() {
+      const phoneInput = document.getElementById('posCustomerPhoneInput');
+      const customerSelect = document.getElementById('posCustomerSelect');
+      const creditAlert = document.getElementById('posCustomerCreditAlert');
+      if (phoneInput) phoneInput.value = '';
+      if (customerSelect) customerSelect.value = '';
+      if (creditAlert) creditAlert.classList.add('hidden');
+    }
+
+    function focusPosScanner(force = false) {
+      const posTab = document.getElementById('tab-pos');
+      const searchInput = document.getElementById('posSearchInput');
+      if (!posTab || posTab.classList.contains('hidden') || !searchInput) return;
+      if (document.querySelector('dialog[open]')) return;
+
+      const active = document.activeElement;
+      const isEditing = active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName) && active !== searchInput;
+      if (!force && isEditing) return;
+
+      setTimeout(() => {
+        if (!document.querySelector('dialog[open]')) searchInput.focus({ preventScroll: true });
+      }, 30);
+    }
+
+    function setPosRemoveScanMode(enabled) {
+      posRemoveScanMode = enabled;
+      const badge = document.getElementById('posRemoveModeBadge');
+      if (badge) badge.classList.toggle('hidden', !enabled);
+      const searchInput = document.getElementById('posSearchInput');
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.placeholder = enabled
+          ? 'ยิงบาร์โค้ดสินค้าที่ต้องการลด 1 ชิ้น...'
+          : 'ยิงบาร์โค้ด หรือ พิมพ์ค้นหาชื่อสินค้า...';
+      }
+      focusPosScanner(true);
+    }
+
+    function removeOnePosItemByBarcode(barcode) {
+      const index = posCart.findIndex(item => item.product.barcode === barcode);
+      if (index < 0) {
+        playScanSound();
+        return false;
+      }
+      if (posCart[index].qty > 1) posCart[index].qty -= 1;
+      else posCart.splice(index, 1);
+      renderPosCart();
+      playScanSound();
+      return true;
+    }
+
+    function clearPosBill() {
+      posCart = [];
+      setPosRemoveScanMode(false);
+      resetPosCustomer();
+      renderPosCart();
+      focusPosScanner(true);
+    }
 
     // ---- Auth Listeners (login / register / change-password) ----
     function setupAuthListeners() {
@@ -2196,7 +2342,19 @@
         syncChannel = sbClient.channel('scanner-sync');
         syncChannel.on('broadcast', { event: 'pc-scan' }, (payload) => {
           if (isMobileSyncEnabled) {
-            handleMobileBarcodeReceived(payload.payload.barcode);
+            const status = document.getElementById('remoteFollowStatus');
+            if (status && payload.payload?.barcode) {
+              status.textContent = `เครื่องหลักสแกน: ${payload.payload.barcode}`;
+            }
+          }
+        }).on('broadcast', { event: 'app-state' }, (message) => {
+          const remoteState = message.payload;
+          if (isMobileSyncEnabled && remoteState && remoteState.sourceId !== syncInstanceId) {
+            applyRemoteAppState(remoteState);
+          }
+        }).on('broadcast', { event: 'state-request' }, (message) => {
+          if (!message.payload || message.payload.sourceId !== syncInstanceId) {
+            broadcastRemoteAppState();
           }
         }).subscribe((status) => {
           console.log("Supabase Realtime status:", status);
@@ -2207,6 +2365,12 @@
 
     // Setup UI Action Listeners
     function setupEventListeners() {
+      installNumericScannerInputGuard();
+      window.addEventListener('focus', () => focusPosScanner());
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) focusPosScanner();
+      });
+
       // Mobile tabs toggle button
       const btnMobileTabsToggle = document.getElementById('btnMobileTabsToggle');
       const tabsContainer = document.getElementById('tabsContainer');
@@ -2259,6 +2423,11 @@
             content.classList.add('hidden');
           });
           document.getElementById('tab-' + target).classList.remove('hidden');
+
+          if (target === 'pos') {
+            focusPosScanner(true);
+          }
+          broadcastRemoteAppState(target);
 
           if (target === 'reports') {
             loadReportsData();
@@ -2660,6 +2829,18 @@
       });
 
       posSearch.addEventListener('keydown', (e) => {
+        if ((e.key === '-' || e.key === 'Subtract' || e.code === 'Minus' || e.code === 'NumpadSubtract') && !posSearch.value) {
+          e.preventDefault();
+          setPosRemoveScanMode(true);
+          return;
+        }
+
+        if (e.key === 'Delete') {
+          e.preventDefault();
+          clearPosBill();
+          return;
+        }
+
         // Handle ArrowUp / ArrowDown navigation inside search results
         const items = posResults.querySelectorAll('.pos-search-item');
         if (!posResults.classList.contains('hidden') && items.length > 0) {
@@ -2724,15 +2905,17 @@
             return;
           }
 
-          broadcastBarcode(query);
-
-          // Find exact match by barcode or name
+          // Exact barcode scans go straight into the cart for uninterrupted checkout.
           const found = productsList.find(p => p.barcode === query || p.name === query);
           if (found) {
-            openPosQtyPromptModal(found);
             posSearch.value = '';
             posResults.classList.add('hidden');
             activeSearchIndex = -1;
+            if (found.barcode === query) {
+              handlePosBarcodeScanned(query);
+            } else {
+              openPosQtyPromptModal(found);
+            }
           } else {
             if (items.length === 1) {
               const id = items[0].getAttribute('data-id');
@@ -2743,6 +2926,11 @@
                 posResults.classList.add('hidden');
                 activeSearchIndex = -1;
               }
+            } else {
+              posSearch.value = '';
+              posResults.classList.add('hidden');
+              activeSearchIndex = -1;
+              handlePosBarcodeScanned(query);
             }
           }
         }
@@ -2843,8 +3031,7 @@
       });
 
       document.getElementById('btnClearPosCart').addEventListener('click', () => {
-        posCart = [];
-        renderPosCart();
+        clearPosBill();
       });
 
       // Unified Checkout Modal trigger
@@ -2900,12 +3087,10 @@
             }
           }
 
-          // Enter confirms payment if focus is not on specific input that handles Enter
+          // Enter cannot leave this step until a payment channel has been selected.
           if (e.key === 'Enter') {
-            if (activeId !== 'btnCancelPaymentSelector') {
-              e.preventDefault();
-              handlePaymentModalConfirm();
-            }
+            e.preventDefault();
+            handlePaymentModalConfirm();
           }
         });
       }
@@ -2924,6 +3109,7 @@
         modalCashInput.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
+            e.stopPropagation();
             handlePaymentModalConfirm();
           }
         });
@@ -2942,13 +3128,24 @@
         selectPaymentMethod('credit', false);
         document.getElementById('btnPaySelectCredit').focus();
       });
+
+      document.getElementById('btnCancelUnknownProduct').addEventListener('click', closeUnknownProductModal);
+      document.getElementById('posUnknownProductForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveUnknownProductForQuickSale();
+      });
+      document.getElementById('posUnknownProductModal').addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeUnknownProductModal();
+        }
+      });
       document.getElementById('btnConfirmPaySelector').addEventListener('click', handlePaymentModalConfirm);
 
       document.getElementById('btnCancelPaymentSelector').addEventListener('click', () => {
         if (payModal) payModal.close();
         syncCustomerDisplay('idle');
-        const posSearch = document.getElementById('posSearchInput');
-        if (posSearch) posSearch.focus();
+        focusPosScanner(true);
       });
 
       // --- Receipt File Auto-Download ---
@@ -3185,6 +3382,8 @@
 
         // Reset POS State immediately in the background to prepare for next transaction
         posCart = [];
+        resetPosCustomer();
+        setPosRemoveScanMode(false);
         const cashInput = document.getElementById('posCashReceived');
         if (cashInput) cashInput.value = '';
         renderPosCart();
@@ -3194,15 +3393,11 @@
       // Close POS Success Modal handler
       document.getElementById('btnConfirmCloseSuccessModal').addEventListener('click', () => {
         document.getElementById('posSuccessModal').close();
-
-        // Focus search input
-        setTimeout(() => {
-          document.getElementById('posSearchInput').focus();
-        }, 150);
+        focusPosScanner(true);
       });
 
       // --- POS Payment Selector Modal Logic ---
-      let selectedPaymentMethod = 'cash'; // 'cash', 'promptpay', 'credit'
+      let selectedPaymentMethod = null; // 'cash', 'promptpay', 'credit'
 
       function openPaymentSelectorModal() {
         const modal = document.getElementById('posPaymentSelectorModal');
@@ -3238,8 +3433,23 @@
           }
         }
 
-        // Default to Cash mode, do NOT focus received input automatically
-        selectPaymentMethod('cash', false);
+        selectedPaymentMethod = null;
+        const panelChoose = document.getElementById('panelPayChoose');
+        const paymentPanels = [
+          document.getElementById('panelPayCash'),
+          document.getElementById('panelPayPP'),
+          document.getElementById('panelPayCredit')
+        ];
+        paymentPanels.forEach(panel => panel && panel.classList.add('hidden'));
+        if (panelChoose) panelChoose.classList.remove('hidden');
+
+        ['btnPaySelectCash', 'btnPaySelectPP', 'btnPaySelectCredit'].forEach(id => {
+          const button = document.getElementById(id);
+          if (button) {
+            button.className = "py-3 px-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs text-center flex flex-col items-center gap-1 transition-all focus:ring-2 focus:ring-emerald-500 focus:outline-none";
+          }
+        });
+        btnConfirm.disabled = true;
 
         // Pre-fill cash received input with exact total or empty
         const cashInput = document.getElementById('posCashReceived');
@@ -3250,6 +3460,7 @@
         }
 
         modal.showModal();
+        broadcastRemoteAppState('pos');
 
         // Focus the cash selector button so the user can choose the channel first!
         setTimeout(() => {
@@ -3268,6 +3479,7 @@
         const panelCash = document.getElementById('panelPayCash');
         const panelPP = document.getElementById('panelPayPP');
         const panelCredit = document.getElementById('panelPayCredit');
+        const panelChoose = document.getElementById('panelPayChoose');
 
         const btnConfirm = document.getElementById('btnConfirmPaySelector');
 
@@ -3282,6 +3494,7 @@
         [panelCash, panelPP, panelCredit].forEach(panel => {
           if (panel) panel.classList.add('hidden');
         });
+        if (panelChoose) panelChoose.classList.add('hidden');
 
         const total = calculatePosTotal();
 
@@ -3333,6 +3546,7 @@
 
           syncCustomerDisplay('idle');
         }
+        broadcastRemoteAppState('pos');
       }
 
       function updatePayModalChange() {
@@ -3347,6 +3561,12 @@
       }
 
       function handlePaymentModalConfirm() {
+        if (!selectedPaymentMethod) {
+          const btnCash = document.getElementById('btnPaySelectCash');
+          if (btnCash) btnCash.focus();
+          return;
+        }
+
         const activeId = document.activeElement ? document.activeElement.id : '';
 
         if (selectedPaymentMethod === 'cash' && activeId !== 'posCashReceived') {
@@ -3860,12 +4080,11 @@
       // VAPID Public Key field unlock protection
       const vapidInput = document.getElementById('webVapidPublicKey');
       if (vapidInput) {
-        vapidInput.addEventListener('click', function(e) {
+        vapidInput.addEventListener('click', async function(e) {
           if (this.readOnly && this.value) {
             const enteredPin = prompt("🔑 ช่องนี้ถูกล็อกเพื่อป้องกันการแก้ไขโดยไม่ได้ตั้งใจ\nกรุณากรอกรหัส PIN ผู้ดูแลระบบเพื่อแก้ไข VAPID Public Key:");
             if (enteredPin === null) return;
-            const correctPin = AppConfig.get().adminPin;
-            if (enteredPin === correctPin) {
+            if (await AppConfig.verifyAdminPin(enteredPin)) {
               this.readOnly = false;
               this.classList.remove('bg-slate-100', 'cursor-not-allowed');
               this.classList.add('bg-white');
@@ -3960,9 +4179,10 @@
         const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
         if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
 
-        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        const scanDigit = getScannerDigit(e);
+        if (scanDigit) {
           e.preventDefault();
-          prodScanBuffer += e.key;
+          prodScanBuffer += scanDigit;
           if (prodScanTimer) clearTimeout(prodScanTimer);
           prodScanTimer = setTimeout(() => {
             const searchInput = document.getElementById('prodSearchInput');
@@ -4529,10 +4749,11 @@
             const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
             if (activeTag !== 'input') {
               const qtyInput = document.getElementById('posQtyInput');
-              if (qtyInput && e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+              const scanDigit = getScannerDigit(e);
+              if (qtyInput && scanDigit) {
                 e.preventDefault();
                 qtyInput.focus();
-                qtyInput.value = e.key;
+                qtyInput.value = scanDigit;
               }
             }
           }
@@ -4542,9 +4763,22 @@
         const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
         if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
 
-        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        if (e.key === 'Delete') {
           e.preventDefault();
-          posScanBuffer += e.key;
+          clearPosBill();
+          return;
+        }
+
+        if (e.key === '-' || e.key === 'Subtract' || e.code === 'Minus' || e.code === 'NumpadSubtract') {
+          e.preventDefault();
+          setPosRemoveScanMode(true);
+          return;
+        }
+
+        const scanDigit = getScannerDigit(e);
+        if (scanDigit) {
+          e.preventDefault();
+          posScanBuffer += scanDigit;
           if (posScanTimer) clearTimeout(posScanTimer);
           posScanTimer = setTimeout(() => {
             const posSearch = document.getElementById('posSearchInput');
@@ -4926,8 +5160,7 @@
 
           const enteredPin = prompt("กรุณากรอกรหัส PIN ผู้ดูแลระบบเพื่อยืนยันการลบสมาชิก:");
           if (enteredPin === null) return;
-          const correctPin = AppConfig.get().adminPin;
-          if (enteredPin !== correctPin) {
+          if (!(await AppConfig.verifyAdminPin(enteredPin))) {
             alert("รหัส PIN ไม่ถูกต้อง ไม่สามารถลบลูกค้าได้");
             return;
           }
@@ -4996,17 +5229,43 @@
         mobileSyncSwitch.addEventListener('change', () => {
           isMobileSyncEnabled = mobileSyncSwitch.checked;
           const syncStatusBadge = document.getElementById('syncStatusBadge');
+          const followIndicator = document.getElementById('remoteFollowIndicator');
           if (syncStatusBadge) {
             if (isMobileSyncEnabled) {
               syncStatusBadge.classList.remove('hidden');
               syncStatusBadge.classList.add('flex');
+              if (followIndicator) {
+                followIndicator.classList.remove('hidden');
+                followIndicator.classList.add('flex');
+              }
+              requestRemoteAppState();
             } else {
               syncStatusBadge.classList.add('hidden');
               syncStatusBadge.classList.remove('flex');
+              if (followIndicator) {
+                followIndicator.classList.add('hidden');
+                followIndicator.classList.remove('flex');
+              }
             }
           }
         });
       }
+
+      document.getElementById('btnStopRemoteFollow').addEventListener('click', () => {
+        isMobileSyncEnabled = false;
+        const switchInput = document.getElementById('mobileSyncSwitch');
+        if (switchInput) switchInput.checked = false;
+        const syncStatusBadge = document.getElementById('syncStatusBadge');
+        if (syncStatusBadge) {
+          syncStatusBadge.classList.add('hidden');
+          syncStatusBadge.classList.remove('flex');
+        }
+        const followIndicator = document.getElementById('remoteFollowIndicator');
+        if (followIndicator) {
+          followIndicator.classList.add('hidden');
+          followIndicator.classList.remove('flex');
+        }
+      });
 
       const btnMobileSearchBarcode = document.getElementById('btnMobileSearchBarcode');
       if (btnMobileSearchBarcode) {
@@ -5084,9 +5343,10 @@
         const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
         if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
 
-        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        const scanDigit = getScannerDigit(e);
+        if (scanDigit) {
           e.preventDefault();
-          mobileScanBuffer += e.key;
+          mobileScanBuffer += scanDigit;
           if (mobileScanTimer) clearTimeout(mobileScanTimer);
           mobileScanTimer = setTimeout(() => {
             const mobileInput = document.getElementById('mobileBarcodeSearchInput');
@@ -6038,40 +6298,223 @@
     }
 
     // POS Cart Logic
+    let pendingUnknownBarcode = '';
+
+    function openUnknownProductModal(barcode) {
+      pendingUnknownBarcode = barcode.trim();
+      document.getElementById('posUnknownBarcode').textContent = pendingUnknownBarcode;
+      document.getElementById('posUnknownPrice').value = '';
+      document.getElementById('posUnknownProductModal').showModal();
+      setTimeout(() => document.getElementById('posUnknownPrice').focus(), 80);
+    }
+
+    function closeUnknownProductModal() {
+      pendingUnknownBarcode = '';
+      const modal = document.getElementById('posUnknownProductModal');
+      if (modal.open) modal.close();
+      const posSearch = document.getElementById('posSearchInput');
+      if (posSearch) posSearch.focus();
+    }
+
+    async function saveUnknownProductForQuickSale() {
+      const barcode = pendingUnknownBarcode;
+      const price = parseFloat(document.getElementById('posUnknownPrice').value);
+      if (!barcode || !Number.isFinite(price) || price <= 0) {
+        alert('กรุณากรอกราคาขายให้ถูกต้อง');
+        return;
+      }
+
+      const button = document.getElementById('btnSaveUnknownProduct');
+      button.disabled = true;
+      button.textContent = 'กำลังเพิ่มสินค้า...';
+
+      try {
+        const placeholder = {
+          barcode,
+          name: `สินค้าใหม่ ${barcode}`,
+          cost_price: 0,
+          price,
+          unit: 'ชิ้น',
+          category: 'รอลงรายละเอียด',
+          stock: 0,
+          low_stock_threshold: 0,
+          image_url: null,
+          image_public_id: null,
+          is_active: true
+        };
+        const { data, error } = await sbClient.from('products').insert([placeholder]).select().single();
+        if (error) throw error;
+
+        productsList.push(data);
+        addToPosCart(data, 1);
+        closeUnknownProductModal();
+        renderProductsTable(productsList);
+      } catch (err) {
+        // A second register may have created the same barcode at nearly the same time.
+        const { data: existing } = await sbClient.from('products').select('*').eq('barcode', barcode).maybeSingle();
+        if (existing) {
+          const local = productsList.find(p => p.id === existing.id);
+          if (!local) productsList.push(existing);
+          addToPosCart(local || existing, 1);
+          closeUnknownProductModal();
+          renderProductsTable(productsList);
+        } else {
+          alert('เพิ่มสินค้าชั่วคราวไม่สำเร็จ: ' + err.message);
+        }
+      } finally {
+        button.disabled = false;
+        button.textContent = 'เพิ่มลงบิลและยิงสินค้าต่อ (Enter)';
+      }
+    }
+
+    function getActiveAdminTab() {
+      const activeButton = document.querySelector('.tab-btn.active');
+      return activeButton ? activeButton.getAttribute('data-tab') : 'pos';
+    }
+
+    function getPaymentMethodFromUi() {
+      if (!document.getElementById('panelPayCash').classList.contains('hidden')) return 'cash';
+      if (!document.getElementById('panelPayPP').classList.contains('hidden')) return 'promptpay';
+      if (!document.getElementById('panelPayCredit').classList.contains('hidden')) return 'credit';
+      return null;
+    }
+
+    function broadcastRemoteAppState(activeTab = null) {
+      if (!syncChannel || isApplyingRemoteState) return;
+      const customerSelect = document.getElementById('posCustomerSelect');
+      const paymentModal = document.getElementById('posPaymentSelectorModal');
+      const successModal = document.getElementById('posSuccessModal');
+      syncChannel.send({
+        type: 'broadcast',
+        event: 'app-state',
+        payload: {
+          sourceId: syncInstanceId,
+          sentAt: Date.now(),
+          activeTab: activeTab || getActiveAdminTab(),
+          pos: {
+            cart: posCart,
+            total: calculatePosTotal(),
+            customerId: customerSelect ? customerSelect.value : '',
+            customerPhone: document.getElementById('posCustomerPhoneInput')?.value || '',
+            removeMode: posRemoveScanMode
+          },
+          checkout: {
+            paymentOpen: Boolean(paymentModal && paymentModal.open),
+            successOpen: Boolean(successModal && successModal.open),
+            successTotal: document.getElementById('successTotalText')?.textContent || '',
+            method: getPaymentMethodFromUi(),
+            cashReceived: document.getElementById('posCashReceived')?.value || ''
+          }
+        }
+      });
+    }
+
+    function requestRemoteAppState() {
+      if (!syncChannel) return;
+      syncChannel.send({
+        type: 'broadcast',
+        event: 'state-request',
+        payload: { sourceId: syncInstanceId }
+      });
+    }
+
+    function activateRemoteTab(tabName) {
+      const tabButton = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+      const tabContent = document.getElementById(`tab-${tabName}`);
+      if (!tabButton || !tabContent) return;
+      document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+      tabButton.classList.add('active');
+      tabContent.classList.remove('hidden');
+      const mobileLabel = document.getElementById('mobileActiveTabLabel');
+      if (mobileLabel) mobileLabel.textContent = 'เมนู: ' + tabButton.innerText.trim();
+    }
+
+    function applyRemoteAppState(remoteState) {
+      isApplyingRemoteState = true;
+      try {
+        activateRemoteTab(remoteState.activeTab || 'pos');
+
+        if (remoteState.pos) {
+          posCart = Array.isArray(remoteState.pos.cart) ? remoteState.pos.cart : [];
+          renderPosCart();
+          const customerSelect = document.getElementById('posCustomerSelect');
+          const customerPhone = document.getElementById('posCustomerPhoneInput');
+          if (customerSelect) customerSelect.value = remoteState.pos.customerId || '';
+          if (customerPhone) customerPhone.value = remoteState.pos.customerPhone || '';
+          setPosRemoveScanMode(Boolean(remoteState.pos.removeMode));
+          syncCustomerDisplay('idle');
+        }
+
+        const checkout = remoteState.checkout || {};
+        const paymentModal = document.getElementById('posPaymentSelectorModal');
+        if (checkout.paymentOpen && posCart.length > 0) {
+          if (!paymentModal.open) document.getElementById('btnOpenCheckoutModal').click();
+          if (checkout.method === 'cash') document.getElementById('btnPaySelectCash').click();
+          if (checkout.method === 'promptpay') document.getElementById('btnPaySelectPP').click();
+          if (checkout.method === 'credit') document.getElementById('btnPaySelectCredit').click();
+          if (checkout.cashReceived !== undefined) {
+            const cashInput = document.getElementById('posCashReceived');
+            cashInput.value = checkout.cashReceived;
+            cashInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        } else if (paymentModal.open) {
+          paymentModal.close();
+        }
+
+        const successModal = document.getElementById('posSuccessModal');
+        if (checkout.successOpen) {
+          document.getElementById('successTotalText').textContent = checkout.successTotal || fmt(remoteState.pos?.total || 0);
+          if (!successModal.open) successModal.showModal();
+        } else if (successModal.open) {
+          successModal.close();
+        }
+
+        const status = document.getElementById('remoteFollowStatus');
+        if (status) {
+          status.textContent = checkout.paymentOpen
+            ? `กำลังชำระเงิน · ${fmt(remoteState.pos?.total || 0)}`
+            : `แท็บ ${remoteState.activeTab || 'pos'} · ${remoteState.pos?.cart?.length || 0} รายการ`;
+        }
+      } finally {
+        isApplyingRemoteState = false;
+      }
+    }
+
     async function handlePosBarcodeScanned(code) {
+      code = String(code || '').trim();
+      if (!code) return;
       broadcastBarcode(code);
+
+      if (posRemoveScanMode) {
+        removeOnePosItemByBarcode(code);
+        setPosRemoveScanMode(false);
+        return;
+      }
+
       const found = productsList.find(p => p.barcode === code);
       if (found) {
         if (found.is_active === false) {
-          if (confirm(`พบสินค้าเดิมในคลัง: "${found.name}" แต่ไม่ได้ตั้งค่าวางขายหน้าร้าน\nต้องการดึงกลับเข้าร้านเพื่อคิดเงินทันทีหรือไม่?`)) {
-            try {
-              const { error } = await sbClient.from('products').update({ is_active: true }).eq('id', found.id);
-              if (error) throw error;
-              found.is_active = true;
-              openPosQtyPromptModal(found);
-              loadDashboardData(); // reload in background
-            } catch (err) {
-              alert('เกิดข้อผิดพลาดในการดึงสินค้าคืนร้าน: ' + err.message);
-            }
+          const { error } = await sbClient.from('products').update({ is_active: true }).eq('id', found.id);
+          if (error) {
+            alert('เปิดขายสินค้านี้ไม่สำเร็จ: ' + error.message);
+            return;
           }
-        } else {
-          openPosQtyPromptModal(found);
+          found.is_active = true;
+        }
+        addToPosCart(found, 1);
+        const posSearch = document.getElementById('posSearchInput');
+        if (posSearch) {
+          posSearch.value = '';
+          posSearch.focus();
         }
       } else {
-        // If not found, prompt to add new product
-        if (confirm(`ไม่พบสินค้าบาร์โค้ด: ${code} ในฐานข้อมูล ต้องการเพิ่มสินค้าใหม่หรือไม่?`)) {
-          editingProduct = null;
-          document.getElementById('modalTitle').textContent = 'เพิ่มสินค้าใหม่';
-          document.getElementById('productForm').reset();
-          document.getElementById('prodId').value = '';
-          document.getElementById('prodBarcode').value = code; // prefill barcode
-          document.getElementById('imagePreview').innerHTML = '🖼️';
-          document.getElementById('productModal').showModal();
-        }
+        openUnknownProductModal(code);
       }
     }
 
     function addToPosCart(product, qty = 1) {
+      if (posCart.length === 0) resetPosCustomer();
       const existing = posCart.find(item => item.product.id === product.id);
       if (existing) {
         existing.qty += qty;
@@ -6283,6 +6726,7 @@
         customerName: customerName.split(' - ')[0]
       };
       localStorage.setItem('MN_CUSTOMER_DISPLAY_CART', JSON.stringify(stateObj));
+      broadcastRemoteAppState('pos');
     }
 
     function getCloudinaryPublicId(url) {
@@ -6363,7 +6807,7 @@
     }
     window.clearShopBackground = clearShopBackground;
 
-    // CLOUDINARY IMAGE DELETION (Secure server-side delegation via GAS, or fallback to client-side signing)
+    // CLOUDINARY IMAGE DELETION (server-side only; secrets never reach the browser)
     async function deleteCloudinaryImage(publicId) {
       const c = AppConfig.get();
 
@@ -6376,38 +6820,13 @@
           if (data && (data.result === 'ok' || data.result === 'not found')) {
             return;
           }
-          console.warn('ลบผ่าน GAS ไม่สำเร็จ หรือระบบไม่ได้ตั้งค่าคีย์ใน GAS. กำลังลองใช้วิธี client-side fallback...');
+          throw new Error(data && data.error ? data.error : 'GAS image deletion failed');
         } catch (err) {
           console.error('ลบรูปภาพผ่าน GAS ล้มเหลว:', err);
+          throw err;
         }
       }
-
-      // 2. Fallback to client-side signature generation if no GAS URL is set
-      if (!c.cloudinaryApiKey || !c.cloudinaryApiSecret) {
-        console.warn('ไม่ได้กรอก Cloudinary API Key/Secret; ไม่ลบรูปภาพต้นฉบับ');
-        return;
-      }
-
-      const timestamp = Math.round((new Date()).getTime() / 1000);
-      const signatureStr = `public_id=${publicId}&timestamp=${timestamp}${c.cloudinaryApiSecret}`;
-      const signature = CryptoJS.SHA1(signatureStr).toString();
-
-      const formData = new FormData();
-      formData.append('public_id', publicId);
-      formData.append('timestamp', timestamp);
-      formData.append('api_key', c.cloudinaryApiKey);
-      formData.append('signature', signature);
-
-      try {
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${c.cloudinaryCloudName}/image/destroy`, {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        console.log('Cloudinary Image Destroy response:', data);
-      } catch (err) {
-        console.error('ลบรูปภาพ Cloudinary ล้มเหลว:', err);
-      }
+      throw new Error('ยังไม่ได้ตั้งค่า Google Apps Script สำหรับลบรูปอย่างปลอดภัย');
     }
 
     // DYNAMIC PROMPTPAY QR GENERATOR CODE (EMVCo Specification)
@@ -6462,10 +6881,12 @@
       setTimeout(() => document.getElementById('adminPinInput').focus(), 100);
     }
 
-    function verifyAdminPin() {
+    async function verifyAdminPin() {
       const pin = document.getElementById('adminPinInput').value;
-      const c = AppConfig.get();
-      if (pin === c.adminPin) {
+      const confirmButton = document.getElementById('btnConfirmAdminPin');
+      confirmButton.disabled = true;
+      confirmButton.textContent = 'กำลังตรวจสอบ...';
+      if (await AppConfig.verifyAdminPin(pin)) {
         isAdminUnlocked = true;
         document.getElementById('adminPinModal').close();
         document.getElementById('btnLockAdmin').classList.remove('hidden');
@@ -6476,7 +6897,11 @@
         }
       } else {
         document.getElementById('adminPinError').classList.remove('hidden');
+        document.getElementById('adminPinInput').focus();
+        document.getElementById('adminPinInput').select();
       }
+      confirmButton.disabled = false;
+      confirmButton.textContent = 'ตกลง (Enter)';
     }
 
     // Highlight search results items on arrow keys navigation
