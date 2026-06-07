@@ -1786,6 +1786,20 @@
           </label>
         </div>
 
+        <div class="bg-violet-50 p-3 rounded-xl border border-violet-100 space-y-2">
+          <div>
+            <span class="block text-slate-800 font-bold">🖥️ กำหนดตำแหน่ง 2 จอ</span>
+            <span class="block text-[10px] text-slate-500 font-normal mt-0.5">
+              วางแอป POS ไว้บนจอคิดเงิน แล้วกดปุ่มนี้ ระบบจะกำหนดอีกจอเป็นหน้าลูกค้า
+            </span>
+          </div>
+          <button type="button" id="btnConfigureDisplayLayout"
+            class="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold transition-colors">
+            จำจอ POS และจอลูกค้าตอนนี้
+          </button>
+          <p id="displayLayoutStatus" class="text-[10px] text-violet-700 font-normal"></p>
+        </div>
+
         <div class="pt-2 flex gap-3">
           <button type="button" id="btnCancelSettings"
             class="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold transition-colors">ยกเลิก</button>
@@ -2402,6 +2416,49 @@
       }
     }
 
+    function getScreenIdentity(screenInfo) {
+      if (!screenInfo) return '';
+      return screenInfo.label || [
+        screenInfo.left,
+        screenInfo.top,
+        screenInfo.width,
+        screenInfo.height
+      ].join(':');
+    }
+
+    function screenToGeometry(screenInfo, fallbackWidth, fallbackHeight) {
+      const left = Number.isFinite(screenInfo.availLeft) ? screenInfo.availLeft : screenInfo.left;
+      const top = Number.isFinite(screenInfo.availTop) ? screenInfo.availTop : screenInfo.top;
+      const width = Number.isFinite(screenInfo.availWidth) ? screenInfo.availWidth : screenInfo.width;
+      const height = Number.isFinite(screenInfo.availHeight) ? screenInfo.availHeight : screenInfo.height;
+      return {
+        left: Math.round(left || 0),
+        top: Math.round(top || 0),
+        width: Math.max(640, Math.round(width || fallbackWidth)),
+        height: Math.max(480, Math.round(height || fallbackHeight))
+      };
+    }
+
+    function readDisplayLayout() {
+      try {
+        return JSON.parse(localStorage.getItem('MN_DISPLAY_LAYOUT') || 'null');
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async function getConfiguredScreen(role) {
+      const layout = readDisplayLayout();
+      if (!layout || typeof window.getScreenDetails !== 'function') return null;
+      try {
+        const details = await window.getScreenDetails();
+        const wantedId = role === 'pos' ? layout.posScreenId : layout.customerScreenId;
+        return details.screens.find(item => getScreenIdentity(item) === wantedId) || null;
+      } catch (error) {
+        return null;
+      }
+    }
+
     function rememberPosWindowGeometry() {
       const geometry = {
         left: Number.isFinite(window.screenX) ? Math.round(window.screenX) : 0,
@@ -2412,11 +2469,14 @@
       localStorage.setItem('MN_POS_MAIN_GEOMETRY', JSON.stringify(geometry));
     }
 
-    function restorePosWindowGeometry() {
+    async function restorePosWindowGeometry() {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       if (!isStandalone) return;
 
-      const geometry = readWindowGeometry('MN_POS_MAIN_GEOMETRY', {
+      const configuredScreen = await getConfiguredScreen('pos');
+      const geometry = configuredScreen
+        ? screenToGeometry(configuredScreen, 1200, 800)
+        : readWindowGeometry('MN_POS_MAIN_GEOMETRY', {
         left: 40,
         top: 40,
         width: 1200,
@@ -2474,6 +2534,10 @@
     }
 
     function getCustomerDisplayGeometry() {
+      const layout = readDisplayLayout();
+      if (layout && layout.customerGeometry) {
+        return layout.customerGeometry;
+      }
       return readWindowGeometry('MN_CUSTOMER_DISPLAY_GEOMETRY', {
         left: 80,
         top: 80,
@@ -2546,6 +2610,43 @@
       customerDisplayAutoOpenAttempted = true;
       if (localStorage.getItem('MN_AUTO_CUSTOMER_DISPLAY') === 'true') {
         setTimeout(() => openCustomerDisplay(true), 100);
+      }
+    }
+
+    async function configureDisplayLayout() {
+      const status = document.getElementById('displayLayoutStatus');
+      if (typeof window.getScreenDetails !== 'function') {
+        status.textContent = 'เบราว์เซอร์รุ่นนี้ยังไม่รองรับการกำหนดหลายจอ กรุณาอัปเดต Edge หรือ Chrome';
+        return;
+      }
+
+      try {
+        const details = await window.getScreenDetails();
+        if (!details.screens || details.screens.length < 2) {
+          status.textContent = 'ระบบพบเพียง 1 จอ กรุณาตรวจสอบการตั้งค่า Display ของ Windows';
+          return;
+        }
+
+        const posScreen = details.currentScreen;
+        const posScreenId = getScreenIdentity(posScreen);
+        const customerScreen = details.screens.find(item => getScreenIdentity(item) !== posScreenId) || details.screens[1];
+        const posGeometry = screenToGeometry(posScreen, 1200, 800);
+        const customerGeometry = screenToGeometry(customerScreen, 1000, 700);
+        const layout = {
+          posScreenId,
+          customerScreenId: getScreenIdentity(customerScreen),
+          posGeometry,
+          customerGeometry
+        };
+        localStorage.setItem('MN_DISPLAY_LAYOUT', JSON.stringify(layout));
+        localStorage.setItem('MN_POS_MAIN_GEOMETRY', JSON.stringify(posGeometry));
+        localStorage.setItem('MN_CUSTOMER_DISPLAY_GEOMETRY', JSON.stringify(customerGeometry));
+        status.textContent = `บันทึกแล้ว: POS = ${posScreen.label || 'จอปัจจุบัน'} | ลูกค้า = ${customerScreen.label || 'จอที่สอง'}`;
+
+        closeCustomerDisplay();
+        setTimeout(() => openCustomerDisplay(false), 150);
+      } catch (error) {
+        status.textContent = 'กรุณากดอนุญาตสิทธิ์จัดการหน้าต่างหลายจอ แล้วลองอีกครั้ง';
       }
     }
 
@@ -6092,6 +6193,10 @@
         document.getElementById('settingsGasUrl').value = localStorage.getItem('MN_GAS_URL') || c.gasUrl || '';
         document.getElementById('settingsAutoPrint').checked = localStorage.getItem('MN_AUTO_PRINT_RECEIPT') === 'true';
         document.getElementById('settingsAutoCustomerDisplay').checked = localStorage.getItem('MN_AUTO_CUSTOMER_DISPLAY') === 'true';
+        const savedLayout = readDisplayLayout();
+        document.getElementById('displayLayoutStatus').textContent = savedLayout
+          ? 'มีการจำตำแหน่งจอไว้แล้ว กดปุ่มอีกครั้งเมื่อต้องการเปลี่ยนจอ'
+          : 'ยังไม่ได้กำหนดจอ POS และจอลูกค้า';
         document.getElementById('receiptSettingsModal').showModal();
       });
 
@@ -6134,6 +6239,7 @@
       document.getElementById('btnOpenCustomerDisplay').addEventListener('click', () => {
         openCustomerDisplay(false);
       });
+      document.getElementById('btnConfigureDisplayLayout').addEventListener('click', configureDisplayLayout);
 
       // Admin PIN Verification dialog listeners
       document.getElementById('btnCancelAdminPin').addEventListener('click', () => {

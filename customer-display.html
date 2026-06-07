@@ -169,8 +169,30 @@
       }
     }
 
-    function restoreCustomerDisplayGeometry() {
-      const geometry = getSavedCustomerDisplayGeometry();
+    function getScreenIdentity(screenInfo) {
+      if (!screenInfo) return '';
+      return screenInfo.label || [screenInfo.left, screenInfo.top, screenInfo.width, screenInfo.height].join(':');
+    }
+
+    async function restoreCustomerDisplayGeometry() {
+      let geometry = getSavedCustomerDisplayGeometry();
+      try {
+        const layout = JSON.parse(localStorage.getItem('MN_DISPLAY_LAYOUT') || 'null');
+        if (layout && typeof window.getScreenDetails === 'function') {
+          const details = await window.getScreenDetails();
+          const target = details.screens.find(item => getScreenIdentity(item) === layout.customerScreenId);
+          if (target) {
+            geometry = {
+              left: Math.round(Number.isFinite(target.availLeft) ? target.availLeft : target.left),
+              top: Math.round(Number.isFinite(target.availTop) ? target.availTop : target.top),
+              width: Math.max(640, Math.round(target.availWidth || target.width || geometry.width)),
+              height: Math.max(480, Math.round(target.availHeight || target.height || geometry.height))
+            };
+          }
+        }
+      } catch (error) {
+        console.warn('ใช้ตำแหน่งจอลูกค้าที่บันทึกไว้แทน:', error);
+      }
       try {
         window.moveTo(geometry.left, geometry.top);
         window.resizeTo(geometry.width, geometry.height);
@@ -189,8 +211,8 @@
       localStorage.setItem('MN_CUSTOMER_DISPLAY_GEOMETRY', JSON.stringify(geometry));
     }
 
-    setTimeout(() => {
-      restoreCustomerDisplayGeometry();
+    setTimeout(async () => {
+      await restoreCustomerDisplayGeometry();
       setTimeout(rememberCustomerDisplayGeometry, 300);
     }, 100);
     window.addEventListener('resize', rememberCustomerDisplayGeometry);
