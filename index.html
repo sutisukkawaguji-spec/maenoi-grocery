@@ -16,6 +16,7 @@
       --brand: #047857;
       --brand-soft: #ecfdf5;
       --ink: #172554;
+      --shop-bg: url('images/cover.jpg');
     }
     body {
       font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
@@ -47,7 +48,7 @@
       min-height: clamp(360px, 58vh, 560px);
       background-image:
         linear-gradient(90deg, rgba(5, 46, 22, .88) 0%, rgba(5, 46, 22, .62) 48%, rgba(5, 46, 22, .08) 100%),
-        url('images/cover.jpg');
+        var(--shop-bg);
       background-size: cover;
       background-position: center;
     }
@@ -65,7 +66,7 @@
         min-height: 420px;
         background-image:
           linear-gradient(180deg, rgba(5, 46, 22, .86) 0%, rgba(5, 46, 22, .56) 55%, rgba(5, 46, 22, .28) 100%),
-          url('images/cover.jpg');
+          var(--shop-bg);
       }
       .product-media {
         aspect-ratio: 1 / .82;
@@ -98,6 +99,11 @@
           <p class="text-xs text-gray-500 hidden sm:block">ของชำ อาหารพร้อมทาน และของใช้ใกล้บ้าน</p>
         </div>
         <div class="ms-auto flex items-center gap-2">
+          <button id="btnInstallStorePWA" type="button"
+            class="hidden items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs sm:text-sm font-semibold hover:bg-emerald-100 transition-colors"
+            title="ติดตั้งแอปร้านค้าลงเครื่อง">
+            ติดตั้ง App
+          </button>
           <!-- Member Area -->
           <div id="memberArea" class="flex items-center gap-2">
             <button type="button" id="btnShowAuthModal" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs sm:text-sm font-semibold hover:bg-emerald-100 transition-colors">
@@ -467,9 +473,11 @@
           const { data, error } = await sbClient
             .from('subscribers')
             .select('contact')
-            .order('created_at', { ascending: false });
+            .like('contact', 'CONFIG_JSON:%')
+            .order('created_at', { ascending: false })
+            .limit(1);
           if (!error && data) {
-            const configRecord = data.find(s => s.contact && s.contact.startsWith('CONFIG_JSON:'));
+            const configRecord = data[0];
             if (configRecord) {
               const rawStr = configRecord.contact.substring(12);
               supabaseConfig = JSON.parse(rawStr);
@@ -543,7 +551,8 @@
 
       // Shop Background Dynamic Set
       if (supabaseConfig && supabaseConfig.shopBackground) {
-        document.documentElement.style.setProperty('--shop-bg', "url('" + supabaseConfig.shopBackground + "')");
+        const shopBackgroundUrl = String(supabaseConfig.shopBackground).trim();
+        document.documentElement.style.setProperty('--shop-bg', `url(${JSON.stringify(shopBackgroundUrl)})`);
       } else {
         document.documentElement.style.removeProperty('--shop-bg');
       }
@@ -1270,6 +1279,52 @@
           closeLightbox();
         }
       });
+    });
+
+    // PWA installer for desktop Chrome and Edge.
+    let storefrontInstallPrompt = null;
+    const storefrontInstallButton = document.getElementById('btnInstallStorePWA');
+    const isStorefrontInstalled = () =>
+      window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .catch(error => console.warn('Service Worker registration failed:', error));
+      });
+    }
+
+    window.addEventListener('beforeinstallprompt', event => {
+      event.preventDefault();
+      storefrontInstallPrompt = event;
+      if (storefrontInstallButton && !isStorefrontInstalled()) {
+        storefrontInstallButton.classList.remove('hidden');
+        storefrontInstallButton.classList.add('md:inline-flex');
+      }
+    });
+
+    if (storefrontInstallButton) {
+      if (!isStorefrontInstalled() && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        storefrontInstallButton.classList.remove('hidden');
+        storefrontInstallButton.classList.add('md:inline-flex');
+      }
+      storefrontInstallButton.addEventListener('click', async () => {
+        if (!storefrontInstallPrompt) {
+          alert('หากต้องการติดตั้งบน PC ให้เปิดเมนู Chrome หรือ Edge แล้วเลือก “ติดตั้งแอป” หรือ “Apps > Install this site as an app”');
+          return;
+        }
+        storefrontInstallPrompt.prompt();
+        await storefrontInstallPrompt.userChoice;
+        storefrontInstallPrompt = null;
+        storefrontInstallButton.classList.add('hidden');
+        storefrontInstallButton.classList.remove('md:inline-flex');
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      storefrontInstallPrompt = null;
+      storefrontInstallButton?.classList.add('hidden');
+      storefrontInstallButton?.classList.remove('md:inline-flex');
     });
 
     // --- Web Push Notification Logic ---

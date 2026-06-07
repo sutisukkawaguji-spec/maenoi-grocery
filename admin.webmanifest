@@ -1,7 +1,9 @@
 {
   "name": "ระบบหลังบ้าน ร้านแม่น้อย",
   "short_name": "หลังบ้านแม่น้อย",
-  "start_url": "admin.html",
+  "id": "./admin",
+  "start_url": "./admin.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#10b981",

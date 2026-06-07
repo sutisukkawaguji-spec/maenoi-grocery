@@ -265,6 +265,10 @@
             class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all active">
             <span class="text-lg">🛒</span> ระบบคิดเงิน POS
           </button>
+          <button id="btnUnlockAdminTabs"
+            class="w-full px-4 py-3 rounded-2xl text-left font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 items-center gap-3 transition-all hidden">
+            <span class="text-lg">🔓</span> ปลดล็อกแท็บอื่น
+          </button>
           <button data-tab="products"
             class="tab-btn w-full px-4 py-3 rounded-2xl text-left font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-3 transition-all">
             <span class="text-lg">📦</span> จัดการสินค้า
@@ -549,6 +553,8 @@
                     <button type="button" onclick="document.getElementById('fileShopBackground').click()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all">📷 อัปโหลด</button>
                     <button type="button" onclick="clearShopBackground()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all border border-rose-150">🗑️ ลบรูป</button>
                   </div>
+                  <img id="webShopBackgroundPreview" alt="ตัวอย่างภาพพื้นหลังชื่อร้าน"
+                    class="hidden mt-3 w-full h-32 object-cover rounded-xl border border-slate-200 bg-slate-50" />
                 </div>
                 <div class="border-t pt-3 mt-3">
                   <label class="block text-xs font-bold text-slate-700 mb-1">🔑 VAPID Public Key (สำหรับระบบแจ้งเตือน Push Notification มือถือ)</label>
@@ -1781,7 +1787,7 @@
     <form id="adminPinForm" class="bg-white p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 class="text-base font-bold text-slate-900">🔒 ยืนยันรหัสผ่านหลังบ้าน</h3>
-        <button type="button" id="btnCancelAdminPin" onclick="document.getElementById('adminPinModal').close();" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+        <button type="button" id="btnCancelAdminPin" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
       </div>
       <div class="space-y-3">
         <p class="text-xs text-slate-500">กรุณาใส่รหัส PIN 4 หลัก เพื่อเข้าใช้งานระบบจัดการส่วนอื่น (รหัสเริ่มต้นคือ 1234)</p>
@@ -2500,7 +2506,7 @@
           const target = tab.getAttribute('data-tab');
 
           // PIN Lock Security Check
-          if (target !== 'pos' && target !== 'mobile-manager' && !isAdminUnlocked) {
+          if (target !== 'pos' && !isAdminUnlocked) {
             e.preventDefault();
             openAdminPinModal(target);
             return;
@@ -3850,8 +3856,16 @@
 
       function handlePaymentModalConfirm() {
         if (!selectedPaymentMethod) {
-          const btnCash = document.getElementById('btnPaySelectCash');
-          if (btnCash) btnCash.focus();
+          const activeId = document.activeElement ? document.activeElement.id : '';
+          if (activeId === 'btnPaySelectPP') {
+            selectPaymentMethod('promptpay', true);
+          } else if (activeId === 'btnPaySelectCredit' && !posDebtPaymentMode) {
+            selectPaymentMethod('credit', true);
+          } else {
+            // Cash is the default focused option: one Enter selects it and
+            // moves directly into the received-cash input.
+            selectPaymentMethod('cash', true);
+          }
           return;
         }
 
@@ -4396,6 +4410,7 @@
         try {
           const url = await uploadToCloudinary(file);
           targetInput.value = url;
+          targetInput.dispatchEvent(new Event('input', { bubbles: true }));
         } catch (err) {
           alert('อัปโหลดล้มเหลว: ' + err.message);
         } finally {
@@ -4420,8 +4435,22 @@
 
       const fileShopBg = document.getElementById('fileShopBackground');
       const textShopBg = document.getElementById('webShopBackground');
+      const previewShopBg = document.getElementById('webShopBackgroundPreview');
+      const updateShopBackgroundPreview = () => {
+        if (!textShopBg || !previewShopBg) return;
+        const url = textShopBg.value.trim();
+        if (!url) {
+          previewShopBg.removeAttribute('src');
+          previewShopBg.classList.add('hidden');
+          return;
+        }
+        previewShopBg.src = url;
+        previewShopBg.classList.remove('hidden');
+      };
       if (fileShopBg && textShopBg) {
         fileShopBg.addEventListener('change', () => handleCloudinaryUploadForInput(fileShopBg, textShopBg));
+        textShopBg.addEventListener('input', updateShopBackgroundPreview);
+        previewShopBg.addEventListener('error', () => previewShopBg.classList.add('hidden'));
       }
 
       // VAPID Public Key field unlock protection
@@ -4478,8 +4507,10 @@
         try {
           const { data: existing, error: fetchErr } = await sbClient
             .from('subscribers')
-            .select('id')
-            .like('contact', 'CONFIG_JSON:%');
+            .select('id, created_at')
+            .like('contact', 'CONFIG_JSON:%')
+            .order('created_at', { ascending: false })
+            .limit(1);
 
           if (fetchErr) throw fetchErr;
 
@@ -5896,15 +5927,10 @@
       }
 
       // PIN Lock Button click
-      document.getElementById('btnLockAdmin').addEventListener('click', () => {
-        isAdminUnlocked = false;
-        document.getElementById('btnLockAdmin').classList.add('hidden');
-
-        const posTabBtn = document.querySelector('.tab-btn[data-tab="pos"]');
-        if (posTabBtn) {
-          posTabBtn.click();
-        }
-      });
+      document.getElementById('btnUnlockAdminTabs').addEventListener('click', () => openAdminPinModal(null));
+      document.getElementById('btnLockAdmin').addEventListener('click', lockAdminTabs);
+      window.addEventListener('resize', applyAdminTabLockState);
+      applyAdminTabLockState();
 
       // Receipt settings modal listeners
       document.getElementById('btnOpenReceiptSettings').addEventListener('click', () => {
@@ -5947,7 +5973,7 @@
 
       // Admin PIN Verification dialog listeners
       document.getElementById('btnCancelAdminPin').addEventListener('click', () => {
-        document.getElementById('adminPinModal').close();
+        closeAdminPinModal();
       });
 
       const adminPinForm = document.getElementById('adminPinForm');
@@ -5957,6 +5983,12 @@
           verifyAdminPin();
         });
       }
+      document.getElementById('adminPinModal').addEventListener('keydown', (e) => {
+        if (e.key === 'Delete') {
+          e.preventDefault();
+          closeAdminPinModal();
+        }
+      });
 
       // Cash input is now handled inside the payment selector modal
 
@@ -7134,6 +7166,7 @@
           }
         }
         input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
         alert(`ลบรูปภาพแบนเนอร์ที่ ${num} เรียบร้อยแล้ว (รอกดบันทึกเพื่อบันทึกการเปลี่ยนแปลง)`);
       }
     }
@@ -7173,6 +7206,7 @@
           }
         }
         input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
         alert('ลบรูปภาพพื้นหลังเรียบร้อยแล้ว (รอกดบันทึกเพื่อบันทึกการเปลี่ยนแปลง)');
       }
     }
@@ -7244,12 +7278,48 @@
 
     // Admin PIN dialog functions
     let pendingTabTarget = null;
+
+    function applyAdminTabLockState() {
+      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+      document.querySelectorAll('.tab-btn[data-tab]:not([data-tab="pos"])').forEach(tab => {
+        tab.style.display = isDesktop && !isAdminUnlocked ? 'none' : '';
+      });
+
+      const unlockButton = document.getElementById('btnUnlockAdminTabs');
+      const lockButton = document.getElementById('btnLockAdmin');
+      if (unlockButton) {
+        unlockButton.style.display = isDesktop && !isAdminUnlocked ? 'flex' : 'none';
+      }
+      if (lockButton) {
+        lockButton.style.display = isAdminUnlocked ? 'flex' : 'none';
+      }
+    }
+
+    function lockAdminTabs() {
+      isAdminUnlocked = false;
+      applyAdminTabLockState();
+
+      const posTabBtn = document.querySelector('.tab-btn[data-tab="pos"]');
+      if (posTabBtn) {
+        posTabBtn.click();
+      }
+    }
+
     function openAdminPinModal(targetTab) {
       pendingTabTarget = targetTab;
       document.getElementById('adminPinInput').value = '';
       document.getElementById('adminPinError').classList.add('hidden');
       document.getElementById('adminPinModal').showModal();
       setTimeout(() => document.getElementById('adminPinInput').focus(), 100);
+    }
+
+    function closeAdminPinModal() {
+      pendingTabTarget = null;
+      const modal = document.getElementById('adminPinModal');
+      if (modal.open) {
+        modal.close();
+      }
+      focusPosScanner(true);
     }
 
     async function verifyAdminPin() {
@@ -7260,12 +7330,15 @@
       if (await AppConfig.verifyAdminPin(pin)) {
         isAdminUnlocked = true;
         document.getElementById('adminPinModal').close();
-        document.getElementById('btnLockAdmin').classList.remove('hidden');
+        applyAdminTabLockState();
 
         const tabBtn = document.querySelector(`.tab-btn[data-tab="${pendingTabTarget}"]`);
         if (tabBtn) {
           tabBtn.click();
+        } else {
+          focusPosScanner(true);
         }
+        pendingTabTarget = null;
       } else {
         document.getElementById('adminPinError').classList.remove('hidden');
         document.getElementById('adminPinInput').focus();
@@ -7567,6 +7640,7 @@
       }
       if (configData.shopBackground !== undefined) {
         document.getElementById('webShopBackground').value = configData.shopBackground || '';
+        document.getElementById('webShopBackground').dispatchEvent(new Event('input', { bubbles: true }));
       }
       if (configData.announcement) {
         document.getElementById('webAnnText').value = configData.announcement.text || '';
@@ -8019,25 +8093,35 @@
     }
 
     let deferredPrompt = null;
+    const isAdminAppInstalled = () =>
+      window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const showAdminInstallButton = () => {
+      const button = document.getElementById('btnInstallAdminPWA');
+      if (button && !isAdminAppInstalled()) button.classList.remove('hidden');
+    };
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      const installBtn = document.getElementById('btnInstallAdminPWA');
-      if (installBtn) {
-        installBtn.classList.remove('hidden');
-      }
+      showAdminInstallButton();
     });
 
     const installBtn = document.getElementById('btnInstallAdminPWA');
     if (installBtn) {
       installBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
+        if (!deferredPrompt) {
+          alert('หากต้องการติดตั้งบน PC ให้เปิดเมนู Chrome หรือ Edge แล้วเลือก “ติดตั้งแอป” หรือ “Apps > Install this site as an app”');
+          return;
+        }
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
         deferredPrompt = null;
         installBtn.classList.add('hidden');
       });
+      if (!isAdminAppInstalled() && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        showAdminInstallButton();
+      }
     }
 
     window.addEventListener('appinstalled', (evt) => {
