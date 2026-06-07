@@ -1558,6 +1558,24 @@
     </form>
   </dialog>
 
+  <!-- MODAL: Customer display ready -->
+  <dialog id="customerDisplayReadyModal"
+    class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
+    <div class="bg-white p-6 space-y-5 text-center">
+      <div class="w-14 h-14 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl">
+        ✓
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-slate-900">หน้าจอลูกค้าพร้อมแล้ว</h3>
+        <p class="text-sm text-slate-500 mt-2">กด Enter เพื่อกลับหน้าคิดเงินและพร้อมยิงสินค้า</p>
+      </div>
+      <button type="button" id="btnConfirmCustomerDisplayReady"
+        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-md focus:ring-4 focus:ring-emerald-200 focus:outline-none">
+        ตกลง (Enter)
+      </button>
+    </div>
+  </dialog>
+
   <!-- MODAL: POS Debt Payment Amount -->
   <dialog id="posDebtAmountModal"
     class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
@@ -1721,7 +1739,7 @@
         </button>
         <button id="btnConfirmCloseSuccessModal"
           class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors">
-          ตกลง (ทำรายการใหม่)
+          พิมพ์ใบเสร็จ / ทำรายการใหม่ (Enter)
         </button>
       </div>
     </div>
@@ -1729,15 +1747,16 @@
 
   <!-- MODAL: Receipt & Payment Settings -->
   <dialog id="receiptSettingsModal"
-    class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
-    <div class="bg-white p-6 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+    class="p-0 rounded-3xl shadow-2xl max-w-sm w-[calc(100%-1.5rem)] border border-slate-100 overflow-hidden max-h-[92vh]">
+    <div class="bg-white h-[min(92vh,760px)] flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4 flex-shrink-0">
         <h3 class="text-base font-bold text-slate-900">⚙️ ตั้งค่า POS และหน้าจอลูกค้า</h3>
         <button id="btnCancelReceiptSettings"
           class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
       </div>
 
-      <form id="receiptSettingsForm" class="space-y-4 text-xs font-semibold text-slate-600">
+      <form id="receiptSettingsForm" class="flex-1 min-h-0 flex flex-col text-xs font-semibold text-slate-600">
+        <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4 custom-scrollbar">
         <div>
           <label class="block text-slate-600 mb-1">เส้นทางบันทึกไฟล์ (Path/Prefix) <span
               class="text-slate-400 font-normal">(ระบุโฟลเดอร์นำหน้า เช่น receipts/)</span></label>
@@ -1786,6 +1805,27 @@
           </label>
         </div>
 
+        <div class="bg-sky-50 p-3 rounded-xl border border-sky-100 space-y-2">
+          <span class="block text-slate-800 font-bold">ตำแหน่งโหมดจอเดียว</span>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="singleScreenPosSide" value="left" class="peer sr-only" />
+              <span
+                class="block text-center py-2.5 rounded-xl border border-sky-200 bg-white text-slate-600 peer-checked:bg-sky-600 peer-checked:text-white peer-checked:border-sky-600 font-bold">
+                POS ซ้าย / ลูกค้าขวา
+              </span>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="singleScreenPosSide" value="right" class="peer sr-only" />
+              <span
+                class="block text-center py-2.5 rounded-xl border border-sky-200 bg-white text-slate-600 peer-checked:bg-sky-600 peer-checked:text-white peer-checked:border-sky-600 font-bold">
+                ลูกค้าซ้าย / POS ขวา
+              </span>
+            </label>
+          </div>
+          <span class="block text-[10px] text-slate-500 font-normal">ระบบจะจำตำแหน่งที่เลือกไว้สำหรับการเปิดครั้งต่อไป</span>
+        </div>
+
         <div class="bg-amber-50 p-3 rounded-xl border border-amber-100 space-y-2">
           <div>
             <span class="block text-slate-800 font-bold">🔊 เสียงพูดภาษาไทย</span>
@@ -1814,7 +1854,9 @@
           <p id="displayLayoutStatus" class="text-[10px] text-violet-700 font-normal"></p>
         </div>
 
-        <div class="pt-2 flex gap-3">
+        </div>
+
+        <div class="flex gap-3 px-5 py-4 border-t border-slate-200 bg-white shadow-[0_-8px_20px_rgba(15,23,42,0.06)] flex-shrink-0">
           <button type="button" id="btnCancelSettings"
             class="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold transition-colors">ยกเลิก</button>
           <button type="submit"
@@ -2032,6 +2074,8 @@
     let shortcutMode = false;
     let activeSearchIndex = -1;
     let lastSaleRecord = null;
+    let lastSaleReceiptPrinted = false;
+    let isFinishingPosTransaction = false;
     let posRemoveScanMode = false;
     let posScanAction = null;
     let posScanActionQty = 1;
@@ -2413,6 +2457,11 @@
     document.addEventListener('DOMContentLoaded', () => {
       restorePosWindowGeometry();
       startRememberingPosWindowGeometry();
+      window.addEventListener('message', event => {
+        if (event.origin === window.location.origin && event.data?.type === 'MN_CUSTOMER_DISPLAY_READY') {
+          showCustomerDisplayReadyModal();
+        }
+      });
       setupAuthListeners(); // Setup auth listeners FIRST, separately
       initApp();
       setupEventListeners();
@@ -2490,10 +2539,13 @@
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
       if (!isStandalone) return;
 
-      const configuredScreen = await getConfiguredScreen('pos');
-      const geometry = configuredScreen
-        ? screenToGeometry(configuredScreen, 1200, 800)
-        : readWindowGeometry('MN_POS_MAIN_GEOMETRY', {
+      const layout = readDisplayLayout();
+      const configuredScreen = layout?.singleScreen ? null : await getConfiguredScreen('pos');
+      const geometry = layout?.singleScreen && layout.posGeometry
+        ? layout.posGeometry
+        : configuredScreen
+          ? screenToGeometry(configuredScreen, 1200, 800)
+          : readWindowGeometry('MN_POS_MAIN_GEOMETRY', {
         left: 40,
         top: 40,
         width: 1200,
@@ -2507,6 +2559,70 @@
           console.warn('ไม่สามารถคืนตำแหน่งหน้าคิดเงินได้:', error);
         }
       }, 150);
+    }
+
+    function movePosWindowToGeometry(geometry) {
+      if (!geometry) return;
+      try {
+        window.moveTo(geometry.left, geometry.top);
+        window.resizeTo(geometry.width, geometry.height);
+      } catch (error) {
+        console.warn('ไม่สามารถจัดตำแหน่งหน้าต่าง POS ได้:', error);
+      }
+    }
+
+    async function applyCurrentDisplayMode(autoCustomerDisplay) {
+      let screens = [window.screen];
+      let currentScreen = window.screen;
+      if (typeof window.getScreenDetails === 'function') {
+        try {
+          const details = await window.getScreenDetails();
+          screens = Array.from(details.screens || []);
+          currentScreen = details.currentScreen || currentScreen;
+        } catch (error) {
+          screens = [window.screen];
+        }
+      }
+
+      if (screens.length > 1) {
+        const layout = readDisplayLayout();
+        if (layout?.singleScreen) localStorage.removeItem('MN_DISPLAY_LAYOUT');
+        return false;
+      }
+
+      const full = screenToGeometry(
+        currentScreen,
+        window.screen.availWidth || 1200,
+        window.screen.availHeight || 800
+      );
+      if (!autoCustomerDisplay) {
+        localStorage.removeItem('MN_DISPLAY_LAYOUT');
+        localStorage.setItem('MN_POS_MAIN_GEOMETRY', JSON.stringify(full));
+        movePosWindowToGeometry(full);
+        return true;
+      }
+
+      const posWidth = Math.max(480, Math.floor(full.width / 2));
+      const customerWidth = Math.max(480, full.width - posWidth);
+      const posSide = localStorage.getItem('MN_SINGLE_SCREEN_POS_SIDE') === 'right' ? 'right' : 'left';
+      const posGeometry = {
+        left: posSide === 'right' ? full.left + customerWidth : full.left,
+        top: full.top,
+        width: posWidth,
+        height: full.height
+      };
+      const customerGeometry = {
+        left: posSide === 'right' ? full.left : full.left + posWidth,
+        top: full.top,
+        width: customerWidth,
+        height: full.height
+      };
+      const layout = { singleScreen: true, posSide, posGeometry, customerGeometry };
+      localStorage.setItem('MN_DISPLAY_LAYOUT', JSON.stringify(layout));
+      localStorage.setItem('MN_POS_MAIN_GEOMETRY', JSON.stringify(posGeometry));
+      localStorage.setItem('MN_CUSTOMER_DISPLAY_GEOMETRY', JSON.stringify(customerGeometry));
+      movePosWindowToGeometry(posGeometry);
+      return true;
     }
 
     function startRememberingPosWindowGeometry() {
@@ -2545,8 +2661,11 @@
         authScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         startCustomerDisplayHeartbeat();
+        const autoCustomerDisplay = localStorage.getItem('MN_AUTO_CUSTOMER_DISPLAY') === 'true';
+        await applyCurrentDisplayMode(autoCustomerDisplay);
         loadDashboardData();
         openCustomerDisplayAutomatically();
+        recoverPosScannerFocus();
       }
     }
 
@@ -2585,6 +2704,31 @@
       }, delay);
     }
 
+    function recoverPosScannerFocus() {
+      [0, 200, 600, 1200, 2200].forEach(delay => returnToPosReady(delay));
+    }
+
+    function showCustomerDisplayReadyModal() {
+      const modal = document.getElementById('customerDisplayReadyModal');
+      const confirmButton = document.getElementById('btnConfirmCustomerDisplayReady');
+      if (!modal || modal.open) return;
+
+      try {
+        window.focus();
+      } catch (error) {
+        console.warn('ไม่สามารถดึงหน้าต่าง POS กลับด้านหน้าได้:', error);
+      }
+
+      modal.showModal();
+      setTimeout(() => confirmButton?.focus(), 50);
+    }
+
+    function confirmCustomerDisplayReady() {
+      const modal = document.getElementById('customerDisplayReadyModal');
+      if (modal?.open) modal.close();
+      recoverPosScannerFocus();
+    }
+
     function openCustomerDisplay(automatic = false) {
       if (customerDisplayWindow && !customerDisplayWindow.closed) {
         returnToPosReady();
@@ -2617,7 +2761,7 @@
 
       // Give the customer window time to open and restore its screen position,
       // then return keyboard input to the POS barcode field.
-      returnToPosReady(700);
+      recoverPosScannerFocus();
       return customerDisplayWindow;
     }
 
@@ -2657,20 +2801,24 @@
     async function configureDisplayLayout() {
       const status = document.getElementById('displayLayoutStatus');
       if (typeof window.getScreenDetails !== 'function') {
-        localStorage.removeItem('MN_DISPLAY_LAYOUT');
-        rememberPosWindowGeometry();
-        status.textContent = 'ใช้โหมดจอเดียว: ระบบจะจำตำแหน่งและขนาดหน้าต่างตามปกติ';
-        returnToPosReady(300);
+        const autoCustomerDisplay = localStorage.getItem('MN_AUTO_CUSTOMER_DISPLAY') === 'true';
+        await applyCurrentDisplayMode(autoCustomerDisplay);
+        status.textContent = autoCustomerDisplay
+          ? 'ใช้โหมดจอเดียว: POS และหน้าลูกค้าแบ่งครึ่งจอ'
+          : 'ใช้โหมดจอเดียว: POS แสดงเต็มจอ';
+        recoverPosScannerFocus();
         return;
       }
 
       try {
         const details = await window.getScreenDetails();
         if (!details.screens || details.screens.length < 2) {
-          localStorage.removeItem('MN_DISPLAY_LAYOUT');
-          rememberPosWindowGeometry();
-          status.textContent = 'พบ 1 จอ: ระบบจะจำตำแหน่งและขนาดหน้าต่างตามปกติ';
-          returnToPosReady(300);
+          const autoCustomerDisplay = localStorage.getItem('MN_AUTO_CUSTOMER_DISPLAY') === 'true';
+          await applyCurrentDisplayMode(autoCustomerDisplay);
+          status.textContent = autoCustomerDisplay
+            ? 'พบ 1 จอ: POS และหน้าลูกค้าแบ่งครึ่งจอ'
+            : 'พบ 1 จอ: POS แสดงเต็มจอ';
+          recoverPosScannerFocus();
           return;
         }
 
@@ -2779,6 +2927,18 @@
       window.addEventListener('focus', () => focusPosScanner());
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) focusPosScanner();
+      });
+
+      const customerDisplayReadyModal = document.getElementById('customerDisplayReadyModal');
+      document.getElementById('btnConfirmCustomerDisplayReady')?.addEventListener('click', confirmCustomerDisplayReady);
+      customerDisplayReadyModal?.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        confirmCustomerDisplayReady();
+      }, true);
+      customerDisplayReadyModal?.addEventListener('cancel', event => {
+        event.preventDefault();
       });
 
       // Mobile tabs toggle button
@@ -3844,6 +4004,7 @@
           customerName: customerName,
           method: method
         };
+        lastSaleReceiptPrinted = false;
 
         // 3.5 Auto Download local receipt file
         try {
@@ -3860,6 +4021,7 @@
         // 3.6 Auto Print receipt if enabled in settings
         try {
           if (localStorage.getItem('MN_AUTO_PRINT_RECEIPT') === 'true') {
+            lastSaleReceiptPrinted = true;
             printReceipt({
               items: clientCartItems,
               total: saleRecord.total,
@@ -3871,8 +4033,7 @@
           console.error("สั่งพิมพ์ใบเสร็จอัตโนมัติล้มเหลว:", printErr);
         }
 
-        // 4. Update Customer Display Screen to SUCCESS
-        syncCustomerDisplay('success');
+        // 4. Announce success; the display state is updated after the cart reset.
         speakPosMessage('ชำระเงินเรียบร้อย ขอบคุณค่ะ');
 
         // 5. Open Success Modal Locally
@@ -3900,24 +4061,68 @@
           successCredit.classList.add('hidden');
         }
 
-        document.getElementById('posSuccessModal').showModal();
-
         // Reset POS State immediately in the background to prepare for next transaction
         posCart = [];
-        posExternalPaymentTotal = null;
+        posExternalPaymentTotal = saleRecord.total;
         resetPosCustomer();
         setPosRemoveScanMode(false);
         const cashInput = document.getElementById('posCashReceived');
         if (cashInput) cashInput.value = '';
         renderPosCart();
+        syncCustomerDisplay('success');
+        showPosSuccessModal();
         loadDashboardData();
       }
 
       // Close POS Success Modal handler
-      document.getElementById('btnConfirmCloseSuccessModal').addEventListener('click', () => {
-        document.getElementById('posSuccessModal').close();
-        focusPosScanner(true);
-      });
+      function showPosSuccessModal() {
+        ['posPaymentSelectorModal', 'posCheckoutModal', 'posDebtAmountModal'].forEach(id => {
+          const modal = document.getElementById(id);
+          if (modal?.open) modal.close();
+        });
+        selectedPaymentMethod = null;
+        const paymentButton = document.getElementById('btnConfirmPaySelector');
+        if (paymentButton) {
+          paymentButton.disabled = false;
+          paymentButton.textContent = 'ตกลงและพิมพ์บิล (Enter)';
+        }
+
+        const successModal = document.getElementById('posSuccessModal');
+        if (!successModal.open) successModal.showModal();
+        setTimeout(() => document.getElementById('btnConfirmCloseSuccessModal')?.focus(), 50);
+        broadcastRemoteAppState('pos');
+      }
+
+      function finishPosTransaction() {
+        if (isFinishingPosTransaction) return;
+        isFinishingPosTransaction = true;
+
+        const successModal = document.getElementById('posSuccessModal');
+        if (successModal?.open) successModal.close();
+        selectedPaymentMethod = null;
+        posExternalPaymentTotal = null;
+        syncCustomerDisplay('idle');
+
+        const readyForNextSale = () => {
+          isFinishingPosTransaction = false;
+          recoverPosScannerFocus();
+          broadcastRemoteAppState('pos');
+        };
+
+        if (lastSaleRecord && !lastSaleReceiptPrinted) {
+          lastSaleReceiptPrinted = true;
+          printReceipt({
+            items: lastSaleRecord.items,
+            total: lastSaleRecord.total,
+            cash_received: lastSaleRecord.cash_received,
+            change_amount: lastSaleRecord.change_amount
+          }, lastSaleRecord.customerName, lastSaleRecord.method, readyForNextSale);
+        } else {
+          readyForNextSale();
+        }
+      }
+
+      document.getElementById('btnConfirmCloseSuccessModal').addEventListener('click', finishPosTransaction);
 
       // --- POS Payment Selector Modal Logic ---
       let selectedPaymentMethod = null; // 'cash', 'promptpay', 'credit'
@@ -4202,6 +4407,7 @@
               throw new Error('กรุณาเลือกเงินสดหรือพร้อมเพย์');
             }
             document.getElementById('posPaymentSelectorModal').close();
+            broadcastRemoteAppState('pos');
             await completePosDebtPayment(selectedPaymentMethod);
             return;
           }
@@ -4219,10 +4425,12 @@
             const change = received - total;
 
             document.getElementById('posPaymentSelectorModal').close();
+            broadcastRemoteAppState('pos');
             await completeSale('cash', received, change, customerId);
 
           } else if (selectedPaymentMethod === 'promptpay') {
             document.getElementById('posPaymentSelectorModal').close();
+            broadcastRemoteAppState('pos');
             await completeSale('promptpay', total, 0, customerId);
 
           } else if (selectedPaymentMethod === 'credit') {
@@ -4233,6 +4441,7 @@
               return;
             }
             document.getElementById('posPaymentSelectorModal').close();
+            broadcastRemoteAppState('pos');
             await completeSale('credit', 0, 0, customerId);
           }
         } catch (err) {
@@ -4279,13 +4488,14 @@
         document.getElementById('successCreditDetails').classList.remove('hidden');
         document.getElementById('successCreditCustText').textContent =
           `${customer.realName} · ชำระหนี้ ${methodLabel} · คงเหลือ ${fmt(newTotal)}`;
-        document.getElementById('posSuccessModal').showModal();
+        lastSaleRecord = null;
+        lastSaleReceiptPrinted = true;
+        showPosSuccessModal();
 
         posDebtLookupMode = false;
         posDebtPaymentMode = false;
         posDebtCustomerId = null;
         posDebtPaymentAmount = 0;
-        posExternalPaymentTotal = null;
         selectedPaymentMethod = null;
         resetPosCustomer();
         const phoneInput = document.getElementById('posCustomerPhoneInput');
@@ -5411,6 +5621,7 @@
       if (manualPrintBtn) {
         manualPrintBtn.addEventListener('click', () => {
           if (lastSaleRecord) {
+            lastSaleReceiptPrinted = true;
             printReceipt({
               items: lastSaleRecord.items,
               total: lastSaleRecord.total,
@@ -6248,6 +6459,9 @@
         document.getElementById('settingsGasUrl').value = localStorage.getItem('MN_GAS_URL') || c.gasUrl || '';
         document.getElementById('settingsAutoPrint').checked = localStorage.getItem('MN_AUTO_PRINT_RECEIPT') === 'true';
         document.getElementById('settingsAutoCustomerDisplay').checked = localStorage.getItem('MN_AUTO_CUSTOMER_DISPLAY') === 'true';
+        const posSide = localStorage.getItem('MN_SINGLE_SCREEN_POS_SIDE') === 'right' ? 'right' : 'left';
+        const posSideInput = document.querySelector(`input[name="singleScreenPosSide"][value="${posSide}"]`);
+        if (posSideInput) posSideInput.checked = true;
         const savedLayout = readDisplayLayout();
         document.getElementById('displayLayoutStatus').textContent = savedLayout
           ? 'มีการจำตำแหน่งจอไว้แล้ว กดปุ่มอีกครั้งเมื่อต้องการเปลี่ยนจอ'
@@ -6273,12 +6487,18 @@
         const gasUrl = document.getElementById('settingsGasUrl').value.trim();
         const autoPrint = document.getElementById('settingsAutoPrint').checked;
         const autoCustomerDisplay = document.getElementById('settingsAutoCustomerDisplay').checked;
+        const singleScreenPosSide =
+          document.querySelector('input[name="singleScreenPosSide"]:checked')?.value === 'right'
+            ? 'right'
+            : 'left';
 
         localStorage.setItem('MN_RECEIPT_SAVE_PATH', path);
         localStorage.setItem('MN_PROMPTPAY_ID', ppId);
         localStorage.setItem('MN_GAS_URL', gasUrl);
         localStorage.setItem('MN_AUTO_PRINT_RECEIPT', autoPrint ? 'true' : 'false');
         localStorage.setItem('MN_AUTO_CUSTOMER_DISPLAY', autoCustomerDisplay ? 'true' : 'false');
+        localStorage.setItem('MN_SINGLE_SCREEN_POS_SIDE', singleScreenPosSide);
+        await applyCurrentDisplayMode(autoCustomerDisplay);
         if (autoCustomerDisplay) {
           openCustomerDisplay(false);
         } else {
@@ -6292,7 +6512,7 @@
 
         alert('บันทึกการตั้งค่าสำเร็จเรียบร้อย');
         document.getElementById('receiptSettingsModal').close();
-        returnToPosReady();
+        recoverPosScannerFocus();
       });
 
       document.getElementById('btnOpenCustomerDisplay').addEventListener('click', () => {
@@ -6326,6 +6546,7 @@
       document.getElementById('posSuccessModal').addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === 'Escape') {
           e.preventDefault();
+          e.stopImmediatePropagation();
           document.getElementById('btnConfirmCloseSuccessModal').click();
         }
       });
@@ -7823,7 +8044,7 @@
     }
 
     // Silent Thermal Printer receipt printing function
-    function printReceipt(saleRecord, customerName, method) {
+    function printReceipt(saleRecord, customerName, method, onPrintFinished = null) {
       try {
         const now = new Date();
         const year = now.getFullYear();
@@ -7886,6 +8107,14 @@
           document.body.appendChild(iframe);
         }
 
+        let callbackCalled = false;
+        const finishPrint = () => {
+          if (callbackCalled) return;
+          callbackCalled = true;
+          if (typeof onPrintFinished === 'function') onPrintFinished();
+        };
+        iframe.contentWindow.onafterprint = finishPrint;
+
         const doc = iframe.contentWindow.document;
         doc.open();
         doc.write(`<html><head><title>Print Receipt</title>
@@ -7897,8 +8126,12 @@
         doc.write(txt);
         doc.write('\u003c/body\u003e\u003c/html\u003e');
         doc.close();
+        if (typeof onPrintFinished === 'function') {
+          setTimeout(finishPrint, 1500);
+        }
       } catch (e) {
         console.error("พิมพ์ใบเสร็จล้มเหลว:", e);
+        if (typeof onPrintFinished === 'function') onPrintFinished();
       }
     }
 

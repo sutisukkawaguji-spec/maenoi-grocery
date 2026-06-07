@@ -286,6 +286,9 @@
     setTimeout(async () => {
       await restoreCustomerDisplayGeometry();
       setTimeout(rememberCustomerDisplayGeometry, 300);
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'MN_CUSTOMER_DISPLAY_READY' }, window.location.origin);
+      }
     }, 100);
     window.addEventListener('resize', rememberCustomerDisplayGeometry);
     window.addEventListener('beforeunload', rememberCustomerDisplayGeometry);
