@@ -12,8 +12,21 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
-    body { font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; }
-    .card:hover { transform: translateY(-2px); }
+    :root {
+      --brand: #047857;
+      --brand-soft: #ecfdf5;
+      --ink: #172554;
+    }
+    body {
+      font-family: 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(16,185,129,.14), transparent 34rem),
+        linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    .card {
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .07);
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 18px 44px rgba(15, 23, 42, .13); }
     button, a { touch-action: manipulation; }
     .drawer { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100%; background: #fff; box-shadow: -8px 0 24px rgba(0,0,0,.1); transition: right .28s ease; z-index: 60; display: flex; flex-direction: column; }
     .drawer.open { right: 0; }
@@ -30,6 +43,45 @@
     .marquee-viewport:hover .marquee-track { animation-play-state: paused; }
     @keyframes marquee-linear { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     #diag.hidden{ display:none; }
+    .hero-panel {
+      min-height: clamp(360px, 58vh, 560px);
+      background-image:
+        linear-gradient(90deg, rgba(5, 46, 22, .88) 0%, rgba(5, 46, 22, .62) 48%, rgba(5, 46, 22, .08) 100%),
+        url('images/cover.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+    .product-media {
+      background:
+        linear-gradient(135deg, rgba(236,253,245,.95), rgba(255,255,255,.96)),
+        radial-gradient(circle at 70% 25%, rgba(16,185,129,.14), transparent 42%);
+    }
+    .product-media img {
+      object-fit: contain;
+      transform: translateZ(0);
+    }
+    @media (max-width: 640px) {
+      .hero-panel {
+        min-height: 420px;
+        background-image:
+          linear-gradient(180deg, rgba(5, 46, 22, .86) 0%, rgba(5, 46, 22, .56) 55%, rgba(5, 46, 22, .28) 100%),
+          url('images/cover.jpg');
+      }
+      .product-media {
+        aspect-ratio: 1 / .82;
+        padding: .45rem;
+      }
+      .product-title {
+        font-size: .78rem;
+      }
+    }
+    .product-title {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-height: 1.28;
+      overflow: hidden;
+    }
   </style>
   <!-- Supabase SDK & AppConfig -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -37,30 +89,53 @@
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div id="storefrontApp">
-    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-emerald-100 shadow-sm">
       <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-        <img src="images/logo.png" alt="โลโก้ร้าน" class="w-14 h-14 rounded-2xl object-cover shadow-sm" onerror="this.src='https://picsum.photos/seed/logo/96/96'">
+        <img src="images/logo.png" alt="โลโก้ร้าน" class="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover shadow-sm" onerror="this.src='https://picsum.photos/seed/logo/96/96'">
         <button id="notificationBell" onclick="toggleNotificationSubscription()" class="bell-btn default" title="คลิกเพื่อเปิดรับข่าวสารแจ้งเตือน">🔔</button>
-        <div>
-          <h1 class="text-lg font-bold leading-tight">ร้านแม่น้อย บ้านดอนขี</h1>
-          <p class="text-xs text-gray-500">เมนูวันนี้ • ประกาศวิ่ง • แบนเนอร์สับเอง • สินค้า • ตะกร้า • LINE</p>
+        <div class="min-w-0">
+          <h1 class="text-base md:text-lg font-bold leading-tight truncate">ร้านแม่น้อย บ้านดอนขี</h1>
+          <p class="text-xs text-gray-500 hidden sm:block">ของชำ อาหารพร้อมทาน และของใช้ใกล้บ้าน</p>
         </div>
         <div class="ms-auto flex items-center gap-2">
-          <a id="lineLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💬 แชต LINE</a>
-          <button id="openPromptPayHeader" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
-          <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">
+          <a id="lineLink" href="#" target="_blank" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 text-sm hover:bg-emerald-50">💬 แชต LINE</a>
+          <button id="openPromptPayHeader" class="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 text-sm hover:bg-emerald-50">💳 พร้อมเพย์</button>
+          <button id="openCart" class="relative inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 text-sm hover:bg-emerald-50">
             🧺 ตะกร้า <span id="cartBadge" class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">0</span>
           </button>
           <!-- Admin link (Visible dynamically by JS) -->
-          <a id="adminButton" href="admin.html" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">⚙️ จัดการร้าน</a>
+          <a id="adminButton" href="admin.html" class="hidden inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">⚙️ จัดการร้าน</a>
         </div>
       </div>
     </header>
 
-    <div class="bg-white border-b border-gray-200">
-      <div class="max-w-6xl mx-auto px-0 md:px-4 py-2">
-        <h3 class="font-semibold mb-2 px-4 md:px-0">🍽️ เมนูวันนี้</h3>
-        <div class="marquee-viewport rounded-xl border overflow-hidden">
+    <section class="hero-panel text-white">
+      <div class="max-w-6xl mx-auto px-4 py-10 md:py-16">
+        <div class="max-w-2xl">
+          <p class="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-sm font-semibold ring-1 ring-white/25">เปิดรับออเดอร์ทุกวัน</p>
+          <h2 class="mt-5 text-3xl md:text-5xl font-bold leading-tight">ร้านแม่น้อย บ้านดอนขี</h2>
+          <p class="mt-4 text-base md:text-lg text-emerald-50 leading-relaxed">เลือกสินค้าใกล้บ้าน ใส่ตะกร้า แล้วส่งรายการทาง LINE ได้ทันที มีเมนูวันนี้ ของใช้ และของกินครบในหน้าเดียว</p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a href="#products" class="inline-flex items-center justify-center rounded-lg bg-white px-5 py-3 text-sm font-bold text-emerald-800 shadow-lg hover:bg-emerald-50">เลือกสินค้า</a>
+            <a id="lineLinkHero" href="#" target="_blank" class="inline-flex items-center justify-center rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-emerald-400">แชต LINE</a>
+            <button id="openPromptPayHero" type="button" class="inline-flex items-center justify-center rounded-lg bg-white/15 px-5 py-3 text-sm font-bold text-white ring-1 ring-white/30 hover:bg-white/20">พร้อมเพย์</button>
+          </div>
+          <div class="mt-8 grid grid-cols-3 gap-2 max-w-lg text-center">
+            <div class="rounded-lg bg-white/15 p-3 ring-1 ring-white/20"><strong id="heroProductCount" class="block text-xl">0</strong><span class="text-xs text-emerald-50">สินค้า</span></div>
+            <div class="rounded-lg bg-white/15 p-3 ring-1 ring-white/20"><strong id="heroCategoryCount" class="block text-xl">0</strong><span class="text-xs text-emerald-50">หมวดหมู่</span></div>
+            <div class="rounded-lg bg-white/15 p-3 ring-1 ring-white/20"><strong class="block text-xl">LINE</strong><span class="text-xs text-emerald-50">สั่งซื้อ</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="bg-white border-b border-emerald-100">
+      <div class="max-w-6xl mx-auto px-0 md:px-4 py-4">
+        <div class="flex items-center justify-between px-4 md:px-0 mb-2">
+          <h3 class="font-semibold">เมนูวันนี้</h3>
+          <span class="text-xs text-gray-500">แตะรูปเพื่อดูรายการ</span>
+        </div>
+        <div class="marquee-viewport rounded-lg border border-emerald-100 overflow-hidden bg-emerald-50/40">
           <div id="bannerTrack" class="marquee-track"></div>
         </div>
       </div>
@@ -74,55 +149,68 @@
   </div>
 
   <section id="banner-manual" class="relative bg-white">
-    <div class="max-w-6xl mx-auto px-4 py-4">
-      <h3 class="font-semibold mb-2">🎁 โปรโมชัน</h3>
-      <div class="overflow-hidden rounded-xl border relative">
+    <div class="max-w-6xl mx-auto px-4 py-5">
+      <h3 class="font-semibold mb-2">โปรโมชัน</h3>
+      <div class="overflow-hidden rounded-lg border border-emerald-100 relative shadow-sm">
         <div id="manualBanner" class="w-full h-56 md:h-72 flex items-center justify-center bg-gray-100"></div>
-        <button id="bannerPrev" class="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">‹</button>
-        <button id="bannerNext" class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-2 rounded-full bg-white/80 border text-sm">›</button>
+        <button id="bannerPrev" class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 border text-lg shadow-sm">‹</button>
+        <button id="bannerNext" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 border text-lg shadow-sm">›</button>
       </div>
     </div>
   </section>
 
-  <section id="announce" class="bg-white border-y border-gray-200">
+  <section id="announce" class="bg-emerald-700 text-white">
     <div class="max-w-6xl mx-auto px-4 py-3">
-      <div class="marquee-viewport rounded-xl">
+      <div class="marquee-viewport rounded-lg">
         <div id="announceTrack" class="marquee-track text-sm md:text-base"></div>
       </div>
     </div>
   </section>
 
   <section id="featured" class="bg-white border-y border-gray-200 hidden">
-    <div class="max-w-6xl mx-auto px-4 py-4">
-      <div class="flex items-center gap-2 mb-2"><span class="text-lg">⭐</span><h3 class="font-semibold">สินค้าแนะนำ</h3></div>
+    <div class="max-w-6xl mx-auto px-4 py-6">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h3 class="font-semibold text-lg">สินค้าแนะนำ</h3>
+        <a href="#products" class="text-sm font-semibold text-emerald-700 hover:underline">ดูสินค้าทั้งหมด</a>
+      </div>
       <div id="featuredGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
     </div>
   </section>
 
-  <main class="max-w-6xl mx-auto px-4 py-6">
-    <section class="mb-5 grid grid-cols-1 md:grid-cols-12 gap-3">
+  <main id="products" class="max-w-6xl mx-auto px-4 py-6">
+    <section class="mb-4">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-2">
+        <div>
+          <p class="text-sm font-semibold text-emerald-700">เลือกซื้อสินค้า</p>
+          <h2 class="text-2xl font-bold text-slate-900">สินค้าหน้าร้าน</h2>
+        </div>
+        <p class="text-sm text-slate-500">ค้นหา เลือกหมวด แล้วหยิบลงตะกร้าได้เลย</p>
+      </div>
+    </section>
+
+    <section class="mb-5 grid grid-cols-1 md:grid-cols-12 gap-3 rounded-lg border border-slate-200 bg-white p-3 md:p-4 shadow-sm">
       <div class="md:col-span-5">
-        <label class="text-sm text-gray-600">ค้นหาสินค้า</label>
-        <input id="searchInput" type="search" placeholder="พิมพ์ชื่อสินค้า เช่น มาม่า นม UHT..." class="mt-1 w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <label class="text-sm font-semibold text-gray-700">ค้นหาสินค้า</label>
+        <input id="searchInput" type="search" placeholder="พิมพ์ชื่อสินค้า เช่น มาม่า นม UHT..." class="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
       <div class="md:col-span-4">
-        <label class="text-sm text-gray-600">หมวดหมู่</label>
-        <select id="categorySelect" class="mt-1 w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <label class="text-sm font-semibold text-gray-700">หมวดหมู่</label>
+        <select id="categorySelect" class="mt-1 w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <option value="">ทั้งหมด</option>
         </select>
       </div>
       <div class="md:col-span-3">
-        <label class="text-sm text-gray-600">ช่วงราคา</label>
+        <label class="text-sm font-semibold text-gray-700">ช่วงราคา</label>
         <div class="mt-1 flex items-center gap-2">
-          <input id="minPrice" type="number" min="0" inputmode="numeric" placeholder="ต่ำสุด" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500" />
+          <input id="minPrice" type="number" min="0" inputmode="numeric" placeholder="ต่ำสุด" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500" />
           <span class="text-gray-400">-</span>
-          <input id="maxPrice" type="number" min="0" inputmode="numeric" placeholder="สูงสุด" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500" />
+          <input id="maxPrice" type="number" min="0" inputmode="numeric" placeholder="สูงสุด" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500" />
         </div>
       </div>
     </section>
 
-    <section class="mb-4 text-sm text-gray-600 flex items-center gap-3">
-      <span id="resultCount">0</span> รายการ
+    <section class="mb-4 text-sm text-gray-600 flex items-center gap-3 rounded-lg bg-white/70 px-3 py-2">
+      <strong id="resultCount" class="text-emerald-700">0</strong> รายการ
       <span class="hidden md:inline">•</span>
       <button id="clearFilters" class="text-emerald-700 hover:underline">ล้างตัวกรอง</button>
     </section>
@@ -137,9 +225,9 @@
     <p class="text-gray-600">🏠 บ้านดอนขี ตำบลลำภู อำเภอเมืองหนองบัวลำภู จังหวัดหนองบัวลำภู 39000</p>
     <p class="text-gray-600 mt-1">📞 โทร: <a href="tel:0880699227" class="text-emerald-700 hover:underline">088-069-9227</a></p>
     <div class="flex items-center justify-center gap-3 mt-3">
-      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">Facebook</a>
-      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">LINE</a>
-      <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
+      <a href="https://facebook.com/801626436372815" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">Facebook</a>
+      <a id="lineLinkFooter" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">LINE</a>
+      <button id="openPromptPayFooter" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">💳 พร้อมเพย์</button>
     </div>
     <p class="mt-6 text-gray-400 text-xs">© <span id="y"></span> ร้านแม่น้อย บ้านดอนขี </p>
   </footer>
@@ -196,6 +284,8 @@
     let cart = JSON.parse(localStorage.getItem('cart') || '{}');
     const $ = sel => document.querySelector(sel);
     const fmtBaht = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(n);
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+    const fmtProductPrice = it => Number(it.price) > 0 ? `${fmtBaht(it.price)} / ${escapeHtml(it.unit || '-')}` : 'สอบถามราคา';
     function normalizeId(x){ return String(x ?? '').trim(); }
     function showError(msg){ const box = document.getElementById('diag'); const ul = document.getElementById('diagList'); if(box && ul){ box.classList.remove('hidden'); const li = document.createElement('li'); li.textContent = msg; ul.appendChild(li); } console.warn('[DIAG]', msg); }
     function toCdnGit(input) {
@@ -416,23 +506,35 @@
       sel.innerHTML = '<option value=\"\">ทั้งหมด</option>';
       uniqueCategories(PRODUCTS).forEach(cat => { const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; sel.appendChild(opt); });
     }
+    function updateStoreStats(){
+      const productCount = document.getElementById('heroProductCount');
+      const categoryCount = document.getElementById('heroCategoryCount');
+      if(productCount) productCount.textContent = PRODUCTS.length;
+      if(categoryCount) categoryCount.textContent = uniqueCategories(PRODUCTS).length;
+    }
     function productCard(it){
       const imgSrc = it.img || 'https://picsum.photos/seed/placeholder/800/600';
-      return `<article class="card bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm transition-all">
-        <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
-          <img src="${imgSrc}" alt="${it.name}" class="w-full h-full object-cover" loading="lazy" width="800" height="600" onerror="this.src='https://picsum.photos/seed/placeholder/800/600'" />
+      const disabled = it.oos ? 'disabled aria-disabled="true"' : '';
+      const buttonClass = it.oos ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700';
+      const priceText = fmtProductPrice(it);
+      return `<article class="card bg-white border border-slate-200 rounded-lg overflow-hidden transition-all">
+        <div class="product-media aspect-[1/.82] sm:aspect-square overflow-hidden relative p-2 sm:p-3">
+          <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(it.name)}" class="w-full h-full transition duration-300 hover:scale-[1.03]" loading="lazy" width="800" height="800" onerror="this.src='https://picsum.photos/seed/placeholder/800/600'" />
+          <span class="absolute left-1.5 top-1.5 sm:left-2 sm:top-2 rounded-md bg-white/95 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-semibold text-emerald-700 shadow-sm ring-1 ring-emerald-100">${escapeHtml(it.category || 'สินค้า')}</span>
+          ${it.oos ? '<span class="absolute right-2 top-2 rounded-full bg-rose-600 px-2 py-1 text-[11px] font-semibold text-white shadow-sm">หมด</span>' : ''}
         </div>
-        <div class="p-3"><h3 class="text-sm font-semibold leading-tight">${it.name}</h3>
-          <div class="mt-1 flex items-center justify-between"><span class="inline-flex items-center px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">${fmtBaht(it.price)} / ${it.unit || '-'}</span>
-            <span class="text-xs text-gray-500">${it.category || '-'}</span></div>
-          <div class="mt-3">
-            <button class="btn-add w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:opacity-90 font-medium transition-all" data-id="${it.id}">หยิบลงตะกร้า</button>
+        <div class="p-2.5 sm:p-3"><h3 class="product-title text-[13px] sm:text-sm font-semibold text-slate-900">${escapeHtml(it.name)}</h3>
+          <div class="mt-1 flex items-center justify-between gap-2">
+            <span class="inline-flex items-center rounded-md bg-emerald-50 px-1.5 sm:px-2 py-1 text-[11px] sm:text-xs font-bold text-emerald-700">${priceText}</span>
+          </div>
+          <div class="mt-2 sm:mt-3">
+            <button class="btn-add w-full px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg ${buttonClass} text-xs sm:text-sm font-bold transition-all shadow-sm" data-id="${escapeHtml(it.id)}" ${disabled}>${it.oos ? 'สินค้าหมด' : 'หยิบลงตะกร้า'}</button>
           </div></div></article>`;
     }
     function renderGrid(items){
       const wrap = document.getElementById('productGrid'); if(!wrap) return;
       document.getElementById('resultCount').textContent = items.length;
-      wrap.innerHTML = items.length ? items.map(productCard).join('') : '<div class="col-span-full text-center text-gray-500 py-10">ไม่พบสินค้า</div>';
+      wrap.innerHTML = items.length ? items.map(productCard).join('') : '<div class="col-span-full rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-gray-500">ไม่พบสินค้า ลองล้างตัวกรองหรือค้นหาด้วยคำอื่น</div>';
     }
     function renderFeatured(){
       const list = PRODUCTS.filter(p=>p.active!==false && p.featured);
@@ -444,7 +546,7 @@
       const track = document.getElementById('bannerTrack'); if(!track) return;
       const data = (window.DAILY_MENU || []);
       if(!data.length){ track.innerHTML = '<div class="px-4 py-4 text-gray-500">ยังไม่มีเมนูวันนี้ — เพิ่มใน data/menu.txt</div>'; return; }
-      const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center"><img src="${m.img}" alt="${m.title}" class="h-40 md:h-56 object-cover rounded-md border" onerror="this.src='https://picsum.photos/seed/menu/800/560'"><figcaption class="text-center text-xs md:text-sm mt-1">${m.title}</figcaption></figure>`).join('');
+      const items = data.map(m => `<figure class="shrink-0 flex flex-col items-center p-2"><img src="${escapeHtml(m.img)}" alt="${escapeHtml(m.title)}" class="h-36 md:h-48 w-44 md:w-64 object-cover rounded-lg border border-white shadow-sm" onerror="this.src='https://picsum.photos/seed/menu/800/560'"><figcaption class="text-center text-xs md:text-sm mt-2 font-semibold text-slate-700">${escapeHtml(m.title)}</figcaption></figure>`).join('');
       if (data.length <= 1) {
         track.innerHTML = items;
         track.style.animation = 'none';
@@ -481,7 +583,7 @@
     function renderAnnounce(){
       const track = document.getElementById('announceTrack'); if(!track) return;
       const arr = window.ANNOUNCES || [];
-      if(!arr.length){ track.innerHTML = '<span class="px-3 py-2 text-gray-500">ยังไม่มีประกาศ — เพิ่มใน data/announce.txt</span>'; return; }
+      if(!arr.length){ track.innerHTML = '<span class="px-3 py-2 text-emerald-50">ยังไม่มีประกาศ</span>'; return; }
       const html = arr.map(a => { const href = a.href ? a.href : '#'; const safeText = a.text.replace(/</g,'&lt;').replace(/>/g,'&gt;'); return `<a href="${href}" ${a.href?'target="_blank" rel="noopener"':''} class="shrink-0 underline decoration-dotted">${safeText}</a>`; }).join('<span class="opacity-50">•</span>');
       track.innerHTML = html + '<span class="opacity-50">•</span>' + html;
     }
@@ -511,6 +613,7 @@
 
     function refreshUI(){
       renderCategories();
+      updateStoreStats();
       renderFeatured();
       renderGrid(filterItems(PRODUCTS));
       updateBadge();
@@ -573,7 +676,7 @@
       const y = document.getElementById('y'); if (y) y.textContent = new Date().getFullYear();
       const msg = 'สวัสดีครับ สอบถามสินค้า'; const lineURL = lineChatUrl(msg);
       const setHref = (id, u) => { const el = document.getElementById(id); if (el) el.href = u; };
-      setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL);
+      setHref('lineLink', lineURL); setHref('lineLinkFooter', lineURL); setHref('lineLinkHero', lineURL);
       
       // 1. Attempt to load from GAS web app config
       if (window.AppConfig) {
@@ -712,6 +815,7 @@
       };
       
       document.getElementById('openPromptPayHeader')?.addEventListener('click', handleOpenPp);
+      document.getElementById('openPromptPayHero')?.addEventListener('click', handleOpenPp);
       document.getElementById('openPromptPayFooter')?.addEventListener('click', handleOpenPp);
       document.getElementById('payPromptPay')?.addEventListener('click', handleOpenPp);
       document.getElementById('closePromptPay')?.addEventListener('click', () => {
