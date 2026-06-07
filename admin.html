@@ -365,7 +365,7 @@
                   <div class="flex items-center gap-2.5">
                     <button id="btnOpenReceiptSettings"
                       class="text-xs text-emerald-600 hover:underline flex items-center gap-0.5"
-                      title="ตั้งค่าใบเสร็จและพร้อมเพย์">⚙️ ตั้งค่า</button>
+                      title="ตั้งค่า POS ใบเสร็จ พร้อมเพย์ และหน้าจอลูกค้า">⚙️ ตั้งค่า</button>
                     <span class="text-slate-300">|</span>
                     <button id="btnClearPosCart" class="text-xs text-rose-500 hover:underline">ล้างทั้งหมด</button>
                   </div>
@@ -387,8 +387,7 @@
                       </p>
                     </div>
                   </div>
-                  <button type="button"
-                    onclick="window.open('customer-display.html', '_blank', 'width=1000,height=700')"
+                  <button type="button" id="btnOpenCustomerDisplay"
                     class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[10px] font-bold transition-all shadow-sm flex-shrink-0">
                     เปิดจอ
                   </button>
@@ -1733,7 +1732,7 @@
     class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
     <div class="bg-white p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 class="text-base font-bold text-slate-900">⚙️ ตั้งค่าใบเสร็จ & พร้อมเพย์</h3>
+        <h3 class="text-base font-bold text-slate-900">⚙️ ตั้งค่า POS และหน้าจอลูกค้า</h3>
         <button id="btnCancelReceiptSettings"
           class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
       </div>
@@ -1768,6 +1767,21 @@
             <input type="checkbox" id="settingsAutoPrint" class="sr-only peer" />
             <div
               class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600">
+            </div>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between bg-sky-50 p-3 rounded-xl border border-sky-100">
+          <div class="pr-3">
+            <span class="block text-slate-800 font-bold">🖥️ เปิดหน้าจอลูกค้าอัตโนมัติ</span>
+            <span class="block text-[10px] text-slate-500 font-normal mt-0.5">
+              เปิดพร้อมระบบ และจำจอ ตำแหน่ง และขนาดที่ใช้ล่าสุด
+            </span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer select-none flex-shrink-0">
+            <input type="checkbox" id="settingsAutoCustomerDisplay" class="sr-only peer" />
+            <div
+              class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600">
             </div>
           </label>
         </div>
@@ -1984,6 +1998,8 @@
 
     // Custom states for keyboard navigation and admin PIN lock
     let isAdminUnlocked = false;
+    let customerDisplayWindow = null;
+    let customerDisplayAutoOpenAttempted = false;
     let shortcutMode = false;
     let activeSearchIndex = -1;
     let lastSaleRecord = null;
@@ -2396,6 +2412,65 @@
         authScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         loadDashboardData();
+        openCustomerDisplayAutomatically();
+      }
+    }
+
+    function getCustomerDisplayGeometry() {
+      const fallback = { left: 80, top: 80, width: 1000, height: 700 };
+      try {
+        const saved = JSON.parse(localStorage.getItem('MN_CUSTOMER_DISPLAY_GEOMETRY') || 'null');
+        if (!saved) return fallback;
+        return {
+          left: Number.isFinite(saved.left) ? Math.round(saved.left) : fallback.left,
+          top: Number.isFinite(saved.top) ? Math.round(saved.top) : fallback.top,
+          width: Number.isFinite(saved.width) ? Math.max(640, Math.round(saved.width)) : fallback.width,
+          height: Number.isFinite(saved.height) ? Math.max(480, Math.round(saved.height)) : fallback.height
+        };
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function openCustomerDisplay(automatic = false) {
+      if (customerDisplayWindow && !customerDisplayWindow.closed) {
+        customerDisplayWindow.focus();
+        return customerDisplayWindow;
+      }
+
+      const geometry = getCustomerDisplayGeometry();
+      const features = [
+        'popup=yes',
+        `left=${geometry.left}`,
+        `top=${geometry.top}`,
+        `width=${geometry.width}`,
+        `height=${geometry.height}`
+      ].join(',');
+
+      customerDisplayWindow = window.open(
+        'customer-display.html',
+        'maenoiCustomerDisplay',
+        features
+      );
+
+      if (!customerDisplayWindow) {
+        if (automatic) {
+          alert('เบราว์เซอร์บล็อกหน้าจอลูกค้าอัตโนมัติ กรุณาอนุญาตป๊อปอัปสำหรับเว็บนี้ แล้วเปิดระบบใหม่อีกครั้ง');
+        } else {
+          alert('ไม่สามารถเปิดหน้าจอลูกค้าได้ กรุณาอนุญาตป๊อปอัปสำหรับเว็บนี้');
+        }
+        return null;
+      }
+
+      customerDisplayWindow.focus();
+      return customerDisplayWindow;
+    }
+
+    function openCustomerDisplayAutomatically() {
+      if (customerDisplayAutoOpenAttempted) return;
+      customerDisplayAutoOpenAttempted = true;
+      if (localStorage.getItem('MN_AUTO_CUSTOMER_DISPLAY') === 'true') {
+        setTimeout(() => openCustomerDisplay(true), 100);
       }
     }
 
@@ -5939,6 +6014,7 @@
         document.getElementById('settingsPromptpayId').value = localStorage.getItem('MN_PROMPTPAY_ID') || c.promptpayId;
         document.getElementById('settingsGasUrl').value = localStorage.getItem('MN_GAS_URL') || c.gasUrl || '';
         document.getElementById('settingsAutoPrint').checked = localStorage.getItem('MN_AUTO_PRINT_RECEIPT') === 'true';
+        document.getElementById('settingsAutoCustomerDisplay').checked = localStorage.getItem('MN_AUTO_CUSTOMER_DISPLAY') === 'true';
         document.getElementById('receiptSettingsModal').showModal();
       });
 
@@ -5956,11 +6032,16 @@
         const ppId = document.getElementById('settingsPromptpayId').value.trim();
         const gasUrl = document.getElementById('settingsGasUrl').value.trim();
         const autoPrint = document.getElementById('settingsAutoPrint').checked;
+        const autoCustomerDisplay = document.getElementById('settingsAutoCustomerDisplay').checked;
 
         localStorage.setItem('MN_RECEIPT_SAVE_PATH', path);
         localStorage.setItem('MN_PROMPTPAY_ID', ppId);
         localStorage.setItem('MN_GAS_URL', gasUrl);
         localStorage.setItem('MN_AUTO_PRINT_RECEIPT', autoPrint ? 'true' : 'false');
+        localStorage.setItem('MN_AUTO_CUSTOMER_DISPLAY', autoCustomerDisplay ? 'true' : 'false');
+        if (autoCustomerDisplay) {
+          openCustomerDisplay(false);
+        }
 
         if (window.AppConfig) {
           AppConfig.save({ promptpayId: ppId, gasUrl: gasUrl });
@@ -5969,6 +6050,10 @@
 
         alert('บันทึกการตั้งค่าสำเร็จเรียบร้อย');
         document.getElementById('receiptSettingsModal').close();
+      });
+
+      document.getElementById('btnOpenCustomerDisplay').addEventListener('click', () => {
+        openCustomerDisplay(false);
       });
 
       // Admin PIN Verification dialog listeners

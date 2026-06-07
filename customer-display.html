@@ -153,6 +153,20 @@
 
     const fmt = n => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(n);
 
+    function rememberCustomerDisplayGeometry() {
+      const geometry = {
+        left: Number.isFinite(window.screenX) ? Math.round(window.screenX) : 0,
+        top: Number.isFinite(window.screenY) ? Math.round(window.screenY) : 0,
+        width: Math.max(640, Math.round(window.outerWidth || 1000)),
+        height: Math.max(480, Math.round(window.outerHeight || 700))
+      };
+      localStorage.setItem('MN_CUSTOMER_DISPLAY_GEOMETRY', JSON.stringify(geometry));
+    }
+
+    window.addEventListener('resize', rememberCustomerDisplayGeometry);
+    window.addEventListener('beforeunload', rememberCustomerDisplayGeometry);
+    setInterval(rememberCustomerDisplayGeometry, 1000);
+
     // Main event listener to synchronize with POS tab
     window.addEventListener('storage', (e) => {
       if (e.key === 'MN_CUSTOMER_DISPLAY_CART') {
