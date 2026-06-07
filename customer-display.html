@@ -12,14 +12,86 @@
     body {
       font-family: 'Noto Sans Thai', 'Outfit', system-ui, -apple-system, sans-serif;
     }
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
     .glass {
       background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
     }
+    #customerDisplayMain,
+    #customerCartPanel,
+    #customerPaymentPanel,
+    #cartListContainer {
+      min-height: 0;
+    }
+    #cartListContainer {
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+    }
+    @media (max-width: 1023px) {
+      #customerDisplayMain {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+      }
+      #customerPaymentPanel {
+        order: 1;
+        flex: 0 0 auto;
+        max-height: 44vh;
+        padding: 14px;
+      }
+      #customerCartPanel {
+        order: 2;
+        flex: 1 1 0;
+        padding: 14px;
+      }
+      #customerPaymentPanel > div:first-child {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding: 12px;
+      }
+      #totalAmountText {
+        font-size: clamp(2rem, 9vw, 3rem);
+      }
+      #paymentDetailsPanel {
+        flex: 0 1 auto;
+        min-height: 0;
+        max-height: 27vh;
+        overflow-y: auto;
+        padding: 10px;
+      }
+      #stateWelcome > div:first-child {
+        width: 64px;
+        height: 64px;
+        font-size: 2rem;
+      }
+      #stateWelcome {
+        margin-top: 8px;
+      }
+    }
+    @media (max-height: 700px) {
+      header {
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+      }
+      footer {
+        display: none;
+      }
+      #customerPaymentPanel {
+        max-height: 40vh;
+      }
+      #paymentDetailsPanel {
+        max-height: 21vh;
+      }
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-hidden relative">
+<body class="bg-slate-950 text-slate-100 h-screen flex flex-col justify-between overflow-hidden relative">
 
   <!-- Background Gradients -->
   <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-950 via-slate-900 to-slate-950 opacity-90 z-0"></div>
@@ -42,10 +114,10 @@
   </header>
 
   <!-- Main Grid Layout -->
-  <main class="flex-1 w-full max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-stretch overflow-hidden">
+  <main id="customerDisplayMain" class="flex-1 min-h-0 w-full max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 items-stretch overflow-hidden">
     
     <!-- Left: Cart Items View -->
-    <div class="lg:col-span-7 flex flex-col bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 overflow-hidden">
+    <div id="customerCartPanel" class="lg:col-span-7 flex flex-col bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 overflow-hidden">
       <h2 class="text-lg font-bold text-white border-b border-slate-800 pb-3 mb-3 flex items-center justify-between">
         <span>รายการสินค้าของคุณ (Your Items)</span>
         <span class="text-xs font-normal text-slate-400" id="itemsCountText">0 รายการ</span>
@@ -65,7 +137,7 @@
     </div>
 
     <!-- Right: Totals / QR Code / Payments -->
-    <div class="lg:col-span-5 flex flex-col bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 justify-between overflow-hidden">
+    <div id="customerPaymentPanel" class="lg:col-span-5 flex flex-col bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 justify-between overflow-hidden">
       <!-- Total Price Display Box -->
       <div class="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
         <span class="text-xs font-semibold text-emerald-400 uppercase tracking-widest block mb-1">ยอดรวมทั้งหมด (Total Amount)</span>
@@ -312,6 +384,9 @@
           </div>
         `;
       }).join('');
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
 
       // Handle Panels State display
       // data.state can be: 'idle', 'promptpay', 'cash', 'credit', 'success'
