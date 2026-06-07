@@ -35,11 +35,13 @@ const AppConfig = {
     const c = this.get();
     if (!c.gasUrl) return false;
     try {
-      const res = await fetch(`${c.gasUrl}?action=getConfig`);
+      const res = await fetch(`${c.gasUrl}?action=getConfig&_=${Date.now()}`, {
+        cache: 'no-store'
+      });
       if (!res.ok) throw new Error('GAS endpoint error');
       const data = await res.json();
+      this._adminPin = typeof data.adminPin === 'string' ? data.adminPin.trim() : '';
       if (data && data.supabaseUrl) {
-        this._adminPin = typeof data.adminPin === 'string' ? data.adminPin.trim() : '';
         this.save({
           supabaseUrl: data.supabaseUrl,
           supabaseAnonKey: data.supabaseAnonKey,
@@ -57,14 +59,14 @@ const AppConfig = {
 
   async verifyAdminPin(pin) {
     const c = this.get();
+    pin = String(pin || '').trim();
     if (!c.gasUrl || !pin) return false;
 
-    // Use the value already returned by getConfig first.
-    if (this._adminPin) return pin === this._adminPin;
-
+    // Always request the latest PIN so PC and mobile use the same value.
     try {
       const configRes = await fetch(`${c.gasUrl}?action=getConfig&_=${Date.now()}`, {
-        cache: 'no-store'
+        cache: 'no-store',
+        redirect: 'follow'
       });
       if (configRes.ok) {
         const configData = await configRes.json();
@@ -77,9 +79,15 @@ const AppConfig = {
       console.warn('โหลด PIN จาก GAS ไม่สำเร็จ กำลังลองช่องทางสำรอง:', e);
     }
 
+    // Some mobile browsers handle the GAS POST endpoint more reliably.
     try {
       const body = new URLSearchParams({ action: 'verifyAdminPin', pin });
-      const res = await fetch(c.gasUrl, { method: 'POST', body });
+      const res = await fetch(c.gasUrl, {
+        method: 'POST',
+        body,
+        cache: 'no-store',
+        redirect: 'follow'
+      });
       if (res.ok) {
         const contentType = res.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
@@ -91,23 +99,9 @@ const AppConfig = {
       console.warn('ระบบตรวจสอบ PIN แบบใหม่ยังไม่พร้อม กำลังใช้โหมดเข้ากันได้:', e);
     }
 
-    // Compatibility for an older GAS deployment. The PIN is compared in memory
-    // only and is never saved to localStorage.
-    try {
-      const legacyRes = await fetch(`${c.gasUrl}?action=getConfig&_=${Date.now()}`, {
-        cache: 'no-store'
-      });
-      if (!legacyRes.ok) return pin === '1234';
-      const legacyData = await legacyRes.json();
-      if (typeof legacyData.adminPin === 'string' && legacyData.adminPin) {
-        this._adminPin = legacyData.adminPin.trim();
-        return pin === this._adminPin;
-      }
-      return pin === '1234';
-    } catch (e) {
-      console.error('ระบบตรวจสอบ PIN ขัดข้อง:', e);
-      return pin === '1234';
-    }
+    // Use the last successfully loaded value only when the network is unavailable.
+    if (this._adminPin) return pin === this._adminPin;
+    return pin === '1234';
   },
 
   isConfigured() {
