@@ -2616,14 +2616,18 @@
     async function configureDisplayLayout() {
       const status = document.getElementById('displayLayoutStatus');
       if (typeof window.getScreenDetails !== 'function') {
-        status.textContent = 'เบราว์เซอร์รุ่นนี้ยังไม่รองรับการกำหนดหลายจอ กรุณาอัปเดต Edge หรือ Chrome';
+        localStorage.removeItem('MN_DISPLAY_LAYOUT');
+        rememberPosWindowGeometry();
+        status.textContent = 'ใช้โหมดจอเดียว: ระบบจะจำตำแหน่งและขนาดหน้าต่างตามปกติ';
         return;
       }
 
       try {
         const details = await window.getScreenDetails();
         if (!details.screens || details.screens.length < 2) {
-          status.textContent = 'ระบบพบเพียง 1 จอ กรุณาตรวจสอบการตั้งค่า Display ของ Windows';
+          localStorage.removeItem('MN_DISPLAY_LAYOUT');
+          rememberPosWindowGeometry();
+          status.textContent = 'พบ 1 จอ: ระบบจะจำตำแหน่งและขนาดหน้าต่างตามปกติ';
           return;
         }
 
@@ -6187,6 +6191,10 @@
 
       // Receipt settings modal listeners
       document.getElementById('btnOpenReceiptSettings').addEventListener('click', () => {
+        openAdminPinModal(null, 'pos-settings');
+      });
+
+      function openPosSettingsModal() {
         const c = AppConfig.get();
         document.getElementById('settingsReceiptPath').value = localStorage.getItem('MN_RECEIPT_SAVE_PATH') || '';
         document.getElementById('settingsPromptpayId').value = localStorage.getItem('MN_PROMPTPAY_ID') || c.promptpayId;
@@ -6198,7 +6206,8 @@
           ? 'มีการจำตำแหน่งจอไว้แล้ว กดปุ่มอีกครั้งเมื่อต้องการเปลี่ยนจอ'
           : 'ยังไม่ได้กำหนดจอ POS และจอลูกค้า';
         document.getElementById('receiptSettingsModal').showModal();
-      });
+      }
+      window.openPosSettingsModal = openPosSettingsModal;
 
       document.getElementById('btnCancelReceiptSettings').addEventListener('click', () => {
         document.getElementById('receiptSettingsModal').close();
@@ -7548,6 +7557,7 @@
 
     // Admin PIN dialog functions
     let pendingTabTarget = null;
+    let pendingPinAction = null;
 
     function applyAdminTabLockState() {
       const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
@@ -7575,8 +7585,9 @@
       }
     }
 
-    function openAdminPinModal(targetTab) {
+    function openAdminPinModal(targetTab, action = null) {
       pendingTabTarget = targetTab;
+      pendingPinAction = action;
       document.getElementById('adminPinInput').value = '';
       document.getElementById('adminPinError').classList.add('hidden');
       document.getElementById('adminPinModal').showModal();
@@ -7585,6 +7596,7 @@
 
     function closeAdminPinModal() {
       pendingTabTarget = null;
+      pendingPinAction = null;
       const modal = document.getElementById('adminPinModal');
       if (modal.open) {
         modal.close();
@@ -7602,6 +7614,15 @@
         document.getElementById('adminPinModal').close();
         applyAdminTabLockState();
 
+        if (pendingPinAction === 'pos-settings') {
+          if (typeof window.openPosSettingsModal === 'function') {
+            window.openPosSettingsModal();
+          }
+          pendingPinAction = null;
+          pendingTabTarget = null;
+          return;
+        }
+
         const tabBtn = document.querySelector(`.tab-btn[data-tab="${pendingTabTarget}"]`);
         if (tabBtn) {
           tabBtn.click();
@@ -7609,6 +7630,7 @@
           focusPosScanner(true);
         }
         pendingTabTarget = null;
+        pendingPinAction = null;
       } else {
         document.getElementById('adminPinError').classList.remove('hidden');
         document.getElementById('adminPinInput').focus();
