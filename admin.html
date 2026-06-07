@@ -322,8 +322,8 @@
                     <span>🏷️ ช่องยิงบาร์โค้ด / ค้นหาสินค้า</span>
                   </label>
 	                  <div class="flex items-center gap-2">
-	                    <span id="posRemoveModeBadge"
-	                      class="hidden text-xs font-bold text-rose-700 px-2.5 py-1 rounded-full bg-rose-100 border border-rose-200 animate-pulse">โหมดลบ: ยิงสินค้าที่ต้องการลด 1 ชิ้น</span>
+	                    <span id="posScanActionBadge"
+	                      class="hidden text-xs font-bold px-2.5 py-1 rounded-full border animate-pulse"></span>
 	                    <button type="button" id="btnStartPosScan" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1">
                       <span>📷 สแกนด้วยกล้อง</span>
                     </button>
@@ -347,7 +347,7 @@
                   class="absolute left-6 right-6 top-[104px] z-20 max-h-[500px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-white shadow-xl hidden custom-scrollbar">
                 </div>
 
-	                <p class="text-xs text-emerald-700 mt-auto">💡 ยิงสินค้าเพื่อเพิ่ม · กด - แล้วยิงเพื่อลด 1 ชิ้น · กด Delete เพื่อล้างทั้งบิล</p>
+	                <p class="text-xs text-emerald-700 mt-auto">💡 ยิงเพื่อเพิ่ม 1 · พิมพ์ -2 แล้วรอป้ายก่อนยิงเพื่อลบ 2 · พิมพ์ +3 แล้วรอป้ายก่อนยิงเพื่อเพิ่ม 3 · Delete ล้างบิล</p>
               </div>
             </div>
 
@@ -1553,6 +1553,36 @@
     </form>
   </dialog>
 
+  <!-- MODAL: POS Debt Payment Amount -->
+  <dialog id="posDebtAmountModal"
+    class="p-0 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
+    <form id="posDebtAmountForm" class="bg-white p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">ชำระหนี้สมาชิก</h3>
+          <p id="posDebtCustomerName" class="text-xs text-slate-500 mt-1">-</p>
+        </div>
+        <button type="button" id="btnCancelDebtAmount"
+          class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+      </div>
+      <div class="bg-rose-50 border border-rose-100 rounded-2xl p-4 text-center">
+        <span class="block text-xs font-semibold text-rose-500 mb-1">ยอดหนี้คงเหลือ</span>
+        <span id="posDebtOutstandingText" class="text-2xl font-black text-rose-600 font-mono">฿0.00</span>
+      </div>
+      <div>
+        <label for="posDebtAmountInput" class="block text-xs font-bold text-slate-600 mb-1">จำนวนที่ต้องการชำระ</label>
+        <input type="number" id="posDebtAmountInput" min="0.01" step="0.01" required
+          placeholder="กรอกจำนวนเงิน แล้วกด Enter"
+          class="w-full px-4 py-3 text-xl font-bold border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-center font-mono" />
+        <p id="posDebtAmountError" class="hidden text-xs text-rose-600 font-semibold mt-2 text-center"></p>
+      </div>
+      <button type="submit"
+        class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-md">
+        ไปเลือกช่องทางชำระเงิน (Enter)
+      </button>
+    </form>
+  </dialog>
+
   <!-- MODAL: POS Payment Selector -->
   <dialog id="posPaymentSelectorModal"
     class="p-0 rounded-3xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
@@ -1570,7 +1600,7 @@
       </div>
 
       <!-- Payment Option Grid (Keyboard 1 & 2 & 3) -->
-      <div class="grid grid-cols-3 gap-2">
+      <div id="posPaymentOptionGrid" class="grid grid-cols-3 gap-2">
         <button type="button" id="btnPaySelectCash" autofocus
           class="py-3 px-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs text-center flex flex-col items-center gap-1 transition-all focus:ring-2 focus:ring-emerald-500 focus:outline-none">
           <span class="text-lg">💵</span>
@@ -1952,6 +1982,12 @@
     let activeSearchIndex = -1;
     let lastSaleRecord = null;
     let posRemoveScanMode = false;
+    let posScanAction = null;
+    let posScanActionQty = 1;
+    let posScanActionQtyBuffer = '';
+    let posScanActionEnteringQty = false;
+    let posScanActionTimer = null;
+    let posExternalPaymentTotal = null;
 
     // POS Quantity Modal and Keyboard Interceptor States
     let pendingCartProduct = null;
@@ -2021,27 +2057,96 @@
       }, 30);
     }
 
-    function setPosRemoveScanMode(enabled) {
-      posRemoveScanMode = enabled;
-      const badge = document.getElementById('posRemoveModeBadge');
-      if (badge) badge.classList.toggle('hidden', !enabled);
+    function updatePosScanActionBadge() {
+      const badge = document.getElementById('posScanActionBadge');
+      if (!badge) return;
+      if (!posScanAction) {
+        badge.classList.add('hidden');
+        return;
+      }
+      const isRemove = posScanAction === 'remove';
+      const qtyText = posScanActionQtyBuffer || String(posScanActionQty);
+      badge.textContent = `${isRemove ? 'ลบ' : 'เพิ่ม'} ${qtyText} ชิ้น · ${posScanActionQtyBuffer ? 'กำลังระบุจำนวน' : 'รอยิงสินค้า'}`;
+      badge.className = `text-xs font-bold px-2.5 py-1 rounded-full border animate-pulse ${
+        isRemove
+          ? 'text-rose-700 bg-rose-100 border-rose-200'
+          : 'text-blue-700 bg-blue-100 border-blue-200'
+      }`;
+    }
+
+    function armPosScanAction(action, qty = 1) {
+      posScanAction = action;
+      posRemoveScanMode = action === 'remove';
+      posScanActionQty = Math.max(1, parseInt(qty) || 1);
+      posScanActionQtyBuffer = '';
+      posScanActionEnteringQty = false;
+      if (posScanActionTimer) clearTimeout(posScanActionTimer);
+      updatePosScanActionBadge();
       const searchInput = document.getElementById('posSearchInput');
       if (searchInput) {
         searchInput.value = '';
-        searchInput.placeholder = enabled
-          ? 'ยิงบาร์โค้ดสินค้าที่ต้องการลด 1 ชิ้น...'
-          : 'ยิงบาร์โค้ด หรือ พิมพ์ค้นหาชื่อสินค้า...';
+        searchInput.placeholder = `${action === 'remove' ? 'ลบ' : 'เพิ่ม'} ${posScanActionQty} ชิ้น · ยิงบาร์โค้ดสินค้า...`;
       }
       focusPosScanner(true);
     }
 
-    function removeOnePosItemByBarcode(barcode) {
+    function beginPosScanAction(action) {
+      posScanAction = action;
+      posRemoveScanMode = action === 'remove';
+      posScanActionQty = 1;
+      posScanActionQtyBuffer = '';
+      posScanActionEnteringQty = true;
+      if (posScanActionTimer) clearTimeout(posScanActionTimer);
+      updatePosScanActionBadge();
+      const searchInput = document.getElementById('posSearchInput');
+      if (searchInput) {
+        searchInput.value = action === 'remove' ? '-' : '+';
+        searchInput.placeholder = 'พิมพ์จำนวน แล้วรอสักครู่ก่อนยิงบาร์โค้ด...';
+      }
+      focusPosScanner(true);
+    }
+
+    function appendPosScanActionQty(digit) {
+      if (!posScanAction || !digit) return false;
+      posScanActionQtyBuffer += digit;
+      posScanActionQty = Math.max(1, parseInt(posScanActionQtyBuffer) || 1);
+      const searchInput = document.getElementById('posSearchInput');
+      if (searchInput) searchInput.value = `${posScanAction === 'remove' ? '-' : '+'}${posScanActionQtyBuffer}`;
+      updatePosScanActionBadge();
+      if (posScanActionTimer) clearTimeout(posScanActionTimer);
+      posScanActionTimer = setTimeout(() => armPosScanAction(posScanAction, posScanActionQty), 350);
+      return true;
+    }
+
+    function clearPosScanAction() {
+      posScanAction = null;
+      posRemoveScanMode = false;
+      posScanActionQty = 1;
+      posScanActionQtyBuffer = '';
+      posScanActionEnteringQty = false;
+      if (posScanActionTimer) clearTimeout(posScanActionTimer);
+      posScanActionTimer = null;
+      updatePosScanActionBadge();
+      const searchInput = document.getElementById('posSearchInput');
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.placeholder = 'ยิงบาร์โค้ด หรือ พิมพ์ค้นหาชื่อสินค้า...';
+      }
+    }
+
+    function setPosRemoveScanMode(enabled) {
+      if (enabled) armPosScanAction('remove', 1);
+      else clearPosScanAction();
+    }
+
+    function removePosItemsByBarcode(barcode, qty = 1) {
       const index = posCart.findIndex(item => item.product.barcode === barcode);
       if (index < 0) {
         playScanSound();
         return false;
       }
-      if (posCart[index].qty > 1) posCart[index].qty -= 1;
+      const removeQty = Math.max(1, parseInt(qty) || 1);
+      if (posCart[index].qty > removeQty) posCart[index].qty -= removeQty;
       else posCart.splice(index, 1);
       renderPosCart();
       playScanSound();
@@ -2796,6 +2901,18 @@
       // POS Manual Search Input
       const posSearch = document.getElementById('posSearchInput');
       const posResults = document.getElementById('posSearchResults');
+
+      // '*' starts the keyboard-first debt payment flow from anywhere in POS.
+      window.addEventListener('keydown', (e) => {
+        const tabPos = document.getElementById('tab-pos');
+        const isStar = e.key === '*' || e.key === 'Multiply' || e.code === 'NumpadMultiply';
+        if (!isStar || !tabPos || tabPos.classList.contains('hidden')) return;
+        if (document.querySelector('dialog[open]')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        startPosDebtPayment();
+      }, true);
+
       posSearch.addEventListener('input', () => {
         const query = posSearch.value.trim().toLowerCase();
         if (!query) {
@@ -2829,9 +2946,24 @@
       });
 
       posSearch.addEventListener('keydown', (e) => {
-        if ((e.key === '-' || e.key === 'Subtract' || e.code === 'Minus' || e.code === 'NumpadSubtract') && !posSearch.value) {
+        const isMinus = e.key === '-' || e.key === 'Subtract' || e.code === 'Minus' || e.code === 'NumpadSubtract';
+        const isPlus = e.key === '+' || e.key === 'Add' || e.code === 'NumpadAdd';
+        if ((isMinus || isPlus) && (!posSearch.value || posScanAction)) {
           e.preventDefault();
-          setPosRemoveScanMode(true);
+          beginPosScanAction(isMinus ? 'remove' : 'add');
+          return;
+        }
+
+        const actionDigit = getScannerDigit(e);
+        if (posScanAction && posScanActionEnteringQty && actionDigit) {
+          e.preventDefault();
+          appendPosScanActionQty(actionDigit);
+          return;
+        }
+
+        if (e.key === 'Enter' && posScanActionQtyBuffer) {
+          e.preventDefault();
+          armPosScanAction(posScanAction, posScanActionQty);
           return;
         }
 
@@ -2860,6 +2992,7 @@
         // Handle Escape to clear search results
         if (e.key === 'Escape') {
           e.preventDefault();
+          if (posScanAction) clearPosScanAction();
           posSearch.value = '';
           posResults.classList.add('hidden');
           activeSearchIndex = -1;
@@ -3042,17 +3175,61 @@
         });
       }
 
+      const debtAmountModal = document.getElementById('posDebtAmountModal');
+      const debtAmountForm = document.getElementById('posDebtAmountForm');
+      const debtAmountInput = document.getElementById('posDebtAmountInput');
+      document.getElementById('btnCancelDebtAmount').addEventListener('click', cancelPosDebtPayment);
+      debtAmountForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const customer = getPosDebtCustomer();
+        const outstanding = customer ? (parseFloat(customer.total_credit) || 0) : 0;
+        const amount = parseFloat(debtAmountInput.value) || 0;
+        const errorBox = document.getElementById('posDebtAmountError');
+
+        if (!customer || outstanding <= 0) {
+          errorBox.textContent = 'ไม่พบยอดหนี้คงเหลือของสมาชิก';
+          errorBox.classList.remove('hidden');
+          return;
+        }
+        if (amount <= 0 || amount > outstanding) {
+          errorBox.textContent = `กรุณากรอกยอดตั้งแต่ ฿0.01 ถึง ${fmt(outstanding)}`;
+          errorBox.classList.remove('hidden');
+          debtAmountInput.focus();
+          debtAmountInput.select();
+          return;
+        }
+
+        posDebtPaymentAmount = amount;
+        errorBox.classList.add('hidden');
+        debtAmountModal.close();
+        openPaymentSelectorModal();
+      });
+      debtAmountModal.addEventListener('cancel', (e) => {
+        e.preventDefault();
+        cancelPosDebtPayment();
+      });
+
       // Payment Selector Modal Keyboard and Action Listeners
       const payModal = document.getElementById('posPaymentSelectorModal');
+      function cancelPaymentSelector() {
+        if (payModal && payModal.open) payModal.close();
+        syncCustomerDisplay('idle');
+        if (posDebtPaymentMode || posDebtLookupMode) {
+          cancelPosDebtPayment();
+        } else {
+          posExternalPaymentTotal = null;
+          selectedPaymentMethod = null;
+          focusPosScanner(true);
+        }
+      }
+
       if (payModal) {
         payModal.addEventListener('keydown', (e) => {
-          // ESC closes payment selector modal
-          if (e.key === 'Escape') {
+          // Delete or Escape cancels payment from every control, including cash input.
+          if (e.key === 'Delete' || e.key === 'Escape') {
             e.preventDefault();
-            payModal.close();
-            syncCustomerDisplay('idle');
-            const posSearch = document.getElementById('posSearchInput');
-            if (posSearch) posSearch.focus();
+            e.stopPropagation();
+            cancelPaymentSelector();
             return;
           }
 
@@ -3065,12 +3242,12 @@
             } else if (e.key === '2') {
               e.preventDefault();
               selectPaymentMethod('promptpay', false);
-            } else if (e.key === '3') {
+            } else if (e.key === '3' && !posDebtPaymentMode) {
               e.preventDefault();
               selectPaymentMethod('credit', false);
             } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
               e.preventDefault();
-              const methods = ['cash', 'promptpay', 'credit'];
+              const methods = posDebtPaymentMode ? ['cash', 'promptpay'] : ['cash', 'promptpay', 'credit'];
               let currentIndex = methods.indexOf(selectedPaymentMethod);
               if (e.key === 'ArrowLeft') {
                 currentIndex = (currentIndex - 1 + methods.length) % methods.length;
@@ -3099,7 +3276,7 @@
       const modalCashInput = document.getElementById('posCashReceived');
       if (modalCashInput) {
         modalCashInput.addEventListener('input', () => {
-          const total = calculatePosTotal();
+          const total = getActivePaymentTotal();
           const received = parseFloat(modalCashInput.value) || 0;
           const change = Math.max(0, received - total);
           const changeText = document.getElementById('posChangeText');
@@ -3143,9 +3320,7 @@
       document.getElementById('btnConfirmPaySelector').addEventListener('click', handlePaymentModalConfirm);
 
       document.getElementById('btnCancelPaymentSelector').addEventListener('click', () => {
-        if (payModal) payModal.close();
-        syncCustomerDisplay('idle');
-        focusPosScanner(true);
+        cancelPaymentSelector();
       });
 
       // --- Receipt File Auto-Download ---
@@ -3382,6 +3557,7 @@
 
         // Reset POS State immediately in the background to prepare for next transaction
         posCart = [];
+        posExternalPaymentTotal = null;
         resetPosCustomer();
         setPosRemoveScanMode(false);
         const cashInput = document.getElementById('posCashReceived');
@@ -3398,13 +3574,84 @@
 
       // --- POS Payment Selector Modal Logic ---
       let selectedPaymentMethod = null; // 'cash', 'promptpay', 'credit'
+      let posDebtLookupMode = false;
+      let posDebtPaymentMode = false;
+      let posDebtCustomerId = null;
+      let posDebtPaymentAmount = 0;
+
+      function getPosDebtCustomer() {
+        return customersList.find(c => c.id === posDebtCustomerId) || null;
+      }
+
+      function startPosDebtPayment() {
+        posDebtLookupMode = true;
+        posDebtPaymentMode = false;
+        posDebtCustomerId = null;
+        posDebtPaymentAmount = 0;
+        posExternalPaymentTotal = null;
+        resetPosCustomer();
+        const phoneInput = document.getElementById('posCustomerPhoneInput');
+        if (phoneInput) {
+          phoneInput.placeholder = 'ชำระหนี้: พิมพ์เบอร์สมาชิก แล้วกด Enter';
+          phoneInput.focus();
+          phoneInput.select();
+        }
+      }
+
+      function cancelPosDebtPayment() {
+        const modal = document.getElementById('posDebtAmountModal');
+        if (modal && modal.open) modal.close();
+        posDebtLookupMode = false;
+        posDebtPaymentMode = false;
+        posDebtCustomerId = null;
+        posDebtPaymentAmount = 0;
+        const phoneInput = document.getElementById('posCustomerPhoneInput');
+        if (phoneInput) phoneInput.placeholder = 'พิมพ์เบอร์โทรศัพท์สมาชิก...';
+        focusPosScanner(true);
+      }
+
+      function openPosDebtAmountModal(customer) {
+        const outstanding = parseFloat(customer.total_credit) || 0;
+        if (outstanding <= 0) {
+          alert('สมาชิกคนนี้ไม่มียอดหนี้คงเหลือ');
+          cancelPosDebtPayment();
+          return;
+        }
+
+        posDebtCustomerId = customer.id;
+        document.getElementById('posDebtCustomerName').textContent = `${customer.realName} · ${customer.phone || ''}`;
+        document.getElementById('posDebtOutstandingText').textContent = fmt(outstanding);
+        document.getElementById('posDebtAmountError').classList.add('hidden');
+        const amountInput = document.getElementById('posDebtAmountInput');
+        amountInput.value = '';
+        amountInput.max = String(outstanding);
+        document.getElementById('posDebtAmountModal').showModal();
+        setTimeout(() => amountInput.focus(), 80);
+      }
+
+      function getActivePaymentTotal() {
+        return posDebtPaymentMode ? posDebtPaymentAmount : calculatePosTotal();
+      }
 
       function openPaymentSelectorModal() {
         const modal = document.getElementById('posPaymentSelectorModal');
-        const total = calculatePosTotal();
+        posDebtPaymentMode = posDebtLookupMode && posDebtCustomerId && posDebtPaymentAmount > 0;
+        const total = getActivePaymentTotal();
         if (total <= 0) return;
+        posExternalPaymentTotal = total;
 
         document.getElementById('posPayModalTotal').textContent = fmt(total);
+        const paymentGrid = document.getElementById('posPaymentOptionGrid');
+        const creditButton = document.getElementById('btnPaySelectCredit');
+        if (posDebtPaymentMode) {
+          paymentGrid.classList.remove('grid-cols-3');
+          paymentGrid.classList.add('grid-cols-2');
+          creditButton.classList.add('hidden');
+        } else {
+          paymentGrid.classList.remove('grid-cols-2');
+          paymentGrid.classList.add('grid-cols-3');
+          creditButton.classList.remove('hidden');
+        }
 
         // Update customer info for Credit mode
         const custSelect = document.getElementById('posCustomerSelect');
@@ -3449,6 +3696,7 @@
             button.className = "py-3 px-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs text-center flex flex-col items-center gap-1 transition-all focus:ring-2 focus:ring-emerald-500 focus:outline-none";
           }
         });
+        if (posDebtPaymentMode && creditButton) creditButton.classList.add('hidden');
         btnConfirm.disabled = true;
 
         // Pre-fill cash received input with exact total or empty
@@ -3489,6 +3737,7 @@
             btn.className = "py-3 px-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs text-center flex flex-col items-center gap-1 transition-all focus:ring-2 focus:ring-emerald-500 focus:outline-none";
           }
         });
+        if (posDebtPaymentMode && btnCredit) btnCredit.classList.add('hidden');
 
         // Hide panels
         [panelCash, panelPP, panelCredit].forEach(panel => {
@@ -3496,7 +3745,7 @@
         });
         if (panelChoose) panelChoose.classList.add('hidden');
 
-        const total = calculatePosTotal();
+        const total = getActivePaymentTotal();
 
         if (method === 'cash') {
           if (btnCash) btnCash.className = "py-3 px-2 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-800 font-bold text-xs text-center flex flex-col items-center gap-1 transition-all shadow-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none";
@@ -3507,6 +3756,7 @@
             cashInput.focus();
             cashInput.select();
           }
+          if (cashInput && posDebtPaymentMode) cashInput.value = String(total);
 
           updatePayModalChange();
           if (btnConfirm) btnConfirm.disabled = false;
@@ -3550,7 +3800,7 @@
       }
 
       function updatePayModalChange() {
-        const total = calculatePosTotal();
+        const total = getActivePaymentTotal();
         const cashInput = document.getElementById('posCashReceived');
         if (cashInput) {
           const received = parseFloat(cashInput.value) || 0;
@@ -3569,7 +3819,7 @@
 
         const activeId = document.activeElement ? document.activeElement.id : '';
 
-        if (selectedPaymentMethod === 'cash' && activeId !== 'posCashReceived') {
+        if (selectedPaymentMethod === 'cash' && activeId !== 'posCashReceived' && !posDebtPaymentMode) {
           // If Cash is selected, but not focused in the input, move focus to the input
           const cashInput = document.getElementById('posCashReceived');
           if (cashInput) {
@@ -3583,7 +3833,7 @@
       }
 
       async function submitPaymentSelector() {
-        const total = calculatePosTotal();
+        const total = getActivePaymentTotal();
         const custSelect = document.getElementById('posCustomerSelect');
         const customerId = custSelect.value || null;
         const btn = document.getElementById('btnConfirmPaySelector');
@@ -3592,6 +3842,15 @@
         btn.textContent = 'กำลังบันทึก...';
 
         try {
+          if (posDebtPaymentMode) {
+            if (selectedPaymentMethod !== 'cash' && selectedPaymentMethod !== 'promptpay') {
+              throw new Error('กรุณาเลือกเงินสดหรือพร้อมเพย์');
+            }
+            document.getElementById('posPaymentSelectorModal').close();
+            await completePosDebtPayment(selectedPaymentMethod);
+            return;
+          }
+
           if (selectedPaymentMethod === 'cash') {
             const cashInput = document.getElementById('posCashReceived');
             const received = parseFloat(cashInput.value) || 0;
@@ -3626,6 +3885,56 @@
           btn.disabled = false;
           btn.textContent = 'ตกลงและพิมพ์บิล (Enter)';
         }
+      }
+
+      async function completePosDebtPayment(method) {
+        if (!sbClient) throw new Error('Supabase client not initialized');
+        const customer = getPosDebtCustomer();
+        if (!customer) throw new Error('ไม่พบข้อมูลสมาชิก');
+
+        const outstanding = parseFloat(customer.total_credit) || 0;
+        const amount = Math.min(posDebtPaymentAmount, outstanding);
+        if (amount <= 0) throw new Error('ยอดชำระไม่ถูกต้อง');
+
+        const methodLabel = method === 'cash' ? 'เงินสด' : 'พร้อมเพย์';
+        const creditRecord = {
+          customer_id: customer.id,
+          amount: -amount,
+          note: `ชำระคืนหนี้ผ่าน POS (${methodLabel})`,
+          status: 'paid'
+        };
+        const { error: txErr } = await sbClient.from('credit_transactions').insert([creditRecord]);
+        if (txErr) throw txErr;
+
+        const newTotal = Math.max(0, outstanding - amount);
+        const { error: custErr } = await sbClient
+          .from('customers')
+          .update({ total_credit: newTotal })
+          .eq('id', customer.id);
+        if (custErr) throw custErr;
+
+        customer.total_credit = newTotal;
+        populateCustomerDropdown(customersList);
+        syncCustomerDisplay('success');
+
+        document.getElementById('successTotalText').textContent = fmt(amount);
+        document.getElementById('successCashDetails').classList.add('hidden');
+        document.getElementById('successChangeDetails').classList.add('hidden');
+        document.getElementById('successCreditDetails').classList.remove('hidden');
+        document.getElementById('successCreditCustText').textContent =
+          `${customer.realName} · ชำระหนี้ ${methodLabel} · คงเหลือ ${fmt(newTotal)}`;
+        document.getElementById('posSuccessModal').showModal();
+
+        posDebtLookupMode = false;
+        posDebtPaymentMode = false;
+        posDebtCustomerId = null;
+        posDebtPaymentAmount = 0;
+        posExternalPaymentTotal = null;
+        selectedPaymentMethod = null;
+        resetPosCustomer();
+        const phoneInput = document.getElementById('posCustomerPhoneInput');
+        if (phoneInput) phoneInput.placeholder = 'พิมพ์เบอร์โทรศัพท์สมาชิก...';
+        await loadDashboardData();
       }
 
       // Table events (Edit / Delete / Quick Price / Show Barcode)
@@ -4562,10 +4871,14 @@
 
             const found = customersList.find(c => c.phone === val || c.phone.replace(/[^0-9]/g, '') === val.replace(/[^0-9]/g, ''));
             if (found) {
-              // Member found: confirm selection and open payment
+              // Member found: continue to debt amount or regular checkout.
               posCustSelect.value = found.id;
               posCustSelect.dispatchEvent(new Event('change'));
-              if (posCart.length > 0) openPaymentSelectorModal();
+              if (posDebtLookupMode) {
+                openPosDebtAmountModal(found);
+              } else if (posCart.length > 0) {
+                openPaymentSelectorModal();
+              }
             } else {
               // Not found: highlight border in red as a hint
               posPhoneInput.style.borderColor = '#f43f5e';
@@ -4769,13 +5082,20 @@
           return;
         }
 
-        if (e.key === '-' || e.key === 'Subtract' || e.code === 'Minus' || e.code === 'NumpadSubtract') {
+        const isMinus = e.key === '-' || e.key === 'Subtract' || e.code === 'Minus' || e.code === 'NumpadSubtract';
+        const isPlus = e.key === '+' || e.key === 'Add' || e.code === 'NumpadAdd';
+        if (isMinus || isPlus) {
           e.preventDefault();
-          setPosRemoveScanMode(true);
+          beginPosScanAction(isMinus ? 'remove' : 'add');
           return;
         }
 
         const scanDigit = getScannerDigit(e);
+        if (posScanAction && posScanActionEnteringQty && scanDigit) {
+          e.preventDefault();
+          appendPosScanActionQty(scanDigit);
+          return;
+        }
         if (scanDigit) {
           e.preventDefault();
           posScanBuffer += scanDigit;
@@ -6299,9 +6619,11 @@
 
     // POS Cart Logic
     let pendingUnknownBarcode = '';
+    let pendingUnknownQty = 1;
 
-    function openUnknownProductModal(barcode) {
+    function openUnknownProductModal(barcode, qty = 1) {
       pendingUnknownBarcode = barcode.trim();
+      pendingUnknownQty = Math.max(1, parseInt(qty) || 1);
       document.getElementById('posUnknownBarcode').textContent = pendingUnknownBarcode;
       document.getElementById('posUnknownPrice').value = '';
       document.getElementById('posUnknownProductModal').showModal();
@@ -6310,6 +6632,7 @@
 
     function closeUnknownProductModal() {
       pendingUnknownBarcode = '';
+      pendingUnknownQty = 1;
       const modal = document.getElementById('posUnknownProductModal');
       if (modal.open) modal.close();
       const posSearch = document.getElementById('posSearchInput');
@@ -6346,7 +6669,7 @@
         if (error) throw error;
 
         productsList.push(data);
-        addToPosCart(data, 1);
+        addToPosCart(data, pendingUnknownQty);
         closeUnknownProductModal();
         renderProductsTable(productsList);
       } catch (err) {
@@ -6355,7 +6678,7 @@
         if (existing) {
           const local = productsList.find(p => p.id === existing.id);
           if (!local) productsList.push(existing);
-          addToPosCart(local || existing, 1);
+          addToPosCart(local || existing, pendingUnknownQty);
           closeUnknownProductModal();
           renderProductsTable(productsList);
         } else {
@@ -6396,7 +6719,9 @@
             total: calculatePosTotal(),
             customerId: customerSelect ? customerSelect.value : '',
             customerPhone: document.getElementById('posCustomerPhoneInput')?.value || '',
-            removeMode: posRemoveScanMode
+            removeMode: posRemoveScanMode,
+            scanAction: posScanAction,
+            scanActionQty: posScanActionQty
           },
           checkout: {
             paymentOpen: Boolean(paymentModal && paymentModal.open),
@@ -6442,7 +6767,11 @@
           const customerPhone = document.getElementById('posCustomerPhoneInput');
           if (customerSelect) customerSelect.value = remoteState.pos.customerId || '';
           if (customerPhone) customerPhone.value = remoteState.pos.customerPhone || '';
-          setPosRemoveScanMode(Boolean(remoteState.pos.removeMode));
+          if (remoteState.pos.scanAction) {
+            armPosScanAction(remoteState.pos.scanAction, remoteState.pos.scanActionQty || 1);
+          } else {
+            setPosRemoveScanMode(Boolean(remoteState.pos.removeMode));
+          }
           syncCustomerDisplay('idle');
         }
 
@@ -6486,9 +6815,11 @@
       if (!code) return;
       broadcastBarcode(code);
 
-      if (posRemoveScanMode) {
-        removeOnePosItemByBarcode(code);
-        setPosRemoveScanMode(false);
+      const scanAction = posScanAction;
+      const actionQty = Math.max(1, parseInt(posScanActionQty) || 1);
+      if (scanAction === 'remove') {
+        removePosItemsByBarcode(code, actionQty);
+        clearPosScanAction();
         return;
       }
 
@@ -6502,14 +6833,16 @@
           }
           found.is_active = true;
         }
-        addToPosCart(found, 1);
+        addToPosCart(found, scanAction === 'add' ? actionQty : 1);
+        if (scanAction) clearPosScanAction();
         const posSearch = document.getElementById('posSearchInput');
         if (posSearch) {
           posSearch.value = '';
           posSearch.focus();
         }
       } else {
-        openUnknownProductModal(code);
+        openUnknownProductModal(code, scanAction === 'add' ? actionQty : 1);
+        if (scanAction) clearPosScanAction();
       }
     }
 
@@ -6707,7 +7040,7 @@
     }
 
     function syncCustomerDisplay(checkoutState = 'idle', customQrUrl = null) {
-      const total = calculatePosTotal();
+      const total = posExternalPaymentTotal ?? calculatePosTotal();
       const cashReceived = parseFloat(document.getElementById('posCashReceived').value) || 0;
       let change = 0;
       if (cashReceived > 0 && cashReceived >= total) {
