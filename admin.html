@@ -3223,10 +3223,48 @@
         }
       }
 
+      function returnToPaymentMethodSelection() {
+        selectedPaymentMethod = null;
+        const panelChoose = document.getElementById('panelPayChoose');
+        const cashInput = document.getElementById('posCashReceived');
+        const confirmButton = document.getElementById('btnConfirmPaySelector');
+        const creditButton = document.getElementById('btnPaySelectCredit');
+
+        ['panelPayCash', 'panelPayPP', 'panelPayCredit'].forEach(id => {
+          document.getElementById(id)?.classList.add('hidden');
+        });
+        panelChoose?.classList.remove('hidden');
+
+        ['btnPaySelectCash', 'btnPaySelectPP', 'btnPaySelectCredit'].forEach(id => {
+          const button = document.getElementById(id);
+          if (button) {
+            button.className = "py-3 px-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs text-center flex flex-col items-center gap-1 transition-all focus:ring-2 focus:ring-emerald-500 focus:outline-none";
+          }
+        });
+        if (posDebtPaymentMode && creditButton) creditButton.classList.add('hidden');
+        if (cashInput) cashInput.value = '';
+        document.getElementById('posChangeText').textContent = fmt(0);
+        if (confirmButton) confirmButton.disabled = true;
+        syncCustomerDisplay('idle');
+        document.getElementById('btnPaySelectCash')?.focus();
+        broadcastRemoteAppState('pos');
+      }
+
       if (payModal) {
         payModal.addEventListener('keydown', (e) => {
-          // Delete or Escape cancels payment from every control, including cash input.
-          if (e.key === 'Delete' || e.key === 'Escape') {
+          // Delete goes back one step; from method selection it closes the modal.
+          if (e.key === 'Delete') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (selectedPaymentMethod || document.activeElement?.id === 'posCashReceived') {
+              returnToPaymentMethodSelection();
+            } else {
+              cancelPaymentSelector();
+            }
+            return;
+          }
+
+          if (e.key === 'Escape') {
             e.preventDefault();
             e.stopPropagation();
             cancelPaymentSelector();
