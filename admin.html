@@ -1730,16 +1730,12 @@
         </div>
       </div>
 
-      <p class="text-xs text-slate-400">ข้อมูลการขายบันทึกลงฐานข้อมูลและตัดสต็อกสินค้าเรียบร้อยแล้ว</p>
+      <p id="successStatusText" class="text-xs text-slate-400">ข้อมูลการขายบันทึกลงฐานข้อมูลและตัดสต็อกสินค้าเรียบร้อยแล้ว</p>
 
-      <div class="flex gap-3">
-        <button id="btnManualPrintReceipt"
-          class="flex-1 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-1">
-          🖨️ พิมพ์ใบเสร็จ
-        </button>
+      <div>
         <button id="btnConfirmCloseSuccessModal"
-          class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors">
-          พิมพ์ใบเสร็จ / ทำรายการใหม่ (Enter)
+          class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors disabled:opacity-60 disabled:cursor-wait">
+          ตกลง บันทึกใบเสร็จ .txt (Enter)
         </button>
       </div>
     </div>
@@ -2075,6 +2071,7 @@
     let activeSearchIndex = -1;
     let lastSaleRecord = null;
     let lastSaleReceiptPrinted = false;
+    let lastSaleReceiptDownloaded = false;
     let isFinishingPosTransaction = false;
     let posRemoveScanMode = false;
     let posScanAction = null;
@@ -4005,33 +4002,7 @@
           method: method
         };
         lastSaleReceiptPrinted = false;
-
-        // 3.5 Auto Download local receipt file
-        try {
-          downloadReceiptFile({
-            items: clientCartItems,
-            total: saleRecord.total,
-            cash_received: received,
-            change_amount: change
-          }, customerName, method);
-        } catch (receiptDlErr) {
-          console.error("ดาวน์โหลดไฟล์ใบเสร็จล้มเหลว:", receiptDlErr);
-        }
-
-        // 3.6 Auto Print receipt if enabled in settings
-        try {
-          if (localStorage.getItem('MN_AUTO_PRINT_RECEIPT') === 'true') {
-            lastSaleReceiptPrinted = true;
-            printReceipt({
-              items: clientCartItems,
-              total: saleRecord.total,
-              cash_received: received,
-              change_amount: change
-            }, customerName, method);
-          }
-        } catch (printErr) {
-          console.error("สั่งพิมพ์ใบเสร็จอัตโนมัติล้มเหลว:", printErr);
-        }
+        lastSaleReceiptDownloaded = false;
 
         // 4. Announce success; the display state is updated after the cart reset.
         speakPosMessage('ชำระเงินเรียบร้อย ขอบคุณค่ะ');
@@ -4071,6 +4042,7 @@
         renderPosCart();
         syncCustomerDisplay('success');
         showPosSuccessModal();
+        startAutomaticReceiptPrint();
         loadDashboardData();
       }
 
@@ -4088,14 +4060,56 @@
         }
 
         const successModal = document.getElementById('posSuccessModal');
+        const statusText = document.getElementById('successStatusText');
+        const finishButton = document.getElementById('btnConfirmCloseSuccessModal');
+        const autoPrint = Boolean(lastSaleRecord) && localStorage.getItem('MN_AUTO_PRINT_RECEIPT') === 'true';
+        if (statusText) {
+          statusText.textContent = autoPrint
+            ? 'ชำระแล้ว กำลังพิมพ์ใบเสร็จ กรุณารอสักครู่...'
+            : (lastSaleRecord
+              ? 'ตรวจสอบยอดเงิน แล้วกดตกลงเพื่อบันทึกใบเสร็จ .txt และเริ่มรายการใหม่'
+              : 'ชำระเงินเรียบร้อยแล้ว กดตกลงเพื่อเริ่มรายการใหม่');
+        }
+        if (finishButton) {
+          finishButton.disabled = autoPrint;
+          finishButton.textContent = autoPrint
+            ? 'กำลังพิมพ์ใบเสร็จ...'
+            : (lastSaleRecord ? 'ตกลง บันทึกใบเสร็จ .txt (Enter)' : 'ตกลง ทำรายการใหม่ (Enter)');
+        }
         if (!successModal.open) successModal.showModal();
-        setTimeout(() => document.getElementById('btnConfirmCloseSuccessModal')?.focus(), 50);
+        if (!autoPrint) setTimeout(() => finishButton?.focus(), 50);
         broadcastRemoteAppState('pos');
+      }
+
+      function saveLastSaleReceiptFile() {
+        if (!lastSaleRecord || lastSaleReceiptDownloaded) return;
+        lastSaleReceiptDownloaded = true;
+        downloadReceiptFile({
+          items: lastSaleRecord.items,
+          total: lastSaleRecord.total,
+          cash_received: lastSaleRecord.cash_received,
+          change_amount: lastSaleRecord.change_amount
+        }, lastSaleRecord.customerName, lastSaleRecord.method);
+      }
+
+      function startAutomaticReceiptPrint() {
+        if (!lastSaleRecord || localStorage.getItem('MN_AUTO_PRINT_RECEIPT') !== 'true') return;
+        lastSaleReceiptPrinted = true;
+        saveLastSaleReceiptFile();
+        setTimeout(() => {
+          printReceipt({
+            items: lastSaleRecord.items,
+            total: lastSaleRecord.total,
+            cash_received: lastSaleRecord.cash_received,
+            change_amount: lastSaleRecord.change_amount
+          }, lastSaleRecord.customerName, lastSaleRecord.method, finishPosTransaction);
+        }, 100);
       }
 
       function finishPosTransaction() {
         if (isFinishingPosTransaction) return;
         isFinishingPosTransaction = true;
+        saveLastSaleReceiptFile();
 
         const successModal = document.getElementById('posSuccessModal');
         if (successModal?.open) successModal.close();
@@ -4109,17 +4123,7 @@
           broadcastRemoteAppState('pos');
         };
 
-        if (lastSaleRecord && !lastSaleReceiptPrinted) {
-          lastSaleReceiptPrinted = true;
-          printReceipt({
-            items: lastSaleRecord.items,
-            total: lastSaleRecord.total,
-            cash_received: lastSaleRecord.cash_received,
-            change_amount: lastSaleRecord.change_amount
-          }, lastSaleRecord.customerName, lastSaleRecord.method, readyForNextSale);
-        } else {
-          readyForNextSale();
-        }
+        readyForNextSale();
       }
 
       document.getElementById('btnConfirmCloseSuccessModal').addEventListener('click', finishPosTransaction);
@@ -4490,6 +4494,7 @@
           `${customer.realName} · ชำระหนี้ ${methodLabel} · คงเหลือ ${fmt(newTotal)}`;
         lastSaleRecord = null;
         lastSaleReceiptPrinted = true;
+        lastSaleReceiptDownloaded = true;
         showPosSuccessModal();
 
         posDebtLookupMode = false;
@@ -5613,22 +5618,6 @@
       if (refillBtn) {
         refillBtn.addEventListener('click', () => {
           refillPendingProductStock();
-        });
-      }
-
-      // Bind click for btnManualPrintReceipt
-      const manualPrintBtn = document.getElementById('btnManualPrintReceipt');
-      if (manualPrintBtn) {
-        manualPrintBtn.addEventListener('click', () => {
-          if (lastSaleRecord) {
-            lastSaleReceiptPrinted = true;
-            printReceipt({
-              items: lastSaleRecord.items,
-              total: lastSaleRecord.total,
-              cash_received: lastSaleRecord.cash_received,
-              change_amount: lastSaleRecord.change_amount
-            }, lastSaleRecord.customerName, lastSaleRecord.method);
-          }
         });
       }
 
