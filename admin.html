@@ -2067,6 +2067,7 @@
     let customerDisplayWindow = null;
     let customerDisplayAutoOpenAttempted = false;
     let customerDisplayHeartbeatTimer = null;
+    let customerDisplayReadyAcknowledged = true;
     let shortcutMode = false;
     let activeSearchIndex = -1;
     let lastSaleRecord = null;
@@ -2456,7 +2457,7 @@
       startRememberingPosWindowGeometry();
       window.addEventListener('message', event => {
         if (event.origin === window.location.origin && event.data?.type === 'MN_CUSTOMER_DISPLAY_READY') {
-          showCustomerDisplayReadyModal();
+          if (!customerDisplayReadyAcknowledged) showCustomerDisplayReadyModal();
         }
       });
       setupAuthListeners(); // Setup auth listeners FIRST, separately
@@ -2708,7 +2709,7 @@
     function showCustomerDisplayReadyModal() {
       const modal = document.getElementById('customerDisplayReadyModal');
       const confirmButton = document.getElementById('btnConfirmCustomerDisplayReady');
-      if (!modal || modal.open) return;
+      if (!modal || customerDisplayReadyAcknowledged) return;
 
       try {
         window.focus();
@@ -2716,11 +2717,12 @@
         console.warn('ไม่สามารถดึงหน้าต่าง POS กลับด้านหน้าได้:', error);
       }
 
-      modal.showModal();
+      if (!modal.open) modal.showModal();
       setTimeout(() => confirmButton?.focus(), 50);
     }
 
     function confirmCustomerDisplayReady() {
+      customerDisplayReadyAcknowledged = true;
       const modal = document.getElementById('customerDisplayReadyModal');
       if (modal?.open) modal.close();
       recoverPosScannerFocus();
@@ -2756,9 +2758,14 @@
         return null;
       }
 
-      // Give the customer window time to open and restore its screen position,
-      // then return keyboard input to the POS barcode field.
-      recoverPosScannerFocus();
+      // Ask for confirmation immediately. The customer window may finish
+      // restoring its screen position later, but must not steal scanner focus.
+      customerDisplayReadyAcknowledged = false;
+      [0, 120, 350].forEach(delay => {
+        setTimeout(() => {
+          if (!customerDisplayReadyAcknowledged) showCustomerDisplayReadyModal();
+        }, delay);
+      });
       return customerDisplayWindow;
     }
 
@@ -2784,6 +2791,9 @@
         customerDisplayWindow.close();
       }
       customerDisplayWindow = null;
+      customerDisplayReadyAcknowledged = true;
+      const readyModal = document.getElementById('customerDisplayReadyModal');
+      if (readyModal?.open) readyModal.close();
       localStorage.setItem('MN_CUSTOMER_DISPLAY_CLOSE_REQUEST', String(Date.now()));
     }
 
